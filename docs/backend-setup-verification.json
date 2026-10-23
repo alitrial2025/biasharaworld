@@ -1,0 +1,38 @@
+{
+  "supabaseProjectRef": "rhgoiebknrpxtouswaar",
+  "supabaseOrganizationPlan": "free",
+  "supabaseProjectStatus": "ACTIVE_HEALTHY",
+  "region": "eu-west-2",
+  "vercelProject": "biasharaworld",
+  "vercelPlan": "hobby",
+  "applicationBackendImplemented": false,
+  "schemaMigrationsApplied": false,
+  "publicDeploymentCreated": false,
+  "apiChecks": {
+    "/auth/v1/health": {
+      "blocked": true,
+      "reason": "Tunnel connection failed: 403 Forbidden"
+    },
+    "/rest/v1/": {
+      "blocked": true,
+      "reason": "Tunnel connection failed: 403 Forbidden"
+    }
+  },
+  "credentialsOutsideRepository": true,
+  "credentialFileMode": "0600",
+  "publicConfigInVercel": [
+    "development",
+    "preview",
+    "production"
+  ],
+  "cliVersions": {
+    "vercel": "65.2.0",
+    "supabase": "2.122.0"
+  },
+  "cliReinstallAndAuthPersistence": "passed",
+  "webProductionBuild": "passed",
+  "webTypecheck": "passed",
+  "networkDraft": "saved; exact project host added",
+  "networkRuntime": "provider APIs reachable; project Auth and REST hosts still blocked by proxy 403",
+  "requiresPublish": true
+}

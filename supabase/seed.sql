@@ -1,0 +1,2 @@
+-- No production or customer data is seeded during CLI setup.
+-- Add intentional development fixtures alongside the first reviewed schema migrations.

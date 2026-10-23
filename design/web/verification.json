@@ -1,0 +1,29 @@
+{
+  "project": "BiasharaOS web",
+  "build": "passed",
+  "typecheck": "passed",
+  "lint": "passed with no warnings",
+  "format": "passed",
+  "e2e": {
+    "passed": 8,
+    "failed": 0,
+    "browser": "System Chromium 154"
+  },
+  "responsive": {
+    "routes": 38,
+    "widths": [
+      1440,
+      1024,
+      768,
+      390,
+      360
+    ],
+    "route_checks": 190,
+    "javascript_errors": 0,
+    "page_overflow": 0
+  },
+  "production_dependency_audit": {
+    "vulnerabilities": 0
+  },
+  "scope": "Frontend demo only. No real authentication, payments, orders, emails, lending or external AI."
+}

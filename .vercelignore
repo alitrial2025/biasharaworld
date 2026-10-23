@@ -1,0 +1,17 @@
+.git
+.env*
+**/.env*
+**/node_modules
+**/.next
+**/test-results
+**/playwright-report
+**/build
+**/.gradle
+/app
+/design
+/docs
+/gradle
+/supabase
+/tools
+/third_party
+*.apk

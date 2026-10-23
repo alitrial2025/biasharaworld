@@ -1,0 +1,407 @@
+{
+  "products": [
+    {
+      "id": 1,
+      "name": "Soko Maize Flour",
+      "size": "2 kg",
+      "sku": "BW-001",
+      "category": "Food",
+      "price": 180,
+      "cost": 144,
+      "stock": 42,
+      "reorder": 10,
+      "art": 0
+    },
+    {
+      "id": 2,
+      "name": "Blue Band",
+      "size": "500 g",
+      "sku": "BW-002",
+      "category": "Food",
+      "price": 350,
+      "cost": 280,
+      "stock": 24,
+      "reorder": 8,
+      "art": 1
+    },
+    {
+      "id": 3,
+      "name": "Coca-Cola",
+      "size": "500 ml",
+      "sku": "BW-003",
+      "category": "Drinks",
+      "price": 120,
+      "cost": 96,
+      "stock": 8,
+      "reorder": 10,
+      "art": 2
+    },
+    {
+      "id": 4,
+      "name": "Keringet Water",
+      "size": "1.5 L",
+      "sku": "BW-004",
+      "category": "Drinks",
+      "price": 100,
+      "cost": 80,
+      "stock": 56,
+      "reorder": 12,
+      "art": 3
+    },
+    {
+      "id": 5,
+      "name": "Sunlight Soap",
+      "size": "250 g",
+      "sku": "BW-005",
+      "category": "Household",
+      "price": 120,
+      "cost": 95,
+      "stock": 0,
+      "reorder": 10,
+      "art": 4
+    },
+    {
+      "id": 6,
+      "name": "Royco Mchuzi Mix",
+      "size": "50 g",
+      "sku": "BW-006",
+      "category": "Food",
+      "price": 80,
+      "cost": 60,
+      "stock": 36,
+      "reorder": 10,
+      "art": 5
+    },
+    {
+      "id": 7,
+      "name": "Brookside Milk",
+      "size": "500 ml",
+      "sku": "BW-007",
+      "category": "Drinks",
+      "price": 65,
+      "cost": 50,
+      "stock": 6,
+      "reorder": 10,
+      "art": 6
+    },
+    {
+      "id": 8,
+      "name": "Pamba Rice",
+      "size": "1 kg",
+      "sku": "BW-008",
+      "category": "Food",
+      "price": 210,
+      "cost": 165,
+      "stock": 18,
+      "reorder": 8,
+      "art": 7
+    }
+  ],
+  "operations": {
+    "version": 2,
+    "activeBranch": "main",
+    "branches": [
+      {
+        "id": "main",
+        "name": "Main shop",
+        "location": "Nairobi CBD"
+      },
+      {
+        "id": "westlands",
+        "name": "Westlands",
+        "location": "Westlands, Nairobi"
+      }
+    ],
+    "stock": {
+      "main": {
+        "1": 42,
+        "2": 24,
+        "3": 8,
+        "4": 56,
+        "5": 0,
+        "6": 36,
+        "7": 6,
+        "8": 18
+      },
+      "westlands": {
+        "1": 21,
+        "2": 12,
+        "3": 4,
+        "4": 28,
+        "5": 0,
+        "6": 18,
+        "7": 3,
+        "8": 9
+      }
+    },
+    "cart": {},
+    "customer": "Walk-in customer",
+    "discount": 0,
+    "discountKind": "percent",
+    "promotion": "",
+    "redeem": 0,
+    "held": [],
+    "receipts": [
+      {
+        "id": 1043,
+        "branch": "main",
+        "customer": "Mary Wambui",
+        "lines": [
+          {
+            "productId": 1,
+            "name": "Soko Maize Flour · 2 kg",
+            "quantity": 2,
+            "unit": 18000,
+            "net": 36000
+          }
+        ],
+        "total": 36000,
+        "discount": 0,
+        "payments": [
+          {
+            "method": "Cash",
+            "amount": 36000
+          }
+        ],
+        "date": "2026-10-23",
+        "earned": 3,
+        "redeemed": 0,
+        "returned": {}
+      }
+    ],
+    "returns": [],
+    "promotions": [
+      {
+        "id": 1,
+        "name": "Neighbourhood thank-you",
+        "percent": 5,
+        "ends": "2026-11-22",
+        "productId": null
+      }
+    ],
+    "documents": [],
+    "registers": [],
+    "counts": [],
+    "batches": [
+      {
+        "id": 1,
+        "productId": 1,
+        "branch": "main",
+        "code": "MAIN-1",
+        "quantity": 42,
+        "expires": "2027-02-20"
+      },
+      {
+        "id": 2,
+        "productId": 2,
+        "branch": "main",
+        "code": "MAIN-2",
+        "quantity": 24,
+        "expires": "2027-02-20"
+      },
+      {
+        "id": 3,
+        "productId": 3,
+        "branch": "main",
+        "code": "MAIN-3",
+        "quantity": 8,
+        "expires": "2027-02-20"
+      },
+      {
+        "id": 4,
+        "productId": 4,
+        "branch": "main",
+        "code": "MAIN-4",
+        "quantity": 56,
+        "expires": "2027-02-20"
+      },
+      {
+        "id": 5,
+        "productId": 6,
+        "branch": "main",
+        "code": "MAIN-6",
+        "quantity": 36,
+        "expires": "2027-02-20"
+      },
+      {
+        "id": 6,
+        "productId": 7,
+        "branch": "main",
+        "code": "MAIN-7",
+        "quantity": 6,
+        "expires": "2026-10-28"
+      },
+      {
+        "id": 7,
+        "productId": 8,
+        "branch": "main",
+        "code": "MAIN-8",
+        "quantity": 18,
+        "expires": "2027-02-20"
+      },
+      {
+        "id": 8,
+        "productId": 1,
+        "branch": "westlands",
+        "code": "WESTLANDS-1",
+        "quantity": 21,
+        "expires": "2027-02-20"
+      },
+      {
+        "id": 9,
+        "productId": 2,
+        "branch": "westlands",
+        "code": "WESTLANDS-2",
+        "quantity": 12,
+        "expires": "2027-02-20"
+      },
+      {
+        "id": 10,
+        "productId": 3,
+        "branch": "westlands",
+        "code": "WESTLANDS-3",
+        "quantity": 4,
+        "expires": "2027-02-20"
+      },
+      {
+        "id": 11,
+        "productId": 4,
+        "branch": "westlands",
+        "code": "WESTLANDS-4",
+        "quantity": 28,
+        "expires": "2027-02-20"
+      },
+      {
+        "id": 12,
+        "productId": 6,
+        "branch": "westlands",
+        "code": "WESTLANDS-6",
+        "quantity": 18,
+        "expires": "2027-02-20"
+      },
+      {
+        "id": 13,
+        "productId": 7,
+        "branch": "westlands",
+        "code": "WESTLANDS-7",
+        "quantity": 3,
+        "expires": "2026-10-28"
+      },
+      {
+        "id": 14,
+        "productId": 8,
+        "branch": "westlands",
+        "code": "WESTLANDS-8",
+        "quantity": 9,
+        "expires": "2027-02-20"
+      }
+    ],
+    "transfers": [],
+    "movements": [
+      {
+        "id": 1,
+        "productId": 1,
+        "branch": "main",
+        "delta": 42,
+        "reason": "Opening stock",
+        "reference": "Sample catalogue",
+        "date": "2026-10-23"
+      },
+      {
+        "id": 2,
+        "productId": 2,
+        "branch": "main",
+        "delta": 24,
+        "reason": "Opening stock",
+        "reference": "Sample catalogue",
+        "date": "2026-10-23"
+      },
+      {
+        "id": 3,
+        "productId": 3,
+        "branch": "main",
+        "delta": 8,
+        "reason": "Opening stock",
+        "reference": "Sample catalogue",
+        "date": "2026-10-23"
+      },
+      {
+        "id": 4,
+        "productId": 4,
+        "branch": "main",
+        "delta": 56,
+        "reason": "Opening stock",
+        "reference": "Sample catalogue",
+        "date": "2026-10-23"
+      },
+      {
+        "id": 5,
+        "productId": 5,
+        "branch": "main",
+        "delta": 0,
+        "reason": "Opening stock",
+        "reference": "Sample catalogue",
+        "date": "2026-10-23"
+      },
+      {
+        "id": 6,
+        "productId": 6,
+        "branch": "main",
+        "delta": 36,
+        "reason": "Opening stock",
+        "reference": "Sample catalogue",
+        "date": "2026-10-23"
+      },
+      {
+        "id": 7,
+        "productId": 7,
+        "branch": "main",
+        "delta": 6,
+        "reason": "Opening stock",
+        "reference": "Sample catalogue",
+        "date": "2026-10-23"
+      },
+      {
+        "id": 8,
+        "productId": 8,
+        "branch": "main",
+        "delta": 18,
+        "reason": "Opening stock",
+        "reference": "Sample catalogue",
+        "date": "2026-10-23"
+      }
+    ],
+    "deliveries": [],
+    "loyalty": {
+      "Mary Wambui": 120,
+      "John Mwangi": 45
+    },
+    "rewards": [
+      {
+        "id": 1,
+        "customer": "Mary Wambui",
+        "points": 120,
+        "reason": "Opening sample points",
+        "date": "2026-10-23"
+      }
+    ],
+    "rewardRate": 10000,
+    "shop": {
+      "published": true,
+      "name": "Wanjiku General Shop",
+      "description": "Your neighbourhood essentials, a little closer.",
+      "branch": "main",
+      "hidden": [],
+      "fee": 15000
+    },
+    "preferences": {
+      "language": "en",
+      "theme": "light",
+      "textSize": 100
+    },
+    "sync": {
+      "mode": "Local only",
+      "entries": []
+    }
+  }
+}

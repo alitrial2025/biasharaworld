@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-23",
+  "features": 20,
+  "platforms": [
+    "Kotlin / Jetpack Compose",
+    "Next.js / React / TypeScript"
+  ],
+  "android": {
+    "tests": 22,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "build": "passed",
+    "lint": "0 errors, 0 warnings",
+    "nativeGraphics": "Robolectric API 35",
+    "physicalDeviceInstrumentation": "not run",
+    "featureScreens": 20,
+    "populatedFeatureCaptures": 8,
+    "darkKiswahiliLargeTextCaptures": 4,
+    "narrowPhoneTextScalePercent": 200
+  },
+  "web": {
+    "playwright": {
+      "passed": 44,
+      "failed": 0,
+      "skipped": 0
+    },
+    "productionBuild": "passed",
+    "eslint": "passed",
+    "typecheck": "passed",
+    "prettier": "passed",
+    "responsive": {
+      "routesChecked": 305,
+      "errors": [],
+      "overflow": []
+    },
+    "viewports": [
+      360,
+      390,
+      768,
+      1024,
+      1440
+    ],
+    "displayPreferencesReview": {
+      "themes": [
+        "dark"
+      ],
+      "languages": [
+        "sw"
+      ],
+      "textSizes": [
+        130,
+        200
+      ],
+      "screenshots": 20,
+      "errors": [],
+      "overflow": [],
+      "broken": []
+    },
+    "populatedWorkflowScreenshots": 18,
+    "populatedWorkflowErrors": []
+  },
+  "apk": {
+    "path": "web/public/downloads/biasharaos-preview.apk",
+    "bytes": 37054250,
+    "sha256": "58b8854753a8174ef99723dfcd7466bce24918d04da7d35cb4912dd024b76311",
+    "matchesAndroidOutput": true
+  },
+  "environment": {
+    "startInstructionsDraft": "saved",
+    "requiresPublish": true,
+    "freshPublishedTaskRestoration": "not verified"
+  },
+  "boundaries": [
+    "Local demo records only; no real authentication, payments, messages, AI, suppliers or driver integration",
+    "Manual / keyboard / sample barcode lookup; camera decoder deferred",
+    "No server or cross-device synchronisation; web offline cold start not cached",
+    "Core interface phrase catalogue in English and Kiswahili; some editorial and sample narrative content remains English",
+    "Browser / Android print previews implemented; physical printer integration unverified"
+  ]
+}

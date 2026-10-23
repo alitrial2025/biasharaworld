@@ -1,0 +1,36 @@
+.gradle/
+.kotlin/
+**/build/
+local.properties
+.idea/
+*.iml
+*.hprof
+captures/
+.DS_Store
+web/node_modules/
+web/.next/
+web/out/
+web/playwright-report/
+web/test-results/
+web/next-env.d.ts
+web/*.tsbuildinfo
+
+# Backend credentials and generated cloud links
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+.vercel/
+**/.vercel/
+supabase/.temp/
+supabase/.branches/
+
+# Supabase CLI project metadata and cached credentials
+.supabase/
+**/.supabase/
+/backend.properties
+
+# Rebuild downloadable Android packages from source; do not keep binaries in Git.
+web/public/downloads/*.apk
