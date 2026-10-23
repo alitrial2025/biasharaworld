@@ -11,6 +11,7 @@ export type Product = {
   reorder: number;
   art: number;
   barcode?: string;
+  imagePath?: string | null;
   variantOf?: number;
   components?: { productId: number; quantity: number }[];
 };

@@ -11,6 +11,7 @@ import {
 } from "@/lib/backend/server";
 import { applyCommand } from "@/lib/backend/commands";
 import { splitState } from "@/lib/backend/empty";
+import { validateProductImage } from "@/lib/backend/product-images";
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
@@ -98,6 +99,7 @@ export async function POST(request: Request) {
         409,
       );
     if (input.draft) Object.assign(workspace.state.operations, input.draft);
+    await validateProductImage(workspace.businessId, input.command);
     const result = applyCommand(workspace.state, input.command, workspace.role);
     const { business, workspace: personal } = splitState(result.state);
     const { data, error } = await admin().rpc("commit_business_command", {

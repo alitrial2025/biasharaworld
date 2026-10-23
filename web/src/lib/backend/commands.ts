@@ -25,6 +25,7 @@ const product = z
     stock: qty,
     reorder: qty,
     art: z.number().int().min(0).max(7),
+    imagePath: z.string().regex(/^[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/).nullable().optional(),
     barcode: z
       .string()
       .regex(/^\d{13}$/)
