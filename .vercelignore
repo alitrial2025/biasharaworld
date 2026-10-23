@@ -15,3 +15,6 @@
 /tools
 /third_party
 *.apk
+
+/backend.properties
+**/.kotlin

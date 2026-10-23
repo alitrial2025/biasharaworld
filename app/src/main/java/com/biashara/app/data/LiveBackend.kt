@@ -170,6 +170,8 @@ class LiveBackend(
                         ?.bufferedReader()
                         ?.use { it.readText() } ?: "{}"
                 val result = runCatching { JSONObject(raw) }.getOrElse { JSONObject() }
+                if (status == 404 && !auth)
+                    throw BackendException("The business service is temporarily unavailable. Please try again shortly.", status)
                 if (status !in 200..299)
                     throw BackendException(
                         result.optString(

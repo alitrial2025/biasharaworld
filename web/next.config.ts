@@ -12,6 +12,7 @@ const config: NextConfig = {
         source: "/:path*",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Biashara-Source", value: process.env.APP_SOURCE_REVISION || "development" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "DENY" },
         ],
