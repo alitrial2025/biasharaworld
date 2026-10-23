@@ -31,6 +31,9 @@ def settings(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--online", action="store_true")
+    parser.add_argument(
+        "--apk", type=pathlib.Path, help="Inspect this APK instead of the debug output."
+    )
     args = parser.parse_args()
     results = []
 
@@ -68,7 +71,9 @@ def main():
     )
 
     static = ROOT / "web/.next/static"
-    apk = ROOT / "app/build/outputs/apk/debug/app-debug.apk"
+    apk = args.apk or ROOT / "app/build/outputs/apk/debug/app-debug.apk"
+    if args.apk:
+        check("requested Android package exists", apk.is_file())
     if static.exists() and secret:
         files = [p for p in static.rglob("*") if p.is_file()]
         check(

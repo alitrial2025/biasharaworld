@@ -38,3 +38,9 @@ web/public/downloads/*.apk
 # Python tool caches
 __pycache__/
 *.pyc
+
+# Android signing material belongs outside the checkout.
+*.jks
+*.p12
+*.keystore
+/release-signing.properties

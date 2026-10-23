@@ -118,9 +118,45 @@
     "Deploy and verify connected website/API",
     "Refresh and enable the Android download after matching API verification",
     "Configure a shared verified email sender before public registration",
-    "Physical-device account links/network checks and release signing",
+    "Physical-device account links/network checks; publish the signed release after API verification",
     "Commercial hosting eligibility and launch operations"
   ],
   "payments": "manual records; Daraja/banks/Stripe not connected",
-  "externalAiFinancingBilling": "not connected"
+  "externalAiFinancingBilling": "not connected",
+  "androidRelease": {
+    "file": "app/build/outputs/apk/release/biasharaos-0.2.0-release.apk",
+    "version": "0.2.0",
+    "versionCode": 2,
+    "bytes": 18921865,
+    "sha256": "df400a8b441e61de1d388ab0ed574f9644a9514ca62c7db57492b66fd04cb3a3",
+    "debuggable": false,
+    "signatureVerified": true,
+    "alignment16KBVerified": true,
+    "hostedApiVerified": false,
+    "jvm": {
+      "tests": 26,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "lint": "passed",
+    "publicConfigurationAndCredentialScan": "passed",
+    "certificateSha256": "e45fa348db25df8f04c30eba853c20e1480407de835a47082d18729ecccc7745"
+  },
+  "androidKeyBackup": {
+    "format": "ZIP containing AES-256-encrypted PKCS12, public certificate and restore instructions",
+    "passwordIncludedInArchive": false,
+    "passwordDelivery": "separate private download",
+    "restoreVerified": true,
+    "externalStorageByUser": "pending download and safekeeping",
+    "rotationGuard": "pinned certificate; missing/mismatched key stops build"
+  },
+  "productionDeploymentAttempt": {
+    "at": "2026-10-23T16:56:48.152391+00:00",
+    "result": "failed before upload",
+    "cli": "Vercel 65.2.0",
+    "error": "TypeError: fetch failed",
+    "diagnosis": "Cloud proxy rejects tunnels with HTTP 403, including outside execution sandbox",
+    "newDeploymentCreated": false
+  }
 }

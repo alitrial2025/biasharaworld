@@ -19,6 +19,7 @@ Requested: Next.js web and Kotlin Android using shared real accounts and records
 - [ ] Restore hosted network access and verify fresh provider/deployment checks.
 - [ ] Update remote callback allowlist for query-bearing account links.
 - [ ] Redeploy the connected web/API and verify public/authenticated behavior.
-- [ ] Refresh and verify the downloadable APK after the matching API is live.
+- [x] Signed Android release 0.2.0 built and verified; 26 release JVM tests and release lint pass. Key identity is pinned; encrypted backup and separate password prepared for the user.
+- [ ] Publish the signed APK download after the matching API is live.
 
-Release prerequisites remain public email delivery, physical-device link/network checks, production Android signing, monitoring and commercial hosting eligibility. External AI, payment collection, lending, paid billing, automated invitation/supplier messaging and a multi-business account switcher are not connected. Do not mark these complete based on UI presence. See [backend setup](backend-setup.md) and [verification evidence](backend-setup-verification.json).
+Release prerequisites remain public email delivery, physical-device link/network checks, secure external storage of the signing backup, monitoring and commercial hosting eligibility. External AI, payment collection, lending, paid billing, automated invitation/supplier messaging and a multi-business account switcher are not connected. Do not mark these complete based on UI presence. See [backend setup](backend-setup.md) and [verification evidence](backend-setup-verification.json).

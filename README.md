@@ -33,7 +33,7 @@ source tools/cloud-env.sh
 ./gradlew :app:connectedDebugAndroidTest
 ```
 
-The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`. Android encrypts session and pending-command data with Android Keystore. Business changes are confirmed by the shared API; local baskets remain drafts. Real production stores reject sample snapshot imports and reset operations. JVM UI tests run without an emulator; real-device networking and account deep links remain unverified.
+The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`. For the signed test release, run `python3 tools/build-release.py` after activating the cloud toolchain. See [release and key-backup instructions](docs/android-release.md). Android encrypts session and pending-command data with Android Keystore. Business changes are confirmed by the shared API; local baskets remain drafts. Real production stores reject sample snapshot imports and reset operations. JVM UI tests run without an emulator; real-device networking and account deep links remain unverified.
 
 ## Verify the shared backend
 
