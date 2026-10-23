@@ -193,7 +193,7 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
         Modifier.fillMaxSize()
             .background(
                 androidx.compose.ui.graphics.Brush.verticalGradient(
-                    listOf(Color.White, Color(0xFFF4F6FF))
+                    listOf(Canvas, BlueMist)
                 )
             )
             .padding(horizontal = 18.dp)
@@ -227,7 +227,7 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
                 )
             }
             Column(Modifier.weight(1f).padding(start = 11.dp)) {
-                AppText("BiasharaAI", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                AppText(if (store.real) "Business summaries" else "BiasharaAI", fontSize = 17.sp, fontWeight = FontWeight.Bold)
                 AppText(
                     "Your business assistant",
                     fontSize = 10.sp,
@@ -270,7 +270,7 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
                             lineHeight = 20.sp,
                             color = if (m.user) Color.White else Ink,
                         )
-                        if (index == 1 && !m.user) {
+                        if (!store.real && index == 1 && !m.user) {
                             Spacer(Modifier.height(15.dp))
                             listOf(
                                     Triple("Total sales", "KES 12,450", Mint),
@@ -343,7 +343,7 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
                 .forEach { q ->
                     Row(
                         Modifier.fillMaxWidth()
-                            .background(Color(0xFFEAECFB), RoundedCornerShape(20.dp))
+                            .background(Lavender, RoundedCornerShape(20.dp))
                             .clickable { store.reply(q) }
                             .padding(horizontal = 13.dp, vertical = 9.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -367,7 +367,7 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
             Modifier.fillMaxWidth()
                 .padding(bottom = 14.dp)
                 .navigationBarsPadding()
-                .background(Color.White, RoundedCornerShape(22.dp))
+                .background(Surface, RoundedCornerShape(22.dp))
                 .border(1.dp, Line, RoundedCornerShape(22.dp))
                 .padding(6.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -410,12 +410,12 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
         }
     }
     if (about)
-        AlertDialog(
+        ActionSheet(
             onDismissRequest = { about = false },
-            title = { AppText("BiasharaAI preview") },
+            title = { AppText(if (store.real) "About business summaries" else "BiasharaAI preview") },
             text = {
                 AppText(
-                    "This UI preview uses local sample responses based on your demo stock and customer balances. Live AI will be connected in the next phase."
+                    if (store.real) "These summaries are calculated from your recorded sales, stock and customer balances. A generative AI service is not connected." else "This UI preview uses local sample responses based on your demo stock and customer balances. Live AI will be connected in the next phase."
                 )
             },
             confirmButton = { TextButton(onClick = { about = false }) { AppText("Done") } },
@@ -423,75 +423,23 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
 }
 
 @Composable
-fun FinanceScreen(onBack: () -> Unit) {
-    var interest by remember { mutableStateOf(false) }
+fun FinanceScreen(onBack: () -> Unit, store: DemoStore? = null, onReports: () -> Unit = {}) {
+    var about by remember { mutableStateOf(false) }
     Page {
         PageTitle("Business Financing", onBack = onBack)
         androidx.compose.foundation.Image(
-            painter =
-                androidx.compose.ui.res.painterResource(com.biashara.app.R.drawable.finance_growth),
-            contentDescription = "A green plant growing from gold coins",
-            modifier = Modifier.fillMaxWidth().height(210.dp),
+            painter = androidx.compose.ui.res.painterResource(com.biashara.app.R.drawable.finance_growth),
+            contentDescription = null, modifier = Modifier.fillMaxWidth().height(180.dp),
         )
-        AppText(
-            "Get funding to grow\nyour business",
-            style = MaterialTheme.typography.headlineMedium,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        )
-        AppText(
-            "Based on your actual sales and\ntrading history.",
-            fontSize = 13.sp,
-            lineHeight = 20.sp,
-            color = Muted,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        )
-        Spacer(Modifier.height(12.dp))
-        listOf(
-                "Quick application",
-                "Competitive rates",
-                "No collateral (for eligible businesses)",
-                "Grow your stock and profits",
-            )
-            .forEach { label ->
-                Row(
-                    Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    AppIcon(
-                        Icons.Outlined.CheckCircleOutline,
-                        null,
-                        Modifier.size(18.dp),
-                        tint = Green,
-                    )
-                    AppText(label, fontSize = 12.sp, modifier = Modifier.padding(start = 13.dp))
-                }
-            }
-        Spacer(Modifier.height(14.dp))
-        PrimaryButton("Check My Eligibility  →", { interest = true })
-        TextButton(
-            onClick = { interest = true },
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        ) {
-            AppText("Learn More", fontSize = 12.sp, color = Green)
+        AppText("Prepare for your next step", style = MaterialTheme.typography.headlineMedium)
+        AppText("Keep accurate business records for future funding discussions. Loan applications, offers and eligibility checks are not connected.", color = Muted)
+        if (store?.real == true) {
+            val report = store.report(30)
+            SurfaceCard(color = Mint) { Eyebrow("Recorded over the last 30 days"); AppText("Net sales: ${minorMoney(report.sales)}"); AppText("Expenses: ${minorMoney(report.expenses)}"); AppText("Operating profit: ${minorMoney(report.profit)}") }
+            PrimaryButton("Review business reports", onReports, tone = Green)
         }
-        AppText(
-            "Financing preview · no applications or credit checks.",
-            fontSize = 10.sp,
-            color = Muted,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        )
+        SurfaceCard { AppText("Keep your records ready", style = MaterialTheme.typography.titleMedium); AppText("Record sales and expenses, reconcile cash registers, keep stock counts current, and review customer balances.", color = Muted) }
+        TextButton(onClick = { about = true }) { AppText("About financing availability", color = Green) }
     }
-    if (interest)
-        AlertDialog(
-            onDismissRequest = { interest = false },
-            title = { AppText("Financing preview") },
-            text = {
-                AppText(
-                    "Eligibility, lending partners, rates and applications will be connected in the next phase. No application has been submitted and no credit check will be made."
-                )
-            },
-            confirmButton = { TextButton(onClick = { interest = false }) { AppText("Got it") } },
-        )
+    if (about) ActionSheet(onDismissRequest = { about = false }, title = { AppText("Financing availability", style = MaterialTheme.typography.headlineSmall) }, text = { AppText("No lender is connected and no loan application or credit check is submitted. Your reports show recorded business activity; they are not a financing eligibility decision.") }, dismissButton = { TextButton(onClick = { about = false }) { AppText("Close") } })
 }

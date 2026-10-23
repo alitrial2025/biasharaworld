@@ -35,6 +35,7 @@ fun AccountScreen(backend: LiveBackend) {
     var name by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmation by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var business by rememberSaveable { mutableStateOf("") }
     var location by rememberSaveable { mutableStateOf("") }
@@ -61,6 +62,7 @@ fun AccountScreen(backend: LiveBackend) {
                 if (backend.error.isNotBlank()) SurfaceCard(color = RoseMist) { AppText(backend.error, color = Coral) }
                 if (backend.notice.isNotBlank()) SurfaceCard(color = Mint) { AppText(backend.notice, color = Green) }
                 if (reconnect) {
+                    if (!onboard && (mode == "signup" || backend.recovery)) OutlinedTextField(confirmation, { confirmation = it }, label = { AppText("Confirm password") }, singleLine = true, enabled = !backend.busy, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth())
                     PrimaryButton(if (backend.busy) "Connecting…" else "Try again", { backend.action { backend.load() } }, enabled = !backend.busy, tone = Green)
                 } else {
                     if (onboard || mode == "signup") OutlinedTextField(name, { name = it }, label = { AppText("Your name") }, singleLine = true, enabled = !backend.busy, modifier = Modifier.fillMaxWidth())
@@ -69,6 +71,7 @@ fun AccountScreen(backend: LiveBackend) {
                         OutlinedTextField(location, { location = it }, label = { AppText("Location") }, singleLine = true, enabled = !backend.busy, modifier = Modifier.fillMaxWidth())
                     } else if (!backend.recovery) OutlinedTextField(email, { email = it.trim() }, label = { AppText("Email address") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), singleLine = true, enabled = !backend.busy, modifier = Modifier.fillMaxWidth())
                     if ((mode != "forgot" && !onboard) || backend.recovery) OutlinedTextField(password, { password = it }, label = { AppText(if (backend.recovery) "New password (8+ characters)" else "Password") }, singleLine = true, enabled = !backend.busy, visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), trailingIcon = { IconButton(onClick = { showPassword = !showPassword }) { Icon(if (showPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility, contentDescription = if (showPassword) "Hide password" else "Show password") } }, modifier = Modifier.fillMaxWidth())
+                    if (!onboard && (mode == "signup" || backend.recovery)) OutlinedTextField(confirmation, { confirmation = it }, label = { AppText("Confirm password") }, singleLine = true, enabled = !backend.busy, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth())
                     PrimaryButton(if (backend.busy) "Please wait…" else if (onboard) "Create business" else if (backend.recovery) "Save password" else when (mode) { "signup" -> "Create account"; "forgot" -> "Send reset email"; else -> "Sign in" }, {
                         backend.action {
                             when {
@@ -78,12 +81,13 @@ fun AccountScreen(backend: LiveBackend) {
                                 mode == "forgot" -> backend.forgot(email)
                                 else -> backend.signIn(email, password)
                             }
-                            password = ""
+                            password = ""; confirmation = ""
                         }
-                    }, enabled = !backend.busy && if (onboard) name.isNotBlank() && business.isNotBlank() else if (backend.recovery) password.length >= 8 else email.contains("@") && (mode == "forgot" || password.length >= 8), tone = Green)
+                    }, enabled = !backend.busy && if (onboard) name.isNotBlank() && business.isNotBlank() else if (backend.recovery) password.length >= 8 && password == confirmation else com.biashara.app.data.validEmail(email) && (mode == "forgot" || password.length >= 8) && (mode != "signup" || (name.isNotBlank() && password == confirmation)), tone = Green)
+                    if (mode == "signup" && !backend.authenticated && backend.notice.isNotBlank()) TextButton(enabled = !backend.busy, onClick = { backend.action { backend.resendConfirmation(email) } }) { AppText("Resend confirmation email", color = Green) }
                     if (!onboard && !backend.recovery) {
-                        TextButton(enabled = !backend.busy, onClick = { mode = if (mode == "signup") "login" else "signup"; password = "" }) { AppText(if (mode == "signup") "Already have an account? Sign in" else "New here? Create an account", color = Green) }
-                        TextButton(enabled = !backend.busy, onClick = { mode = if (mode == "forgot") "login" else "forgot"; password = "" }) { AppText(if (mode == "forgot") "Back to sign in" else "Forgot password?", color = Muted) }
+                        TextButton(enabled = !backend.busy, onClick = { mode = if (mode == "signup") "login" else "signup"; password = ""; confirmation = "" }) { AppText(if (mode == "signup") "Already have an account? Sign in" else "New here? Create an account", color = Green) }
+                        TextButton(enabled = !backend.busy, onClick = { mode = if (mode == "forgot") "login" else "forgot"; password = ""; confirmation = "" }) { AppText(if (mode == "forgot") "Back to sign in" else "Forgot password?", color = Muted) }
                     }
                 }
                 if (backend.authenticated) TextButton(enabled = !backend.busy, onClick = { backend.action { backend.signOut() } }) { AppText("Sign out") }

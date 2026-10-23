@@ -10,15 +10,24 @@ fun nativeCommand(action: String, v: Map<String, String>, store: DemoStore): JSO
         result.put(target, v[key] ?: default)
     }
     fun number(key: String, target: String = key, default: Int = 0) {
-        result.put(target, v[key]?.toIntOrNull() ?: default)
+        result.put(target, v[key]?.let { raw -> raw.trim().toIntOrNull() ?: error("Enter a whole number for $key.") } ?: default)
     }
     fun amount(key: String, target: String = key) {
         result.put(target, parseMinor(v[key] ?: "0"))
     }
     fun id() {
-        number("id")
+        val value = v["id"]?.toIntOrNull() ?: error("Select an existing record.")
+        require(value != 0) { "Select an existing record." }
+        result.put("id", value)
     }
     when (action) {
+        "updateProduct" -> {
+            id()
+            result.put("changes", JSONObject(v["changes"] ?: error("Enter product changes.")))
+        }
+        "setTarget" -> result.put("target", parseMinor(v["target"] ?: "0") / 100.0)
+        "toggleNotification" -> text("name")
+        "removeExpense" -> id()
         "branch" -> text("branch", "id", "main")
         "addBranch" -> {
             text("name")

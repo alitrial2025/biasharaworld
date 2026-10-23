@@ -54,20 +54,16 @@ private fun MenuRow(
 @Composable
 fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
     var dialog by remember { mutableStateOf<String?>(null) }
-    var team by remember { mutableStateOf(false) }
-    if (team) {
-        LiveTeamScreen(store, { team = false })
-        return
-    }
     Page {
         Column(
             Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            ProfilePhoto(Modifier.size(76.dp).clip(CircleShape))
+            if (store.real) Box(Modifier.size(76.dp).background(Mint, CircleShape), contentAlignment = Alignment.Center) { AppText(store.ownerName.trim().split(" ").mapNotNull { it.firstOrNull() }.take(2).joinToString(""), fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Green) }
+            else ProfilePhoto(Modifier.size(76.dp).clip(CircleShape))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                AppText(store.ownerName, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                AppText(if (store.real) store.backend?.accountName.orEmpty().ifBlank { store.ownerName } else store.ownerName, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 AppText(
                     if (store.real) store.backend?.role ?: "ACCOUNT" else "DEMO",
                     fontSize = 8.sp,
@@ -96,18 +92,17 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
                 dialog = "Payment Methods"
             }
             MenuRow(Icons.Outlined.Groups, "Staff Management") {
-                if (store.real) team = true else dialog = "Staff Management"
+                if (store.real) navigate(Screen.TEAM) else dialog = "Staff Management"
             }
-            MenuRow(Icons.Outlined.NotificationsNone, "Notifications") { navigate(Screen.STOCK) }
-            MenuRow(Icons.Outlined.Settings, "App Settings") { navigate(Screen.TOOLS) }
+            MenuRow(Icons.Outlined.NotificationsNone, "Notifications") { navigate(Screen.ALERTS) }
+            MenuRow(Icons.Outlined.Settings, "App Settings") { navigate(Screen.PREFERENCES) }
             MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, "Help & Support") {
                 dialog = "Help & Support"
             }
             Row(
                 Modifier.fillMaxWidth()
                     .clickable {
-                        if (store.real) store.backend?.action { store.backend?.signOut() }
-                        else dialog = "Log Out"
+                        dialog = "Log Out"
                     }
                     .padding(vertical = 17.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -131,19 +126,19 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
             MenuRow(Icons.Outlined.PeopleOutline, "Customers") { navigate(Screen.CUSTOMERS) }
             MenuRow(Icons.Outlined.LocalShipping, "Suppliers") { navigate(Screen.SUPPLIERS) }
             MenuRow(Icons.Outlined.BarChart, "Reports") { navigate(Screen.REPORTS) }
-            MenuRow(Icons.Outlined.AutoAwesome, "BiasharaAI") { navigate(Screen.ASSISTANT) }
+            MenuRow(Icons.Outlined.AutoAwesome, if (store.real) "Business summaries" else "BiasharaAI") { navigate(Screen.ASSISTANT) }
             MenuRow(Icons.Outlined.Spa, "Business Financing") { navigate(Screen.FINANCE) }
             MenuRow(Icons.Outlined.WavingHand, "Meet Biashara") { navigate(Screen.SETUP) }
         }
         AppText(
-            "BiasharaOS · Early access 0.1.0",
+            "BiasharaOS · " + com.biashara.app.BuildConfig.VERSION_NAME,
             fontSize = 10.sp,
             color = Muted,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
     }
     dialog?.let { title ->
-        AlertDialog(
+        ActionSheet(
             onDismissRequest = { dialog = null },
             title = { AppText(title) },
             text = {
@@ -160,13 +155,22 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
                         "App Settings" ->
                             "Currency: KES – Kenyan Shilling\nLanguage: English\nTheme: Light\n\nYou are using the UI preview with local sample data."
                         "Log Out" ->
-                            "You are exploring a demo store. Account sign-in and sign-out will be added with authentication."
+                            if (store.real) "Sign out of this device? Your saved business records stay in your account. Finish or retry an unconfirmed request first." else "You are exploring a local sample shop."
                         else ->
                             "Manage sales, stock, customers, suppliers and reports. Saved changes are shared with your business account. Online payment collection, lending and external AI are coming later."
                     }
                 )
             },
-            confirmButton = { TextButton(onClick = { dialog = null }) { AppText("Done") } },
+            confirmButton = {
+                if (title == "Log Out" && store.real) {
+                    BusinessFormStatus(store)
+                    PrimaryButton("Sign out", { store.backend?.action { store.backend?.signOut() } }, enabled = store.canSave, tone = Coral)
+                } else if (title == "Help & Support") {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    PrimaryButton("Open help center", { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(com.biashara.app.BuildConfig.API_URL + "/help"))) }, tone = Green)
+                }
+                TextButton(onClick = { dialog = null }) { AppText("Close") }
+            },
         )
     }
 }
@@ -177,6 +181,10 @@ fun ProfileScreen(store: DemoStore, onBack: () -> Unit) {
     var business by rememberSaveable { mutableStateOf(store.businessName) }
     var location by rememberSaveable { mutableStateOf(store.location) }
     var saved by remember { mutableStateOf(false) }
+    var phone by rememberSaveable { mutableStateOf(store.liveState.optJSONObject("profile")?.optString("phone").orEmpty()) }
+    var email by rememberSaveable { mutableStateOf(store.liveState.optJSONObject("profile")?.optString("email").orEmpty()) }
+    var type by rememberSaveable { mutableStateOf(store.liveState.optJSONObject("profile")?.optString("type") ?: "Retail shop") }
+    LaunchedEffect(store.backend?.confirmedRequestId) { if (store.backend?.confirmedCommand == "updateProfile") saved = true }
     Page {
         PageTitle("Business Profile", onBack = onBack)
         Box(
@@ -200,7 +208,7 @@ fun ProfileScreen(store: DemoStore, onBack: () -> Unit) {
                 name = it
                 saved = false
             },
-            label = { AppText("Your first name") },
+            label = { AppText("Business contact name") },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             singleLine = true,
@@ -227,6 +235,11 @@ fun ProfileScreen(store: DemoStore, onBack: () -> Unit) {
             shape = RoundedCornerShape(16.dp),
             singleLine = true,
         )
+        if (store.real) {
+            OutlinedTextField(phone, { phone = it; saved = false }, label = { AppText("Business phone") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(email, { email = it; saved = false }, label = { AppText("Business email") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(type, { type = it; saved = false }, label = { AppText("Business type") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+        }
         SurfaceCard {
             Eyebrow("Your currency")
             AppText(
@@ -240,6 +253,7 @@ fun ProfileScreen(store: DemoStore, onBack: () -> Unit) {
             {
                 if (store.real) {
                     store.backend?.action {
+                        require(email.isBlank() || validEmail(email)) { "Enter a valid business email." }
                         store.backend?.command(
                             json(
                                 "type" to "updateProfile",
@@ -248,6 +262,9 @@ fun ProfileScreen(store: DemoStore, onBack: () -> Unit) {
                                         "name" to name.trim(),
                                         "business" to business.trim(),
                                         "location" to location.trim(),
+                                        "phone" to phone.trim(),
+                                        "email" to email.trim().ifBlank { store.backend?.accountEmail.orEmpty() },
+                                        "type" to type.trim().ifBlank { "Retail shop" },
                                     ),
                             )
                         )
@@ -260,9 +277,10 @@ fun ProfileScreen(store: DemoStore, onBack: () -> Unit) {
                 store.location = location.trim()
                 saved = true
             },
-            enabled = name.isNotBlank() && business.isNotBlank() && location.isNotBlank(),
+            enabled = name.isNotBlank() && business.isNotBlank() && store.canSave && store.canPerform("updateProfile"),
             icon = Icons.Outlined.Check,
         )
+        BusinessFormStatus(store)
         AppText("Confirmed changes are shared with your website.", fontSize = 11.sp, color = Muted)
     }
 }

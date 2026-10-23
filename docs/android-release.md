@@ -1,6 +1,8 @@
 # Android signed test release
 
-Version 0.2.0 (version code 2) is a non-debuggable Android release APK signed with a dedicated RSA 3072-bit key. Its public account project and application API point to the intended production services. The production web/API deployment is still blocked by the cloud proxy, so installed online workflows cannot be certified against the hosted update yet.
+The previous version 0.2.0 (version code 2) was a non-debuggable Android release APK signed with a dedicated RSA 3072-bit key. The current source is version 0.3.0 (version code 3). Its public account project and application API point to the intended production services; the supporting API is deployed and hosted native workflows have passed.
+
+The restored workspace does not contain the pinned private release key or password. Version 0.3.0 is therefore delivered as a **debug test APK**, `app/build/outputs/apk/debug/biasharaos-0.3.0-debug.apk`, with a SHA-256 sidecar. It cannot update the older signed release in place. Restore the original private key before producing a compatible release; do not generate a replacement identity. See [the completion audit](android-completion-audit.md) for validation and remaining device checks.
 
 ## Build and verify
 
@@ -21,7 +23,7 @@ Public signing identity is pinned in `app/release-signing.json`. Private materia
 - `/workspace/.config/biashara-cli/android-release/biasharaos-release.p12`
 - `/workspace/.config/biashara-cli/android-release/store-password`
 
-The directory has permissions 0700 and both files 0600. The private key is encrypted in PKCS12 with AES-256; its password is randomly generated. Do not print it or commit private signing material. The build checks the certificate fingerprint against the pinned identity. If the key is missing or differs, the build fails rather than silently creating a replacement. Restore the backup for future builds.
+When restored, the directory must have permissions 0700 and both files 0600. The private key is encrypted in PKCS12 with AES-256; its password is randomly generated. Do not print it or commit private signing material. The build checks the certificate fingerprint against the pinned identity. If the key is missing or differs, the build fails rather than silently creating a replacement. Restore the backup for future builds.
 
 The public certificate SHA-256 fingerprint is `e45fa348db25df8f04c30eba853c20e1480407de835a47082d18729ecccc7745`. Only public identity metadata is tracked in Git.
 
@@ -40,4 +42,4 @@ Workspace retention alone is not an independent backup. Losing the key/password 
 
 The APK supports Android 8.0+. Allow installation from the app used to open the downloaded APK. An older debug preview uses a different signing key; Android cannot update it directly with this release. If installation reports that signing conflict, removing the old preview permits installation, but clears that installation's local sessions/drafts. Saved business records remain tied to the account.
 
-Do not treat the APK as proof that the production API deployed. The web download button remains disabled until the matching API is published and checked. Then copy the signed release into `web/public/downloads/`, allow that APK in deployment exclusions, update its download link and redeploy. Never copy the key backup or password file there.
+The API deployment and APK are verified separately. Do not publish the debug test build as a signed release download. After restoring the release key, build and verify a signed APK against the deployed API, then copy it into `web/public/downloads/`, allow that APK in deployment exclusions, update its download link and redeploy. Never copy the key backup or password file there.

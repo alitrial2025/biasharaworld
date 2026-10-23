@@ -18,7 +18,33 @@ import com.biashara.app.data.validBarcode
 import java.io.FileOutputStream
 
 /** Android's print dialog can print or save the actual generated preview document as PDF. */
+private fun printablePages(lines: List<String>): List<List<String>> {
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 12f }
+    val wrapped = lines.flatMap { tr(it).split('\n') }.flatMap { text ->
+        if (validBarcode(text.trim())) listOf(text.trim()) else {
+            val result = mutableListOf<String>()
+            var remaining = text
+            while (remaining.isNotEmpty()) {
+                val count = paint.breakText(remaining, true, 515f, null).coerceAtLeast(1)
+                val end = if (count < remaining.length) remaining.take(count).lastIndexOf(' ').takeIf { it > 0 } ?: count else count
+                result.add(remaining.take(end)); remaining = remaining.drop(end).trimStart()
+            }
+            result.ifEmpty { listOf("") }
+        }
+    }
+    val pages = mutableListOf<List<String>>()
+    var page = mutableListOf<String>(); var height = 0
+    for (line in wrapped) {
+        val next = if (validBarcode(line)) 115 else 23
+        if (height + next > 630 && page.isNotEmpty()) { pages.add(page); page = mutableListOf(); height = 0 }
+        page.add(line); height += next
+    }
+    if (page.isNotEmpty()) pages.add(page)
+    return pages.ifEmpty { listOf(emptyList()) }
+}
+
 fun printDemo(context: Context, title: String, lines: List<String>) {
+    val prepared = printablePages(lines)
     val manager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
     manager.print(
         "BiasharaOS · $title",
@@ -37,7 +63,7 @@ fun printDemo(context: Context, title: String, lines: List<String>) {
                 callback?.onLayoutFinished(
                     PrintDocumentInfo.Builder("BiasharaOS-$title.pdf")
                         .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
-                        .setPageCount(maxOf(1, (lines.size + 27) / 28))
+                        .setPageCount(prepared.size)
                         .build(),
                     true,
                 )
@@ -51,8 +77,10 @@ fun printDemo(context: Context, title: String, lines: List<String>) {
             ) {
                 val pdf = PdfDocument()
                 try {
-                    val chunks = lines.chunked(28).ifEmpty { listOf(emptyList()) }
+                    val chunks = prepared
+                    val selected = chunks.indices.filter { index -> pages == null || pages.any { index in it.start..it.end } }
                     chunks.forEachIndexed { index, chunk ->
+                        if (index !in selected) return@forEachIndexed
                         if (cancellationSignal?.isCanceled == true) {
                             callback?.onWriteCancelled()
                             return
@@ -76,7 +104,7 @@ fun printDemo(context: Context, title: String, lines: List<String>) {
                         paint.isFakeBoldText = false
                         var y = 130f
                         chunk.forEach { line ->
-                            c.drawText(tr(line).take(80), 40f, y, paint)
+                            c.drawText(line, 40f, y, paint)
                             if (validBarcode(line.trim())) {
                                 barcodeBars(line.trim()).forEachIndexed { bar, bit ->
                                     if (bit == '1')
@@ -88,13 +116,13 @@ fun printDemo(context: Context, title: String, lines: List<String>) {
                                             paint,
                                         )
                                 }
-                                y += 100f
+                                y += 115f
                             } else y += 23f
                         }
                         paint.textSize = 9f
                         paint.color = Color.GRAY
                         c.drawText(
-                            "UI preview · local sample records · no live payment or tax certification",
+                            "Recorded business document · not an official tax invoice",
                             40f,
                             800f,
                             paint,
@@ -102,7 +130,7 @@ fun printDemo(context: Context, title: String, lines: List<String>) {
                         pdf.finishPage(page)
                     }
                     FileOutputStream(destination!!.fileDescriptor).use { pdf.writeTo(it) }
-                    callback?.onWriteFinished(arrayOf(PageRange.ALL_PAGES))
+                    callback?.onWriteFinished(selected.map { PageRange(it, it) }.toTypedArray())
                 } catch (e: Exception) {
                     callback?.onWriteFailed(e.message)
                 } finally {

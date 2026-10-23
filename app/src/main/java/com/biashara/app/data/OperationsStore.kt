@@ -1484,6 +1484,7 @@ class OperationsStore(private val store: DemoStore) {
             store.cart.putAll(cart)
             state = o
         }
+        if (store.real) store.onDraftChanged()
         return message
     }
 }

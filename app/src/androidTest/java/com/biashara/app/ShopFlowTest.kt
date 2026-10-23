@@ -13,9 +13,9 @@ class ShopFlowTest {
         compose.onNodeWithContentDescription("Add Soko maize flour").performClick()
         compose.onNodeWithContentDescription("Add Blue Band").performClick()
         compose.onNodeWithText("KES 530").assertIsDisplayed()
-        compose.onNodeWithText("Pay with M-Pesa →").performClick()
-        compose.onNodeWithText("Confirm demo payment").performClick()
-        compose.onNodeWithText("Sale complete").assertIsDisplayed()
+        compose.onNodeWithText("Review sale").performClick()
+        compose.onNodeWithText("Record received payment").performClick()
+        compose.onNodeWithText("Receipt #1049").assertIsDisplayed()
         compose.onNodeWithText("View sales").performClick()
         compose.onNodeWithText("#1049 · 2 items · M-Pesa").assertExists()
     }
@@ -33,8 +33,7 @@ class ShopFlowTest {
     @Test fun customerBalanceCanBeSettledInDemo() {
         compose.onNodeWithText("Customers").performScrollTo().performClick()
         compose.onNodeWithText("John Mwangi").performScrollTo().performClick()
-        compose.onNodeWithText("Mark demo balance paid").performClick()
-        compose.onNodeWithText("All settled").performClick()
+        compose.onNodeWithText("Record repayment").performClick()
         compose.onNodeWithText("John Mwangi").assertExists()
     }
 

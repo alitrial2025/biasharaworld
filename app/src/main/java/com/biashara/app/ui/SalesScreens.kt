@@ -38,10 +38,16 @@ fun NewSaleScreen(
     var paymentError by remember { mutableStateOf("") }
     var method by rememberSaveable { mutableStateOf("M-Pesa") }
     var receipt by remember { mutableStateOf<Sale?>(null) }
+    LaunchedEffect(store.backend?.confirmedRequestId) {
+        if (payment && store.backend?.confirmedCommand == "checkout") {
+            receipt = store.sales.firstOrNull { it.id == store.operations.lastId }
+            payment = false; paymentError = ""
+        }
+    }
     Column(Modifier.fillMaxSize().imePadding().padding(horizontal = 18.dp).padding(top = 12.dp)) {
         PageTitle("New Sale", onBack = onBack) {
             if (store.itemCount > 0)
-                TextButton(onClick = { store.cart.clear() }) {
+                TextButton(onClick = { store.clearBasket() }) {
                     AppText(
                         "Clear cart",
                         fontSize = 12.sp,
@@ -60,7 +66,7 @@ fun NewSaleScreen(
             )
         }
         Spacer(Modifier.height(16.dp))
-        FilterPills(listOf("All", "Favorites", "Recent"), filter, { filter = it })
+        FilterPills(listOf("All", "In cart", "Available"), filter, { filter = it })
         Row(
             Modifier.fillMaxWidth().padding(top = 10.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -75,10 +81,9 @@ fun NewSaleScreen(
         Spacer(Modifier.height(8.dp))
         val products =
             store.products.filter {
-                it.name.contains(query, true) &&
-                    (filter == "All" ||
-                        (filter == "Favorites" && it.id in listOf(1, 2)) ||
-                        (filter == "Recent" && it.id in listOf(1, 2, 3)))
+                (it.name.contains(query, true) || it.sku.contains(query, true) || it.barcode.contains(query)) &&
+                    (filter == "All" || (filter == "In cart" && (store.cart[it.id] ?: 0) > 0) ||
+                        (filter == "Available" && store.operations.available(it.id) > 0))
             }
         LazyColumn(
             Modifier.weight(1f),
@@ -98,7 +103,7 @@ fun NewSaleScreen(
                     Modifier.fillMaxWidth().padding(vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    ProductArt(p.art)
+                    ProductPhoto(p, store)
                     Column(Modifier.weight(1f).padding(horizontal = 11.dp)) {
                         AppText(
                             p.name,
@@ -203,12 +208,12 @@ fun NewSaleScreen(
                 )
             }
             PrimaryButton(
-                "Pay with M-Pesa →",
+                "Review sale",
                 {
                     method = "M-Pesa"
                     payment = true
                 },
-                enabled = store.itemCount > 0,
+                enabled = store.itemCount > 0 && store.canPerform("checkout") && store.canSave,
                 tone = Green,
             )
             Row(
@@ -217,10 +222,10 @@ fun NewSaleScreen(
             ) {
                 listOf("Cash", "Card", "More").forEach { m ->
                     Row(
-                        Modifier.background(Color(0xFFF2F6F5), RoundedCornerShape(9.dp))
+                        Modifier.background(Surface, RoundedCornerShape(9.dp))
                             .clickable {
-                                if (store.itemCount > 0) {
-                                    method = if (m == "More") "M-Pesa" else m
+                                if (store.itemCount > 0 && store.canPerform("checkout") && store.canSave) {
+                                    method = if (m == "More") "Bank transfer" else m
                                     payment = true
                                 }
                             }
@@ -242,7 +247,7 @@ fun NewSaleScreen(
     }
 
     if (scanner)
-        AlertDialog(
+        ActionSheet(
             onDismissRequest = { scanner = false },
             title = { AppText("Scan barcode") },
             text = {
@@ -255,15 +260,19 @@ fun NewSaleScreen(
             },
         )
     if (payment)
-        ModalBottomSheet(onDismissRequest = { payment = false }, containerColor = Canvas) {
+        ActionSheet(onDismissRequest = { payment = false }, title = { AppText("Complete your sale", style = MaterialTheme.typography.headlineSmall) }, text = {
             Column(
                 Modifier.padding(horizontal = 24.dp).padding(bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
                 if (paymentError.isNotBlank())
                     AppText(paymentError, color = Coral, fontSize = 12.sp)
-                Eyebrow("Payment")
-                AppText("Complete your sale", style = MaterialTheme.typography.headlineMedium)
+                BusinessFormStatus(store, paymentError)
+                val customer = store.operations.state.optString("customer", "Walk-in customer")
+                SheetChoice("Customer", customer, listOf("Walk-in customer" to "Walk-in customer") + store.customers.map { it.name to it.name }) {
+                    store.operations.command("basket", mapOf("customer" to it, "redeem" to "0"))
+                }
+                TextButton(onClick = { payment = false; onTool("promotions") }) { AppText("Discounts & rewards", color = Green) }
                 SurfaceCard {
                     store.products
                         .filter { (store.cart[it.id] ?: 0) > 0 }
@@ -299,7 +308,7 @@ fun NewSaleScreen(
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    listOf("M-Pesa", "Cash", "Card").forEach { m ->
+                    listOf("M-Pesa", "Cash", "Card", "Bank transfer").forEach { m ->
                         Column(
                             Modifier.weight(1f)
                                 .border(
@@ -320,6 +329,7 @@ fun NewSaleScreen(
                                 when (m) {
                                     "M-Pesa" -> Icons.Outlined.PhoneAndroid
                                     "Cash" -> Icons.Outlined.Payments
+                                    "Bank transfer" -> Icons.Outlined.AccountBalance
                                     else -> Icons.Outlined.CreditCard
                                 },
                                 null,
@@ -356,51 +366,12 @@ fun NewSaleScreen(
                         }
                     },
                     icon = Icons.Outlined.Check,
+                    enabled = store.canSave && store.canPerform("checkout"),
                 )
             }
-        }
-    receipt?.let { sale ->
-        AlertDialog(
-            onDismissRequest = {
-                receipt = null
-                onComplete()
-            },
-            containerColor = Canvas,
-            icon = {
-                AppIcon(Icons.Outlined.CheckCircle, null, Modifier.size(56.dp), tint = Green)
-            },
-            title = { AppText("Sale complete", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    AppText(
-                        minorMoney(sale.amountMinor),
-                        fontFamily = AppFont,
-                        style = MaterialTheme.typography.headlineMedium,
-                    )
-                    AppText(
-                        "Demo receipt #${sale.id}\n${sale.items} items · ${sale.method}\nYour stock has been updated.",
-                        fontSize = 13.sp,
-                        color = Muted,
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        receipt = null
-                        onComplete()
-                    }
-                ) {
-                    AppText("View sales")
-                }
-            },
-            dismissButton = { TextButton(onClick = { receipt = null }) { AppText("Another sale") } },
-        )
-    }
+        })
+    receipt?.let { sale -> ReceiptDetailsSheet(store, sale, { receipt = null }, { receipt = null; onComplete() }) }
+
 }
 
 @Composable
@@ -408,7 +379,7 @@ fun SalesScreen(store: DemoStore, navigate: (Screen) -> Unit) {
     var filter by rememberSaveable { mutableStateOf("All sales") }
     var selected by remember { mutableStateOf<Sale?>(null) }
     Page {
-        PageTitle("Sales", "Today’s transactions")
+        PageTitle("Sales", "Recorded transactions")
         SurfaceCard(color = Mint) {
             Eyebrow("Total Sales", Green)
             AppText(
@@ -419,16 +390,16 @@ fun SalesScreen(store: DemoStore, navigate: (Screen) -> Unit) {
                 modifier = Modifier.padding(top = 12.dp),
             )
             AppText(
-                "${42+store.sales.count{it.id>1048}} sales  ·  18.6% better than yesterday",
+                if (store.real) "${store.report().receipts.size} recorded sales today" else "${store.sales.size} sales in this sample shop",
                 fontSize = 11.sp,
                 color = Muted,
                 modifier = Modifier.padding(top = 8.dp),
             )
         }
-        PrimaryButton("Make a new sale", { navigate(Screen.NEW_SALE) }, icon = Icons.Outlined.Add)
-        FilterPills(listOf("All sales", "M-Pesa", "Cash", "Card"), filter, { filter = it })
+        if (store.canPerform("checkout")) PrimaryButton("Make a new sale", { navigate(Screen.NEW_SALE) }, enabled = store.canSave, icon = Icons.Outlined.Add)
+        FilterPills(listOf("All sales", "M-Pesa", "Cash", "Card", "Bank"), filter, { filter = it })
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Eyebrow("Today's transactions")
+            Eyebrow("Recorded transactions")
             val sales =
                 store.sales.filter {
                     it.branch == store.operations.branch &&
@@ -463,16 +434,38 @@ fun SalesScreen(store: DemoStore, navigate: (Screen) -> Unit) {
             }
         }
     }
-    selected?.let { sale ->
-        AlertDialog(
-            onDismissRequest = { selected = null },
-            title = { AppText("Receipt #${sale.id}") },
-            text = {
-                AppText(
-                    "${sale.customer}\n${sale.items} items · ${sale.method}\n${minorMoney(sale.amountMinor)}\n\nManually recorded payment. No payment request was sent."
-                )
-            },
-            confirmButton = { TextButton(onClick = { selected = null }) { AppText("Done") } },
-        )
-    }
+    selected?.let { sale -> ReceiptDetailsSheet(store, sale, { selected = null }) }
+}
+
+@Composable
+fun ReceiptDetailsSheet(store: DemoStore, sale: Sale, onClose: () -> Unit, onViewSales: (() -> Unit)? = null) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val receipt = store.operations.state.records("receipts").firstOrNull { it.optInt("id") == sale.id }
+    val lines = receipt?.records("lines").orEmpty()
+    val refunds = store.operations.state.records("returns").filter { it.optInt("saleId") == sale.id }
+    val refunded = refunds.sumOf { it.optLong("amount") }
+    val printLines = listOf(store.businessName, store.location, "Receipt #${sale.id}", receipt?.optString("date").orEmpty(), sale.customer) +
+        lines.map { "${it.optInt("quantity")} x ${it.optString("name")}  ${minorMoney(it.optLong("net"))}" } +
+        listOf("Total: ${minorMoney(sale.amountMinor)}", "Payment: ${sale.method}", "Refunded: ${minorMoney(refunded)}", "Payment recorded after receipt. No payment request was sent.")
+    ActionSheet(onDismissRequest = onClose, title = { AppText("Receipt #${sale.id}", style = MaterialTheme.typography.headlineSmall) }, text = {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            AppText(minorMoney(sale.amountMinor), style = MaterialTheme.typography.headlineLarge)
+            AppText("${sale.customer} · ${sale.method}\n${receipt?.optString("date").orEmpty()}")
+            if (lines.isEmpty()) AppText("${sale.items} items. Detailed lines are not available for this older receipt.", color = Muted)
+            lines.forEach { line ->
+                Row(Modifier.fillMaxWidth()) {
+                    AppText("${line.optInt("quantity")} × ${line.optString("name")}", modifier = Modifier.weight(1f))
+                    AppText(minorMoney(line.optLong("net")))
+                }
+                val returned = receipt?.objectAt("returned")?.optInt(line.optInt("productId").toString()) ?: 0
+                if (returned > 0) AppText("$returned returned", color = Coral, fontSize = 12.sp)
+            }
+            if (receipt?.optLong("discount", 0) != 0L) AppText("Discount: ${minorMoney(receipt?.optLong("discount") ?: 0L)}")
+            if (refunded > 0) AppText("Refunded: ${minorMoney(refunded)} · Net retained: ${minorMoney(sale.amountMinor - refunded)}", color = Coral)
+            AppText("Manually recorded payment. No payment request was sent.", color = Muted)
+        }
+    }, confirmButton = {
+        PrimaryButton("Print / save PDF", { printDemo(context, "Receipt #${sale.id}", printLines) }, tone = Green)
+        onViewSales?.let { TextButton(onClick = it) { AppText("View sales") } }
+    }, dismissButton = { TextButton(onClick = onClose) { AppText(if (onViewSales != null) "Another sale" else "Done") } })
 }

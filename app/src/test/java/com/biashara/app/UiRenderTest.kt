@@ -81,9 +81,9 @@ class UiRenderTest {
     fun checkoutUpdatesTheRenderedHistory() {
         compose.onNodeWithContentDescription("New sale").performClick()
         compose.onNodeWithContentDescription("Add Soko maize flour").performClick()
-        compose.onNodeWithText("Pay with M-Pesa →").performClick()
+        compose.onNodeWithText("Review sale").performClick()
         compose.onNodeWithText("Record received payment").performClick()
-        compose.onNodeWithText("Sale complete").assertExists()
+        compose.onNodeWithText("Receipt #1049").assertExists()
         compose.onNodeWithText("View sales").performClick()
         compose.onNodeWithText("#1049 · 1 item · M-Pesa").assertExists()
         capture("08-sales")

@@ -25,7 +25,7 @@ import com.biashara.app.data.money
 import com.biashara.app.data.report
 
 @Composable
-fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -> Unit = {}) {
+fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -> Unit = {}, onProduct: (Int) -> Unit = { navigate(Screen.STOCK) }, onSupplier: (String) -> Unit = { navigate(Screen.SUPPLIERS) }) {
     var search by remember { mutableStateOf("") }
     var period by remember { mutableStateOf("Day") }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -84,7 +84,8 @@ fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -
                             navigate(Screen.PROFILE)
                         }
                     ) {
-                        ProfilePhoto(Modifier.fillMaxSize())
+                        if (store.real) Box(Modifier.fillMaxSize().background(Mint), contentAlignment = Alignment.Center) { AppText(store.ownerName.take(1).uppercase(), color = Green, fontWeight = FontWeight.Bold) }
+                        else ProfilePhoto(Modifier.fillMaxSize())
                         Box(
                             Modifier.align(Alignment.TopEnd)
                                 .size(8.dp)
@@ -100,14 +101,15 @@ fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             if (search.isNotBlank()) {
-                val results = store.products.filter { it.name.contains(search, true) }
-                if (results.isEmpty()) AppText("No products found", fontSize = 12.sp, color = Muted)
+                val results = store.products.filter { it.name.contains(search, true) || it.sku.contains(search, true) || it.barcode.contains(search) }
+                val suppliers = store.suppliers.filter { it.name.contains(search, true) || it.category.contains(search, true) }
+                if (results.isEmpty() && suppliers.isEmpty()) AppText("No matching records", fontSize = 12.sp, color = Muted)
                 results.take(3).forEach { p ->
                     Row(
-                        Modifier.fillMaxWidth().clickable { navigate(Screen.STOCK) }.padding(8.dp),
+                        Modifier.fillMaxWidth().clickable { onProduct(p.id) }.padding(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        ProductArt(p.art, Modifier.size(32.dp, 39.dp))
+                        ProductPhoto(p, store, Modifier.size(32.dp, 39.dp))
                         AppText(
                             p.name,
                             fontSize = 12.sp,
@@ -121,12 +123,15 @@ fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -
                     }
                 }
             }
+            if (search.isNotBlank()) store.suppliers.filter { it.name.contains(search, true) || it.category.contains(search, true) }.take(3).forEach { supplier ->
+                SurfaceCard(Modifier.clickable { onSupplier(supplier.name) }) { AppText(supplier.name, fontWeight = FontWeight.Bold); AppText(supplier.category, color = Muted) }
+            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 val actions =
                     listOf(
                         Triple("New Sale", Icons.Outlined.PointOfSale, Screen.NEW_SALE),
                         Triple("Add Stock", Icons.Outlined.Inventory2, Screen.STOCK),
-                        Triple("Expenses", Icons.Outlined.Receipt, Screen.REPORTS),
+                        Triple("Expenses", Icons.Outlined.Receipt, if(store.real) Screen.EXPENSES else Screen.REPORTS),
                         Triple("Customers", Icons.Outlined.PeopleOutline, Screen.CUSTOMERS),
                     )
                 val colors = listOf(Green, Color(0xFFEB5E52), Color(0xFF6557DF), Color(0xFF225CB5))
@@ -234,7 +239,7 @@ fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -
             }
             Column(verticalArrangement = Arrangement.spacedBy(13.dp)) {
                 SectionTitle("Recent Sales", "View all", { navigate(Screen.SALES) })
-                store.sales.take(3).forEach { s ->
+                store.sales.filter { it.branch == store.operations.branch }.take(3).forEach { s ->
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         IconTile(Icons.Outlined.ShoppingBag, Green, Mint, 35)
                         Column(Modifier.weight(1f).padding(start = 10.dp)) {
@@ -247,7 +252,7 @@ fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -
                             )
                         }
                         AppText(
-                            "KES ${money(s.amount)}",
+                            minorMoney(s.amountMinor),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                         )

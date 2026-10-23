@@ -20,8 +20,21 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 
+interface BackendSessionStore {
+    fun write(value: JSONObject?)
+    fun read(): JSONObject?
+    fun writePending(value: JSONObject?)
+    fun readPending(): JSONObject?
+    fun writeDraft(value: JSONObject?)
+    fun readDraft(): JSONObject?
+}
+
+fun interface BackendTransport {
+    suspend fun request(base: String, path: String, method: String, body: JSONObject?, token: String?, auth: Boolean): JSONObject
+}
+
 /** Tokens are encrypted with a non-exportable Android Keystore key; passwords are never saved. */
-internal class SessionVault(context: Context) {
+internal class SessionVault(context: Context) : BackendSessionStore {
     private val prefs = context.getSharedPreferences("biashara_auth", Context.MODE_PRIVATE)
 
     private fun key(): SecretKey {
@@ -73,17 +86,19 @@ internal class SessionVault(context: Context) {
         }
     }
 
-    fun write(value: JSONObject?) {
+    override fun write(value: JSONObject?) {
         writeValue(value, "session")
     }
 
-    fun read() = readValue("session")
+    override fun read() = readValue("session")
 
-    fun writePending(value: JSONObject?) {
+    override fun writePending(value: JSONObject?) {
         writeValue(value, "pending")
     }
 
-    fun readPending() = readValue("pending")
+    override fun readPending() = readValue("pending")
+    override fun writeDraft(value: JSONObject?) { writeValue(value, "draft") }
+    override fun readDraft() = readValue("draft")
 }
 
 class BackendException(message: String, val status: Int = 0) : Exception(message)
@@ -92,8 +107,10 @@ class LiveBackend(
     context: Context,
     private val scope: CoroutineScope,
     private val store: DemoStore,
+    private val vault: BackendSessionStore = SessionVault(context),
+    private val transport: BackendTransport? = null,
 ) {
-    private val vault = SessionVault(context)
+    init { store.onDraftChanged = { saveDraft() } }
     private var session: JSONObject? = null
     private val mutex = Mutex()
     var ready by mutableStateOf(false)
@@ -132,6 +149,14 @@ class LiveBackend(
     var role by mutableStateOf("")
         private set
 
+    internal val imageCache = object : android.util.LruCache<String, ByteArray>(12 * 1024 * 1024) {
+        override fun sizeOf(key: String, value: ByteArray) = value.size
+    }
+    internal suspend fun imageAccessToken() = token()
+    var confirmedRequestId by mutableStateOf("")
+        private set
+    var confirmedCommand by mutableStateOf("")
+        private set
     private var pending: JSONObject? = null
     val hasPending: Boolean
         get() = pending != null
@@ -145,6 +170,7 @@ class LiveBackend(
         auth: Boolean = false,
     ): JSONObject =
         withContext(Dispatchers.IO) {
+            transport?.let { return@withContext it.request(base, path, method, body, token, auth) }
             require(base.startsWith("https://")) {
                 "Connection unavailable. Please try again later."
             }
@@ -195,9 +221,9 @@ class LiveBackend(
             }
         }
 
-    private suspend fun token(): String {
+    private suspend fun token(forceRefresh: Boolean = false): String {
         val current = session ?: throw BackendException("Sign in to continue.", 401)
-        if (current.optLong("expires_at") <= System.currentTimeMillis() / 1000 + 60) {
+        if (forceRefresh || current.optLong("expires_at") <= System.currentTimeMillis() / 1000 + 60) {
             try {
                 val refreshed =
                     http(
@@ -211,7 +237,7 @@ class LiveBackend(
                 session = refreshed
             } catch (e: BackendException) {
                 if (e.status in listOf(400, 401)) {
-                    clear()
+                    expireSession()
                     error = "Your session expired. Sign in again."
                 }
                 throw e
@@ -220,19 +246,64 @@ class LiveBackend(
         return session!!.getString("access_token")
     }
 
-    private suspend fun api(body: JSONObject? = null) =
-        http(
-            BuildConfig.API_URL,
-            "/api/workspace",
-            if (body == null) "GET" else "POST",
-            body,
-            token(),
-        )
+    private suspend fun api(body: JSONObject? = null): JSONObject {
+        try {
+            return http(BuildConfig.API_URL, "/api/workspace", if (body == null) "GET" else "POST", body, token())
+        } catch (e: BackendException) {
+            if (e.status != 401) throw e
+            return http(BuildConfig.API_URL, "/api/workspace", if (body == null) "GET" else "POST", body, token(forceRefresh = true))
+        }
+    }
+
+    val accountEmail: String get() = session?.optJSONObject("user")?.optString("email").orEmpty()
+    val accountName: String get() = session?.optJSONObject("user")?.optJSONObject("user_metadata")?.optString("name")?.takeIf { it.isNotBlank() } ?: accountEmail.substringBefore('@')
+    suspend fun changePassword(currentPassword: String, newPassword: String) {
+        require(newPassword.length >= 8) { "Use at least 8 characters for your password." }
+        require(currentPassword.isNotBlank()) { "Enter your current password." }
+        val expected = userId()
+        val verified = http(BuildConfig.SUPABASE_URL, "/auth/v1/token?grant_type=password", "POST", json("email" to accountEmail, "password" to currentPassword), auth = true)
+        require(verified.getJSONObject("user").getString("id") == expected) { "Account verification failed. Sign in again." }
+        vault.write(verified); session = verified
+        http(BuildConfig.SUPABASE_URL, "/auth/v1/user", "PUT", json("password" to newPassword), token(), true)
+        notice = "Password updated."
+    }
+
+    private fun userId() = session?.optJSONObject("user")?.optString("id").orEmpty()
+    private fun restorePending(allowLegacy: Boolean = false) {
+        val saved = vault.readPending()
+        pending = if (saved?.optString("userId") == userId()) saved.optJSONObject("request") else if (allowLegacy && saved?.has("businessId") == true) saved else null
+        if (pending != null) savePending()
+    }
+    private fun savePending() {
+        vault.writePending(pending?.let { json("userId" to userId(), "request" to it) })
+    }
+    private fun expireSession() {
+        session = null
+        imageCache.evictAll()
+        vault.write(null)
+        authenticated = false
+        hasBusiness = false
+        workspaceLoaded = false
+        store.clearLive()
+    }
+    fun saveDraft() {
+        if (!hasBusiness || pending != null) return
+        try {
+            vault.writeDraft(json("userId" to userId(), "businessId" to businessId,
+                "branch" to store.operations.branch, "draft" to draft(),
+                "compareCart" to store.operations.state.objectAt("compareCart"),
+                "shopCart" to store.operations.state.objectAt("shopCart")))
+        } catch (_: Exception) {
+            error = "This basket could not be saved on this device. Keep the app open and check storage before continuing."
+        }
+    }
 
     private fun clear() {
         session = null
+        imageCache.evictAll()
         vault.write(null)
         vault.writePending(null)
+        vault.writeDraft(null)
         authenticated = false
         hasBusiness = false
         workspaceLoaded = false
@@ -245,12 +316,13 @@ class LiveBackend(
     }
 
     fun start() {
+        if (busy || ready) return
+        busy = true
         scope.launch {
-            busy = true
             try {
                 session = vault.read()
                 if (session != null) {
-                    pending = vault.readPending()
+                    restorePending(allowLegacy = true)
                     authenticated = true
                     token()
                     load()
@@ -268,15 +340,15 @@ class LiveBackend(
 
     fun action(block: suspend () -> Unit) {
         if (busy) return
+        busy = true
         scope.launch {
-            busy = true
             error = ""
             notice = ""
             try {
                 block()
             } catch (e: Exception) {
                 error =
-                    if (e is BackendException || e is IllegalArgumentException)
+                    if (e is BackendException || e is IllegalArgumentException || e is IllegalStateException)
                         e.message ?: "Please check your details."
                     else "Connection unavailable. Please try again."
             } finally {
@@ -287,6 +359,8 @@ class LiveBackend(
     }
 
     suspend fun signIn(email: String, password: String) {
+        require(validEmail(email)) { "Enter a valid email address." }
+        require(password.isNotEmpty()) { "Enter your password." }
         val result =
             http(
                 BuildConfig.SUPABASE_URL,
@@ -298,10 +372,14 @@ class LiveBackend(
         vault.write(result)
         session = result
         authenticated = true
+        restorePending()
         load()
     }
 
     suspend fun signUp(email: String, password: String, name: String) {
+        require(validEmail(email)) { "Enter a valid email address." }
+        require(password.length >= 8) { "Use at least 8 characters for your password." }
+        requiredInput(name, "your name")
         val result =
             http(
                 BuildConfig.SUPABASE_URL,
@@ -322,7 +400,14 @@ class LiveBackend(
         } else notice = "Check your email to confirm your account, then sign in."
     }
 
+    suspend fun resendConfirmation(email: String) {
+        require(validEmail(email)) { "Enter a valid email address." }
+        http(BuildConfig.SUPABASE_URL, "/auth/v1/resend", "POST", json("type" to "signup", "email" to email.trim(), "options" to json("emailRedirectTo" to "biasharaos://auth/callback")), auth = true)
+        notice = "If this account needs confirmation, a new link will arrive by email."
+    }
+
     suspend fun forgot(email: String) {
+        require(validEmail(email)) { "Enter a valid email address." }
         http(
             BuildConfig.SUPABASE_URL,
             "/auth/v1/recover?redirect_to=biasharaos%3A%2F%2Fauth%2Fcallback",
@@ -334,6 +419,7 @@ class LiveBackend(
     }
 
     suspend fun resetPassword(password: String) {
+        require(password.length >= 8) { "Use at least 8 characters for your password." }
         http(
             BuildConfig.SUPABASE_URL,
             "/auth/v1/user",
@@ -388,7 +474,22 @@ class LiveBackend(
     }
 
     suspend fun load() {
+        val saved = vault.readDraft()
         accept(api().optJSONObject("workspace"))
+        if (hasBusiness && saved?.optString("userId") == userId() &&
+            saved.optString("businessId") == businessId && saved.optString("branch") == store.operations.branch) {
+            val fields = saved.optJSONObject("draft") ?: return
+            val state = JSONObject(store.operations.state.toString())
+            listOf("cart", "customer", "discount", "discountKind", "promotion", "redeem").forEach { key ->
+                if (fields.has(key)) state.put(key, fields.get(key))
+            }
+            listOf("compareCart", "shopCart").forEach { key -> saved.optJSONObject(key)?.let { state.put(key, it) } }
+            val cart = state.ints("cart").filter { (id, quantity) -> store.products.any { it.id == id } && quantity > 0 }
+            state.put("cart", JSONObject(cart.mapKeys { it.key.toString() }))
+            store.operations.restore(state)
+            store.cart.clear(); store.cart.putAll(cart)
+        }
+        saveDraft()
     }
 
     private fun accept(workspace: JSONObject?) {
@@ -396,6 +497,7 @@ class LiveBackend(
         hasBusiness = workspace != null
         if (workspace == null) {
             store.clearLive()
+            businessId = ""; role = ""; slug = ""; revision = 0
             return
         }
         businessId = workspace.getString("businessId")
@@ -445,6 +547,8 @@ class LiveBackend(
 
     suspend fun command(command: JSONObject): JSONObject =
         mutex.withLock {
+            check(authenticated && hasBusiness && businessId.isNotBlank()) { "Open your business before saving." }
+            require(roleAllows(role, command.optString("type"))) { "Your role does not allow this change. Ask the business owner." }
             check(pending == null) { "Retry the previous unconfirmed request first." }
             pending =
                 json(
@@ -455,7 +559,7 @@ class LiveBackend(
                     "draft" to draft(),
                 )
             try {
-                vault.writePending(pending)
+                savePending()
             } catch (e: Exception) {
                 pending = null
                 throw e
@@ -465,12 +569,22 @@ class LiveBackend(
 
     private suspend fun sendPending(): JSONObject {
         try {
-            val response = api(pending ?: throw BackendException("No request to retry."))
+            val request = pending ?: throw BackendException("No request to retry.")
+            val response = api(request)
             pending = null
             vault.writePending(null)
             accept(response.getJSONObject("workspace"))
             val result = response.getJSONObject("result")
             store.operations.confirmedId(result.optInt("id"))
+            val commandType = request.getJSONObject("command").getString("type")
+            if (commandType in listOf("createOrder", "placeOrder")) {
+                val next = JSONObject(store.operations.state.toString())
+                next.put(if (commandType == "createOrder") "compareCart" else "shopCart", JSONObject())
+                store.operations.restore(next)
+            }
+            saveDraft()
+            confirmedCommand = commandType
+            confirmedRequestId = request.getString("requestId")
             notice = result.optString("message", "Saved to your business.")
             return result
         } catch (e: BackendException) {
@@ -483,8 +597,10 @@ class LiveBackend(
         }
     }
 
+    suspend fun retryPending(): JSONObject = mutex.withLock { sendPending() }
+
     fun retry() {
-        action { sendPending() }
+        action { retryPending() }
     }
 
     fun perform(action: String, values: Map<String, String> = emptyMap(), done: () -> Unit = {}) {
@@ -494,6 +610,7 @@ class LiveBackend(
                 val next = JSONObject(store.operations.state.toString())
                 next.put(if (action == "placeOrder") "shopCart" else "compareCart", JSONObject())
                 store.operations.restore(next)
+                saveDraft()
             }
             done()
         }

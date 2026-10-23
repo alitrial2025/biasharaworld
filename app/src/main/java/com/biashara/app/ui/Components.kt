@@ -351,7 +351,7 @@ fun SalesChart(modifier: Modifier = Modifier, bars: Boolean = true,series:List<F
                 drawLine(Line, Offset(0f, h * n / 3), Offset(w, h * n / 3), 1.dp.toPx())
             }
             if (bars) {
-                val gap = w / values.size
+                val gap = w / values.size.coerceAtLeast(1)
                 values.forEachIndexed { i, v ->
                     val height = h * v
                     drawRoundRect(
@@ -365,7 +365,7 @@ fun SalesChart(modifier: Modifier = Modifier, bars: Boolean = true,series:List<F
                 val p = Path()
                 val fill = Path()
                 values.forEachIndexed { i, v ->
-                    val x = w * i / (values.size - 1)
+                    val x = w * i / (values.size - 1).coerceAtLeast(1)
                     val y = h * (1 - v)
                     if (i == 0) {
                         p.moveTo(x, y)
@@ -390,7 +390,8 @@ fun SalesChart(modifier: Modifier = Modifier, bars: Boolean = true,series:List<F
             Modifier.fillMaxWidth().padding(top = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            (if (bars) listOf("8 AM", "11 AM", "2 PM", "5 PM", "8 PM")
+            (if (series != null) (if (series.size == 1) listOf("Today") else listOf("First day", "Latest day"))
+                else if (bars) listOf("8 AM", "11 AM", "2 PM", "5 PM", "8 PM")
                 else listOf("MON", "TUE", "WED", "THU", "FRI", "SAT"))
                 .forEach {
                     AppText(

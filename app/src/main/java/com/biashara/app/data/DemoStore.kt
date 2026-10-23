@@ -20,6 +20,7 @@ data class Product(
     val barcode: String = productBarcode(id),
     val variantOf: Int? = null,
     val components: Map<Int, Int> = emptyMap(),
+    val imagePath: String? = null,
 )
 
 data class Sale(
@@ -38,6 +39,9 @@ data class Customer(
     val balance: Int,
     val color: Int,
     val balanceMinor: Long = balance * 100L,
+    val id: Int = 0,
+    val phone: String = "",
+    val email: String = "",
 )
 
 data class Supplier(
@@ -57,6 +61,7 @@ fun cartTotal(products: List<Product>, quantities: Map<Int, Int>): Int =
 
 class DemoStore(val real: Boolean = false) {
     var backend: LiveBackend? = null
+    var onDraftChanged: () -> Unit = {}
     var liveState = org.json.JSONObject()
 
     var businessName by mutableStateOf("Wanjiku General Shop")
@@ -188,6 +193,7 @@ class DemoStore(val real: Boolean = false) {
                     p.records("components").associate {
                         it.getInt("productId") to it.getInt("quantity")
                     },
+                    p.optString("imagePath").takeIf { !p.isNull("imagePath") && it.isNotBlank() },
                 )
             }
         )
@@ -218,6 +224,9 @@ class DemoStore(val real: Boolean = false) {
                     c.getDouble("balance").toInt(),
                     i % 5,
                     kotlin.math.round(c.getDouble("balance") * 100).toLong(),
+                    c.optInt("id"),
+                    c.optString("phone"),
+                    c.optString("email"),
                 )
             }
         )
@@ -315,12 +324,17 @@ class DemoStore(val real: Boolean = false) {
     fun add(id: Int) {
         val p = products.firstOrNull { it.id == id } ?: return
         val count = cart[id] ?: 0
-        if (count < operations.available(p.id)) cart[id] = count + 1
+        if (count < operations.available(p.id)) { cart[id] = count + 1; onDraftChanged() }
     }
 
     fun remove(id: Int) {
         val count = cart[id] ?: return
         if (count <= 1) cart.remove(id) else cart[id] = count - 1
+        onDraftChanged()
+    }
+
+    fun clearBasket() {
+        operations.command("clearCart")
     }
 
     fun checkout(method: String): Sale? {
@@ -363,7 +377,8 @@ class DemoStore(val real: Boolean = false) {
     fun reply(question: String) {
         messages.add(ChatMessage(question, true))
         if (real) {
-            val r = report()
+            val days = if (question.contains("week", true)) 7 else if (question.contains("month", true)) 30 else 1
+            val r = report(days)
             val answer =
                 when {
                     question.contains("stock", true) ->
@@ -377,7 +392,7 @@ class DemoStore(val real: Boolean = false) {
                                 }
                             )
                     else ->
-                        "Recorded today: sales ${minorMoney(r.sales)}, expenses ${minorMoney(r.expenses)}, operating profit ${minorMoney(r.profit)}. This summary uses your recorded business activity."
+                        "Recorded over $days day(s): sales ${minorMoney(r.sales)}, expenses ${minorMoney(r.expenses)}, operating profit ${minorMoney(r.profit)}. This summary uses your recorded business activity."
                 }
             messages.add(ChatMessage(answer, false))
             return

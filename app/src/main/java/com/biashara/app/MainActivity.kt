@@ -68,10 +68,10 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
     val store = model.store
     val online = rememberDeviceOnline()
     var routes by rememberSaveable { mutableStateOf<List<String>>(listOf(Screen.HOME.name)) }
-    var tool by rememberSaveable { mutableStateOf("scanner") }
+    val tool = routes.last().substringAfter(":", "scanner")
     var supplier by rememberSaveable { mutableIntStateOf(0) }
     val supplierCart = store.supplierCart
-    val screen = Screen.valueOf(routes.last())
+    val screen = Screen.valueOf(routes.last().substringBefore(":"))
     val navigate: (Screen) -> Unit = { target ->
         routes =
             when {
@@ -90,8 +90,8 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
     val openTool: (String) -> Unit = { target ->
         if (target == "checkout") navigate(Screen.NEW_SALE)
         else {
-            tool = target
-            navigate(Screen.FEATURE)
+            val route = "${Screen.FEATURE.name}:$target"
+            if (routes.last() != route) routes = routes + route
         }
     }
     Box(Modifier.fillMaxSize().background(Canvas), contentAlignment = Alignment.TopCenter) {
@@ -106,7 +106,7 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
                 val backend=model.backend
                 if(backend!=null){
                     Row(Modifier.fillMaxWidth().background(if(backend.error.isBlank())Mint else RoseMist).padding(8.dp),verticalAlignment=Alignment.CenterVertically){
-                        AppText(if(backend.busy)"Saving to your business…" else backend.error.ifBlank{backend.notice.ifBlank{"Connected · ${backend.role}"}},modifier=Modifier.weight(1f),fontSize=11.sp,color=Ink)
+                        AppText(if(backend.busy)"Working…" else backend.error.ifBlank{backend.notice.ifBlank{"Connected · ${backend.role}"}},modifier=Modifier.weight(1f),fontSize=11.sp,color=Ink)
                         TextButton(onClick={if(backend.hasPending)backend.retry()else backend.action{backend.load()}}){AppText(if(backend.hasPending)"Retry" else "Refresh",fontSize=11.sp)}
                     }
                 }
@@ -144,15 +144,15 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
                     ) { destination ->
                         when (destination) {
                             Screen.HOME ->
-                                DashboardScreen(store, navigate, { openTool("branches") })
+                                DashboardScreen(store, navigate, { openTool("branches") }, { id -> routes = routes + "${Screen.STOCK.name}:$id" }, { name -> routes = routes + "${Screen.SUPPLIERS.name}:${android.net.Uri.encode(name)}" })
                             Screen.SALES -> SalesScreen(store, navigate)
                             Screen.NEW_SALE ->
                                 NewSaleScreen(store, back, { navigate(Screen.SALES) }, openTool)
-                            Screen.STOCK -> InventoryScreen(store)
+                            Screen.STOCK -> InventoryScreen(store, routes.last().substringAfter(":", "").toIntOrNull())
                             Screen.MORE -> MoreScreen(store, navigate)
                             Screen.CUSTOMERS -> CustomersScreen(store, back)
                             Screen.SUPPLIERS ->
-                                if(store.real)LiveSuppliersScreen(store,back)else SuppliersScreen(store, back) { i ->
+                                if(store.real)LiveSuppliersScreen(store,back,openTool,android.net.Uri.decode(routes.last().substringAfter(":", "")))else SuppliersScreen(store, back) { i ->
                                     supplier = i
                                     supplierCart.clear()
                                     navigate(Screen.SUPPLIER)
@@ -181,9 +181,13 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
                                         navigate(Screen.SUPPLIERS)
                                     },
                                 )
+                            Screen.EXPENSES -> if(store.real)LiveReportsScreen(store, back, expensesOnly=true) else ReportsScreen(store, back)
+                            Screen.TEAM -> LiveTeamScreen(store, back)
+                            Screen.ALERTS -> BusinessAlertsScreen(store, back, openTool)
+                            Screen.PREFERENCES -> FeatureScreen(store, "preferences", back, openTool)
                             Screen.REPORTS -> if(store.real)LiveReportsScreen(store,back)else ReportsScreen(store, back)
                             Screen.ASSISTANT -> AssistantScreen(store, back)
-                            Screen.FINANCE -> FinanceScreen(back)
+                            Screen.FINANCE -> FinanceScreen(back, store) { navigate(Screen.REPORTS) }
                             Screen.PROFILE -> ProfileScreen(store, back)
                             Screen.SETUP -> SetupScreen(store) { navigate(Screen.HOME) }
                             Screen.TOOLS -> ToolsHubScreen(store, back, openTool)

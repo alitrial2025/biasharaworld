@@ -17,6 +17,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -36,7 +37,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.DialogProperties
 import com.biashara.app.data.*
 import java.time.LocalDate
 import org.json.JSONArray
@@ -91,7 +91,7 @@ internal val businessFeatures =
             "Returns & refunds",
             "A fair return. A clear record.",
             "Selling",
-            Icons.Outlined.AssignmentReturn,
+            Icons.AutoMirrored.Outlined.AssignmentReturn,
         ),
         BusinessFeature(
             6,
@@ -115,7 +115,7 @@ internal val businessFeatures =
             "Stocktaking",
             "Every shelf. Every little difference.",
             "Stock",
-            Icons.Outlined.FactCheck,
+            Icons.AutoMirrored.Outlined.FactCheck,
         ),
         BusinessFeature(
             9,
@@ -155,7 +155,7 @@ internal val businessFeatures =
             "Compare suppliers",
             "A little comparison goes a long way.",
             "Growth",
-            Icons.Outlined.CompareArrows,
+            Icons.AutoMirrored.Outlined.CompareArrows,
         ),
         BusinessFeature(
             14,
@@ -291,7 +291,8 @@ private data class ToolForm(
 )
 
 @Composable
-private fun FormDialog(form: ToolForm, errorProvider: () -> String, onClose: () -> Unit) {
+private fun ToolFormSheet(store: DemoStore, form: ToolForm, errorProvider: () -> String, onClose: () -> Unit) {
+    CloseSheetAfterSave(store, onClose)
     val values =
         remember(form) {
             mutableStateMapOf<String, String>().apply {
@@ -301,9 +302,8 @@ private fun FormDialog(form: ToolForm, errorProvider: () -> String, onClose: () 
             }
         }
     var error by remember(form) { mutableStateOf("") }
-    AlertDialog(
+    ActionSheet(
         modifier = Modifier.fillMaxWidth(0.92f).widthIn(max = 560.dp),
-        properties = DialogProperties(usePlatformDefaultWidth = false),
         onDismissRequest = onClose,
         containerColor = Surface,
         title = {
@@ -316,7 +316,7 @@ private fun FormDialog(form: ToolForm, errorProvider: () -> String, onClose: () 
         },
         text = {
             Column(
-                Modifier.heightIn(max = 490.dp).verticalScroll(rememberScrollState()),
+                Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 if (form.description.isNotBlank())
@@ -326,6 +326,7 @@ private fun FormDialog(form: ToolForm, errorProvider: () -> String, onClose: () 
                         Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                             AppText(field.label, fontSize = 12.sp, color = Muted)
                             BasicTextField(
+                                enabled = store.canSave,
                                 value = values[field.key] ?: "",
                                 onValueChange = {
                                     values[field.key] = it
@@ -357,20 +358,17 @@ private fun FormDialog(form: ToolForm, errorProvider: () -> String, onClose: () 
                             { values[field.key] = it },
                         )
                 }
-                if (error.isNotEmpty())
-                    AppText(errorProvider().ifBlank { error }, color = Coral, fontSize = 12.sp)
+                BusinessFormStatus(store, error)
             }
         },
         confirmButton = {
             TextButton(
+                enabled = store.canSave,
                 onClick = {
                     try {
+                        error = ""
                         if (form.submit(values.toMap())) onClose()
-                        else
-                            error =
-                                errorProvider().ifBlank {
-                                    "Please review the action and try again."
-                                }
+                        else if (store.backend?.busy != true) error = errorProvider().ifBlank { "Please review the action and try again." }
                     } catch (e: Exception) {
                         error = e.message ?: "Check your entries."
                     }
@@ -390,42 +388,7 @@ private fun ToolSelect(
     options: List<Pair<String, String>>,
     onChange: (String) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    Column {
-        AppText(label, fontSize = 11.sp, color = Muted, modifier = Modifier.padding(bottom = 7.dp))
-        Box {
-            Row(
-                Modifier.fillMaxWidth()
-                    .border(1.dp, Line, RoundedCornerShape(12.dp))
-                    .background(Surface, RoundedCornerShape(12.dp))
-                    .clickable { expanded = true }
-                    .padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AppText(
-                    options.firstOrNull { it.first == value }?.second ?: value,
-                    fontSize = 13.sp,
-                    modifier = Modifier.weight(1f),
-                )
-                AppIcon(Icons.Outlined.ExpandMore, null, Modifier.size(19.dp), tint = Muted)
-            }
-            DropdownMenu(
-                expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.heightIn(max = 300.dp).background(Surface),
-            ) {
-                options.forEach { (id, title) ->
-                    DropdownMenuItem(
-                        text = { AppText(title, fontSize = 13.sp) },
-                        onClick = {
-                            onChange(id)
-                            expanded = false
-                        },
-                    )
-                }
-            }
-        }
-    }
+    SheetChoice(label, value, options, onChange)
 }
 
 @Composable
@@ -514,7 +477,19 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
     var selected by rememberSaveable { mutableIntStateOf(0) }
     var tab by rememberSaveable { mutableStateOf("All") }
     var found by rememberSaveable { mutableIntStateOf(0) }
+    var scanning by remember { mutableStateOf(false) }
+    var security by remember { mutableStateOf(false) }
     fun run(action: String, values: Map<String, String> = emptyMap()): Boolean {
+        if (!store.canPerform(action)) {
+            feedback = "Your role does not allow this change. Ask the business owner."
+            failed = true
+            return false
+        }
+        if (store.real && !store.canSave) {
+            feedback = if (store.backend?.hasPending == true) "Retry the unconfirmed request first." else "Wait for the current save to finish."
+            failed = true
+            return false
+        }
         if (
             store.real &&
                 action !in listOf("cart", "basket", "clearCart", "compareBasket", "shopCart")
@@ -547,6 +522,8 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
         confirm: String = "Save",
         description: String = "",
     ) {
+        if (!store.canPerform(action)) { feedback = "Your role does not allow this change. Ask the business owner."; failed = true; return }
+        if (fields.any { it.key in listOf("product", "parent", "to") && it.options.isEmpty() }) { feedback = "Add the required product or destination branch first."; failed = true; return }
         form =
             ToolForm(title, description, fields, confirm) { values -> run(action, extra + values) }
     }
@@ -555,6 +532,9 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
             feedback = store.backend!!.error
             failed = true
         }
+    }
+    LaunchedEffect(store.backend?.confirmedRequestId) {
+        if (store.backend?.confirmedCommand in listOf("checkout", "startCount")) selected = ops.lastId
     }
     val products = store.products.toList()
     val productOptions =
@@ -579,7 +559,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            StatusLabel("Local UI preview")
+            StatusLabel(if (store.real) "Shared business records" else "Local UI preview")
             TextButton(onClick = { onOpen("branches") }) {
                 AppText(ops.branchName, fontSize = 11.sp, color = Green)
                 AppIcon(Icons.Outlined.ExpandMore, null, Modifier.size(17.dp), tint = Green)
@@ -611,12 +591,13 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                             color = Color.White,
                         )
                         AppText(
-                            "Use a barcode or keyboard scanner. Camera scanning is coming later.",
+                            "Use your camera, a barcode or a keyboard scanner.",
                             fontSize = 10.sp,
                             color = Color(0xFFBED4C6),
                         )
                     }
                 }
+                PrimaryButton("Scan with camera", { scanning = true }, tone = Green)
                 OutlinedTextField(
                     query,
                     { query = it },
@@ -647,7 +628,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                     ?.let { p ->
                         RecordCard(p.name, "${p.detail} · ${minorMoney(p.priceMinor)}", Mint) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                ProductArt(p.art)
+                                ProductPhoto(p, store)
                                 AppText(
                                     "${ops.available(p.id)} available",
                                     fontSize = 13.sp,
@@ -775,7 +756,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                 ToolField(
                                     "ends",
                                     "Offer ends (YYYY-MM-DD)",
-                                    LocalDate.now().plusDays(7).toString(),
+                                    LocalDate.parse(todayLocal()).plusDays(7).toString(),
                                 ),
                                 ToolField(
                                     "product",
@@ -947,7 +928,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                     "Legacy receipts without line details remain in Sales. Detailed receipts support item-level returns.",
                 )
                 o.records("receipts")
-                    .filter { it.optString("branch") == ops.branch }
+                    .filter { it.optString("branch") == ops.branch && it.records("lines").isNotEmpty() }
                     .forEach { r ->
                         RecordCard(
                             "Receipt #${r.optInt("id")}",
@@ -1047,7 +1028,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                     ToolField(
                                         "due",
                                         "Due date (YYYY-MM-DD)",
-                                        LocalDate.now().plusDays(7).toString(),
+                                        LocalDate.parse(todayLocal()).plusDays(7).toString(),
                                     ),
                                 ),
                                 confirm = "Save draft",
@@ -1075,7 +1056,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                 fontSize = 25.sp,
                                 fontWeight = FontWeight.Bold,
                             )
-                            StatusLabel(d.optString("status"))
+                            StatusLabel(if (store.real) d.optString("status").replace(" locally", "") else d.optString("status"))
                             d.records("lines").forEach { line ->
                                 AppText(
                                     "${line.optInt("quantity")} × ${line.optString("name")} · ${minorMoney(line.optLong("net"))}",
@@ -1098,12 +1079,12 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                                 } +
                                                 listOf(
                                                     "Total ${minorMoney(d.optLong("total"))}",
-                                                    "UI preview · not an official tax document",
+                                                    "Business record · not a tax invoice",
                                                 ),
                                         )
                                     }
                             )
-                            if (d.optString("kind") == "Quotation")
+                            if (d.optString("kind") == "Quotation" && o.records("documents").none { it.optString("kind") == "Invoice" && it.optInt("id") == -d.optInt("id") })
                                 ActionRow(
                                     "Convert to invoice" to
                                         {
@@ -1385,7 +1366,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                 ToolField(
                                     "expires",
                                     "Expiry date (YYYY-MM-DD)",
-                                    LocalDate.now().plusDays(30).toString(),
+                                    LocalDate.parse(todayLocal()).plusDays(30).toString(),
                                 ),
                             ),
                             confirm = "Receive batch",
@@ -1402,7 +1383,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                 if (tab == "Expired") it.optString("expires") < todayLocal()
                                 else
                                     it.optString("expires") in
-                                        todayLocal()..LocalDate.now().plusDays(14).toString())
+                                        todayLocal()..LocalDate.parse(todayLocal()).plusDays(14).toString())
                     }
                 if (batches.isEmpty())
                     EmptyState("A clear view of your fresh stock.", "No batches match this filter.")
@@ -1432,7 +1413,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                         listOf(ToolField("reason", "Write-off reason")),
                                         mapOf("id" to b.optInt("id").toString()),
                                         "Write off batch",
-                                        "Remaining units in this batch will be removed from local stock.",
+                                        "Remaining units in this batch will be removed from stock.",
                                     )
                                 }
                         )
@@ -1512,7 +1493,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                     .forEach { p ->
                         RecordCard(p.name, "${p.detail} · ${p.sku}") {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                ProductArt(p.art)
+                                ProductPhoto(p, store)
                                 Column(Modifier.padding(start = 15.dp)) {
                                     AppText(
                                         minorMoney(p.priceMinor),
@@ -1755,7 +1736,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                     ),
                                 )
                             },
-                            enabled = goods >= minimum,
+                            enabled = goods >= minimum && compare.values.any { it > 0 } && store.canSave && store.canPerform("createOrder"),
                             tone = Green,
                         )
                         if (goods < minimum)
@@ -1766,7 +1747,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                             )
                     }
                 }
-                Eyebrow("Local purchase orders")
+                Eyebrow(if (store.real) "Purchase orders" else "Local purchase orders")
                 o.records("purchaseOrders")
                     .filter { it.optString("branch", "main") == ops.branch }
                     .forEach { order ->
@@ -1790,6 +1771,25 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                     }
             }
             "deliveries" -> {
+                val shop = o.objectAt("shop")
+                if (store.real && store.canPerform("placeOrder")) {
+                    PrimaryButton("Record customer order", {
+                        val visible = products.filter { p -> (0 until (shop.optJSONArray("hidden")?.length() ?: 0)).none { shop.getJSONArray("hidden").optInt(it) == p.id } && ops.available(p.id) > 0 }
+                        if (namedCustomers.isEmpty() || visible.isEmpty()) { feedback = "Add a customer and sellable products before recording an order."; failed = true }
+                        else form = ToolForm("Record customer order", "Record an agreed order. No payment or delivery request is sent.", listOf(
+                            ToolField("customer", "Customer", namedCustomers.first().first, namedCustomers),
+                            ToolField("address", "Delivery / pickup details"),
+                        ) + visible.map { ToolField("p${it.id}", "Units of ${it.name}", "0", numeric = true) }, "Save order") { values ->
+                            val cart = visible.associate { it.id.toString() to wholeInput(values["p${it.id}"] ?: "0", "Quantity") }.filterValues { it > 0 }
+                            require(cart.isNotEmpty()) { "Choose at least one product." }
+                            val updated = JSONObject(ops.state.toString()).put("shopCart", JSONObject(cart))
+                            ops.restore(updated); store.onDraftChanged()
+                            run("placeOrder", mapOf("customer" to values.getValue("customer"), "address" to requiredInput(values["address"].orEmpty(), "delivery or pickup details")))
+                        }
+                    }, enabled = store.canSave && shop.optBoolean("published") && shop.optString("branch") == ops.branch, tone = Green)
+                    if (!shop.optBoolean("published")) AppText("Publish your shop before recording customer orders.", color = Muted)
+                    if (shop.optString("branch") != ops.branch) ActionRow("Switch to fulfilment branch" to { run("branch", mapOf("branch" to shop.optString("branch"))) })
+                }
                 ActionRow("Preview customer shop" to { onOpen("storefront") })
                 val orders = o.records("deliveries").filter { it.optString("branch") == ops.branch }
                 if (orders.isEmpty())
@@ -1897,7 +1897,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                     }
                             )
                         StatusLabel(
-                            if (order.optBoolean("paid")) "Paid locally" else "Unpaid",
+                            if (order.optBoolean("paid")) "Payment recorded" else "Unpaid",
                             Amber,
                         )
                     }
@@ -2016,7 +2016,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                 val shop = o.objectAt("shop")
                 RecordCard(shop.optString("name"), shop.optString("description"), Mint) {
                     StatusLabel(
-                        if (shop.optBoolean("published")) "Visible in local preview" else "Hidden",
+                        if (shop.optBoolean("published")) (if (store.real) "Published" else "Visible in local preview") else "Hidden",
                         Green,
                     )
                     ActionRow(
@@ -2047,8 +2047,8 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                     ),
                                 )
                             },
-                        (if (shop.optBoolean("published")) "Hide local shop"
-                        else "Show local shop") to
+                        (if (shop.optBoolean("published")) "Hide shop"
+                        else "Publish shop") to
                             {
                                 run(
                                     "shop",
@@ -2062,7 +2062,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                         tone = Green,
                     )
                     AppText(
-                        "This switch changes only the local preview. It does not publish a real store.",
+                        if (store.real) "Publishing makes your selected products, prices and availability visible to customers." else "This switch changes only the local preview. It does not publish a real store.",
                         fontSize = 11.sp,
                         color = Muted,
                     )
@@ -2073,7 +2073,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                     val visible = (0 until hidden.length()).none { hidden.getInt(it) == p.id }
                     SurfaceCard {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            ProductArt(p.art)
+                            ProductPhoto(p, store)
                             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                                 AppText(p.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                                 AppText(minorMoney(p.priceMinor), fontSize = 11.sp, color = Muted)
@@ -2094,7 +2094,16 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                 }
             }
             "storefront" -> {
-                NativeShopPreview(
+                if (store.real) {
+                    RecordCard(o.objectAt("shop").optString("name"), "Your published shop opens in the browser so customers can sign in and place private orders.", Mint) {
+                        val url = com.biashara.app.BuildConfig.API_URL + "/shop/" + store.backend?.slug.orEmpty()
+                        AppText(url, color = Muted)
+                        if (!o.objectAt("shop").optBoolean("published")) AppText("This shop is hidden. Publish it from Online shop before sharing it.", color = Amber)
+                        PrimaryButton("Open shop", { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))) }, enabled = o.objectAt("shop").optBoolean("published"), tone = Green)
+                        TextButton(onClick = { context.startActivity(android.content.Intent.createChooser(android.content.Intent(android.content.Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(android.content.Intent.EXTRA_TEXT, url) }, "Share shop")) }, enabled = o.objectAt("shop").optBoolean("published")) { AppText("Share shop link", color = Green) }
+                        ActionRow("Shop settings" to { onOpen("online-shop") })
+                    }
+                } else NativeShopPreview(
                     store,
                     { action, values -> run(action, values) },
                     onOpen,
@@ -2113,7 +2122,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                         "Balance ${minorMoney(c.balanceMinor)} · ${o.objectAt("loyalty").optInt(c.name)} points",
                     ) {
                         PrimaryButton(
-                            "Preview as customer",
+                            if (store.real) "Review customer records" else "Preview as customer",
                             {
                                 run("basket", mapOf("customer" to c.name, "redeem" to "0"))
                                 onOpen("portal")
@@ -2182,10 +2191,13 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                 }
             }
             "preferences" -> {
+                if (store.real) RecordCard("Your account", store.backend?.accountEmail.orEmpty()) {
+                    PrimaryButton("Change password", { security = true }, enabled = store.canSave, tone = Green)
+                }
                 val prefs = o.objectAt("preferences")
                 RecordCard(
                     "Your language. Your light. Your pace.",
-                    "Preferences are saved on this device.",
+                    if (store.real) "Preferences are saved to your account and shared across devices." else "Preferences are saved on this device.",
                 ) {
                     ToolSelect(
                         "Language / Lugha",
@@ -2257,12 +2269,20 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
             }
         }
         AppText(
-            "UI preview · no live payments, messages or supplier requests.",
+            if (store.real) "Business changes are saved to your account. Record payments after receiving them." else "UI preview · no live payments, messages or supplier requests.",
             fontSize = 10.sp,
             color = Muted,
         )
     }
-    form?.let { FormDialog(it, { feedback }) { form = null } }
+    if (security) AccountSecuritySheet(store) { security = false }
+    if (scanning) CameraBarcodeSheet({ scanning = false }) { code ->
+        query = code
+        val product = store.products.firstOrNull { it.barcode == code || it.sku.equals(code, true) }
+        found = product?.id ?: 0
+        feedback = if (product == null) "No product in your business matches this code." else "Product found."
+        failed = product == null
+    }
+    form?.let { ToolFormSheet(store, it, { feedback }) { form = null } }
 }
 
 @Composable
@@ -2299,14 +2319,14 @@ private fun ReceiptCard(receipt: JSONObject, context: Context) {
                 {
                     printDemo(
                         context,
-                        "Demo receipt",
+                        "Receipt",
                         listOf("Receipt #${receipt.optInt("id")}", receipt.optString("customer")) +
                             receipt.records("lines").map {
                                 "${it.optInt("quantity")} × ${it.optString("name")}  ${minorMoney(it.optLong("net"))}"
                             } +
                             listOf(
                                 "Total ${minorMoney(receipt.optLong("total"))}",
-                                "UI preview. No payment was collected.",
+                                "Payment recorded manually. No payment request was sent.",
                             ),
                     )
                 }
@@ -2357,7 +2377,7 @@ private fun ColumnScope.NativeShopPreview(
         .forEach { p ->
             SurfaceCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    ProductArt(p.art, Modifier.size(65.dp, 80.dp))
+                    ProductPhoto(p, store, Modifier.size(65.dp, 80.dp))
                     Column(Modifier.weight(1f).padding(horizontal = 13.dp)) {
                         AppText(p.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                         AppText(p.detail.substringBefore(" ·"), fontSize = 11.sp, color = Muted)
@@ -2473,7 +2493,7 @@ private fun ColumnScope.NativeCustomerPreview(store: DemoStore, onOpen: (String)
         "Your orders, records and rewards with ${o.objectAt("shop").optString("name")}",
         BlueMist,
     ) {
-        StatusLabel("Customer-view preview · no sign-in", Amber)
+        StatusLabel(if (store.real) "Merchant review · private customer records" else "Customer-view preview · no sign-in", Amber)
         AppText(
             "Balance ${minorMoney(c.balanceMinor)}",
             fontSize = 23.sp,
@@ -2485,7 +2505,7 @@ private fun ColumnScope.NativeCustomerPreview(store: DemoStore, onOpen: (String)
             color = Green,
         )
         ActionRow(
-            "Visit demo shop" to { onOpen("storefront") },
+            "Visit shop" to { onOpen("storefront") },
             "Back to merchant" to { onOpen("customer-portal") },
         )
     }
@@ -2494,7 +2514,7 @@ private fun ColumnScope.NativeCustomerPreview(store: DemoStore, onOpen: (String)
     if (orders.isEmpty())
         EmptyState(
             "Your next order is waiting to happen.",
-            "Explore the demo shop and place a sample order.",
+            if (store.real) "This customer has no recorded orders." else "Explore the demo shop and place a sample order.",
         )
     orders.forEach { order ->
         RecordCard("Order #${order.optInt("id")}", minorMoney(order.optLong("total"))) {
@@ -2520,7 +2540,7 @@ private fun ColumnScope.NativeCustomerPreview(store: DemoStore, onOpen: (String)
                 "Invoice #${kotlin.math.abs(d.optInt("id"))}",
                 "Due ${d.optString("due")} · ${minorMoney(d.optLong("total"))}",
             ) {
-                StatusLabel(d.optString("status"))
+                StatusLabel(if (store.real) d.optString("status").replace(" locally", "") else d.optString("status"))
             }
         }
         Eyebrow("Your rewards")

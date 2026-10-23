@@ -23,8 +23,8 @@ android {
         applicationId = "com.biashara.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true; buildConfig = true }
@@ -55,6 +55,10 @@ android {
 }
 
 dependencies {
+    implementation("androidx.camera:camera-camera2:1.4.2")
+    implementation("androidx.camera:camera-lifecycle:1.4.2")
+    implementation("androidx.camera:camera-view:1.4.2")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
     implementation("androidx.datastore:datastore-preferences:1.1.7")
     testImplementation("org.json:json:20240303")
     implementation(platform("androidx.compose:compose-bom:2025.04.01"))

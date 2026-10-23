@@ -26,204 +26,102 @@ import com.biashara.app.data.*
 fun CustomersScreen(store: DemoStore, onBack: () -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
     var filter by rememberSaveable { mutableStateOf("Everyone") }
-    var adding by remember { mutableStateOf(false) }
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var balance by remember { mutableStateOf("") }
-    var selected by remember { mutableStateOf<Customer?>(null) }
-    val avatarColors = listOf(Mint, Color(0xFFF7E6D4), Lavender, Color(0xFFE5EFCB))
+    var adding by rememberSaveable { mutableStateOf(false) }
+    var selectedId by rememberSaveable { mutableStateOf<Int?>(null) }
+    var selectedName by rememberSaveable { mutableStateOf("") }
     Page {
         PageTitle("Customers", onBack = onBack)
-        SearchBox(query, { query = it }, "Search customers…")
-        FilterPills(listOf("Everyone", "Owes you", "All settled"), filter, { filter = it })
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            val customers =
-                store.customers.filter {
-                    it.name.contains(query, true) &&
-                        when (filter) {
-                            "Owes you" -> it.balanceMinor > 0
-                            "All settled" -> it.balanceMinor == 0L
-                            else -> true
-                        }
-                }
-            if (customers.isEmpty())
-                EmptyState(
-                    "No customers here",
-                    "Try another name or add someone new.",
-                    Icons.Outlined.PeopleOutline,
-                )
-            customers.forEach { c ->
-                Row(
-                    Modifier.fillMaxWidth().clickable { selected = c }.padding(vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        Modifier.size(46.dp)
-                            .background(avatarColors[c.color % avatarColors.size], CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        AppText(
-                            c.initial,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Ink,
-                        )
+        SurfaceCard(color = Mint) {
+            Eyebrow("Outstanding balances")
+            AppText(minorMoney(store.customers.sumOf { it.balanceMinor }), style = MaterialTheme.typography.headlineLarge)
+            AppText("${store.customers.count { it.balanceMinor > 0 }} customers with a balance", color = Muted)
+        }
+        SearchBox(query, { query = it }, "Search name, phone or email…")
+        FilterPills(listOf("Everyone", "With balances", "Settled"), filter, { filter = it })
+        val customers = store.customers.filter { c ->
+            (c.name.contains(query, true) || c.phone.contains(query) || c.email.contains(query, true)) &&
+                when (filter) { "With balances" -> c.balanceMinor > 0; "Settled" -> c.balanceMinor == 0L; else -> true }
+        }
+        if (customers.isEmpty()) EmptyState("No customers here", "Try another search or add your first customer.")
+        customers.forEach { c ->
+            SurfaceCard(Modifier.clickable { selectedId = c.id; selectedName = c.name }) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        AppText(c.name, fontWeight = FontWeight.Bold)
+                        AppText(c.phone.ifBlank { c.email.ifBlank { "No contact details" } }, color = Muted, fontSize = 12.sp)
                     }
-                    Column(Modifier.weight(1f).padding(horizontal = 13.dp)) {
-                        AppText(c.name, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                        AppText(
-                            if (c.balanceMinor > 0) "Outstanding balance" else "All paid up",
-                            fontSize = 10.sp,
-                            color = Muted,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
-                    AppText(
-                        if (c.balanceMinor == 0L) "Settled ✓" else minorMoney(c.balanceMinor),
-                        fontSize = 12.sp,
-                        color = if (c.balanceMinor == 0L) Green else Amber,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    AppIcon(
-                        Icons.Outlined.ChevronRight,
-                        null,
-                        Modifier.padding(start = 8.dp).size(15.dp),
-                        tint = Muted,
-                    )
+                    AppText(if (c.balanceMinor == 0L) "Settled ✓" else minorMoney(c.balanceMinor), color = if (c.balanceMinor == 0L) Green else Amber)
                 }
-                HorizontalDivider(color = Line)
             }
         }
-        PrimaryButton("Add Customer", { adding = true }, icon = Icons.Outlined.PersonAddAlt)
+        if (store.canPerform("addCustomer")) PrimaryButton("Add Customer", { adding = true }, enabled = store.canSave, icon = Icons.Outlined.PersonAddAlt, tone = Green)
     }
-    selected?.let { c ->
-        AlertDialog(
-            onDismissRequest = { selected = null },
-            title = { AppText(c.name) },
-            text = {
-                AppText(
-                    if (c.balanceMinor > 0)
-                        "${minorMoney(c.balanceMinor)} outstanding.\n\nRecord payment only after you have received the money. The shared customer balance will update."
-                    else "No outstanding balance."
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (store.real && c.balanceMinor > 0) {
-                            val record =
-                                store.liveState.records("customers").firstOrNull {
-                                    it.optString("name") == c.name
-                                }
-                            store.backend?.action {
-                                store.backend?.command(
-                                    json(
-                                        "type" to "payBalance",
-                                        "id" to record?.optInt("id"),
-                                        "amount" to record?.optDouble("balance"),
-                                    )
-                                )
-                                selected = null
-                            }
-                            return@TextButton
-                        }
-                        if (c.balanceMinor > 0) {
-                            val i = store.customers.indexOf(c)
-                            if (i >= 0) store.customers[i] = c.copy(balance = 0, balanceMinor = 0L)
-                        }
-                        selected = null
-                    }
-                ) {
-                    AppText(if (c.balanceMinor > 0) "Record full repayment" else "Done")
-                }
-            },
-            dismissButton = {
-                if (c.balanceMinor > 0)
-                    TextButton(onClick = { selected = null }) { AppText("Close") }
-            },
-        )
+    if (adding) CustomerEditorSheet(store) { adding = false }
+    selectedId?.let { id ->
+        val customer = store.customers.firstOrNull { if (store.real) it.id == id else it.name == selectedName }
+        customer?.let { CustomerDetailsSheet(store, it) { selectedId = null } }
     }
-    if (adding)
-        ModalBottomSheet(onDismissRequest = { adding = false }, containerColor = Canvas) {
-            Column(
-                Modifier.padding(horizontal = 24.dp).padding(bottom = 32.dp).imePadding(),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Eyebrow("Customer details")
-                AppText("Add Customer", style = MaterialTheme.typography.headlineMedium)
-                OutlinedTextField(
-                    name,
-                    { name = it.take(60) },
-                    label = { AppText("Customer name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                )
-                OutlinedTextField(
-                    email,
-                    { email = it },
-                    label = { AppText("Customer email (optional)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                )
-                OutlinedTextField(
-                    balance,
-                    { balance = it.filter(Char::isDigit).take(7) },
-                    label = { AppText("Opening balance (KES, optional)") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                )
-                PrimaryButton(
-                    "Add customer",
-                    {
-                        if (store.real) {
-                            store.backend?.action {
-                                store.backend?.command(
-                                    json(
-                                        "type" to "addCustomer",
-                                        "customer" to
-                                            json(
-                                                "name" to name.trim(),
-                                                "phone" to "",
-                                                "email" to email.trim(),
-                                                "balance" to (balance.toDoubleOrNull() ?: 0.0),
-                                                "purchases" to 0,
-                                                "color" to "mint",
-                                            ),
-                                    )
-                                )
-                                name = ""
-                                balance = ""
-                                adding = false
-                            }
-                            return@PrimaryButton
-                        }
-                        store.customers.add(
-                            Customer(
-                                name.trim(),
-                                name
-                                    .trim()
-                                    .split(" ")
-                                    .filter { it.isNotBlank() }
-                                    .take(2)
-                                    .map { it.first().uppercaseChar() }
-                                    .joinToString(""),
-                                balance.toIntOrNull() ?: 0,
-                                store.customers.size % 4,
-                            )
-                        )
-                        name = ""
-                        balance = ""
-                        adding = false
-                    },
-                    enabled = name.isNotBlank(),
-                    icon = Icons.Outlined.Check,
-                )
+}
+
+@Composable
+private fun CustomerDetailsSheet(store: DemoStore, customer: Customer, onClose: () -> Unit) {
+    CloseSheetAfterSave(store, onClose)
+    var amount by remember(customer.id, customer.name) { mutableStateOf(moneyInput(customer.balanceMinor)) }
+    var error by rememberSaveable { mutableStateOf("") }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    ActionSheet(onDismissRequest = onClose, title = { AppText(customer.name, style = MaterialTheme.typography.headlineSmall) }, text = {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            AppText("Outstanding: ${minorMoney(customer.balanceMinor)}", style = MaterialTheme.typography.titleLarge)
+            if (customer.phone.isNotBlank()) TextButton(onClick = { context.startActivity(android.content.Intent(android.content.Intent.ACTION_DIAL, android.net.Uri.parse("tel:" + android.net.Uri.encode(customer.phone)))) }) { AppText(customer.phone, color = Green) }
+            if (customer.email.isNotBlank()) AppText(customer.email, color = Muted)
+            if (customer.balanceMinor > 0 && store.canPerform("payBalance")) {
+                OutlinedTextField(amount, { amount = it }, label = { AppText("Payment received (KES)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(), enabled = store.canSave)
+                AppText("Record a partial or full payment only after receiving the money.", color = Muted)
             }
+            BusinessFormStatus(store, error)
         }
+    }, confirmButton = {
+        if (customer.balanceMinor > 0 && store.canPerform("payBalance")) PrimaryButton("Record repayment", {
+            error = ""
+            fun validated(): Long = parseMinor(amount).also { require(it in 1..customer.balanceMinor) { "Enter an amount up to the outstanding balance." } }
+            if (store.real) store.backend?.action {
+                store.backend?.command(json("type" to "payBalance", "id" to customer.id, "amount" to validated() / 100.0))
+                onClose()
+            } else try {
+                val paid = validated(); val index = store.customers.indexOf(customer)
+                store.customers[index] = customer.copy(balance = ((customer.balanceMinor - paid) / 100).toInt(), balanceMinor = customer.balanceMinor - paid)
+                onClose()
+            } catch (e: Exception) { error = e.message.orEmpty() }
+        }, enabled = store.canSave, tone = Green)
+    }, dismissButton = { TextButton(onClick = onClose) { AppText("Close") } })
+}
+
+@Composable
+private fun CustomerEditorSheet(store: DemoStore, onClose: () -> Unit) {
+    CloseSheetAfterSave(store, onClose)
+    var name by rememberSaveable { mutableStateOf("") }
+    var phone by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var balance by rememberSaveable { mutableStateOf("0") }
+    var error by rememberSaveable { mutableStateOf("") }
+    ActionSheet(onDismissRequest = onClose, title = { AppText("Add customer", style = MaterialTheme.typography.headlineSmall) }, text = {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedTextField(name, { name = it }, label = { AppText("Customer name") }, modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = store.canSave)
+            OutlinedTextField(phone, { phone = it }, label = { AppText("Phone number (optional)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = store.canSave)
+            OutlinedTextField(email, { email = it }, label = { AppText("Customer email (optional)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = store.canSave)
+            OutlinedTextField(balance, { balance = it }, label = { AppText("Opening balance (KES)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(), enabled = store.canSave)
+            BusinessFormStatus(store, error)
+        }
+    }, confirmButton = {
+        PrimaryButton("Add customer", {
+            error = ""
+            fun validated() = json("name" to requiredInput(name, "a customer name"), "phone" to phone.trim(), "email" to email.trim().also { require(it.isBlank() || validEmail(it)) { "Enter a valid email address." } }, "balance" to parseMinor(balance.ifBlank { "0" }) / 100.0, "purchases" to 0, "color" to "mint")
+            if (store.real) store.backend?.action { store.backend?.command(json("type" to "addCustomer", "customer" to validated())); onClose() }
+            else try {
+                validated(); store.customers.add(Customer(name.trim(), name.trim().take(2).uppercase(), (parseMinor(balance) / 100).toInt(), store.customers.size % 4, parseMinor(balance), phone = phone.trim(), email = email.trim())); onClose()
+            } catch (e: Exception) { error = e.message.orEmpty() }
+        }, enabled = store.canSave && name.isNotBlank(), icon = Icons.Outlined.Check, tone = Green)
+    }, dismissButton = { TextButton(onClick = onClose) { AppText("Cancel") } })
 }
 
 @Composable
@@ -482,7 +380,7 @@ fun OrderScreen(
         )
     }
     if (placed)
-        AlertDialog(
+        ActionSheet(
             onDismissRequest = done,
             icon = {
                 AppIcon(Icons.Outlined.CheckCircle, null, Modifier.size(45.dp), tint = Green)
