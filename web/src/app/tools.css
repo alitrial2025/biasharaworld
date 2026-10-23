@@ -2714,6 +2714,64 @@ html {
 body {
   background: var(--surface);
 }
+.theme-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface, white);
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.theme-toggle:hover {
+  background: var(--mint);
+  border-color: var(--green);
+}
+.theme-toggle:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.auth-utility-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.auth-utility-row .back-link {
+  margin: 0;
+}
+@media (max-width: 1200px) {
+  .theme-toggle {
+    width: 40px;
+    padding: 9px;
+  }
+  .theme-toggle > span {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  .site-header .nav-auth {
+    gap: 8px;
+  }
+  .site-header .nav-auth > .btn {
+    display: none;
+  }
+  .workspace-topbar .global-search {
+    min-width: 36px;
+  }
+}
 [data-theme="dark"] {
   color-scheme: dark;
   --ink: #edf4ee;

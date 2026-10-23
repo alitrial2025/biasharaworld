@@ -18,7 +18,7 @@ export default function NotFound() {
           Back to home
         </Button>
         <Button href="/dashboard" variant="secondary">
-          Explore the demo
+          Open workspace
         </Button>
       </div>
     </main>

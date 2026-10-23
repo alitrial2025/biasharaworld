@@ -35,10 +35,10 @@ import { useDemo } from "@/lib/store";
 import { downloadCSV } from "@/lib/csv";
 
 export function SuppliersPage() {
-  const {state,store}=useDemo();
-  const suppliers=state.suppliers??[];
-  const [adding,setAdding]=useState(false);
-  const [error,setError]=useState('');
+  const { state, store } = useDemo();
+  const suppliers = state.suppliers ?? [];
+  const [adding, setAdding] = useState(false);
+  const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All suppliers");
   const rows = suppliers.filter(
@@ -61,8 +61,67 @@ export function SuppliersPage() {
           <T>Your purchase orders</T>
         </Button>
       </PageHeading>
-      <Button onClick={()=>setAdding(true)}>Add supplier</Button>
-      {adding&&<section className="panel"><h2>Your supplier</h2>{error&&<p role="alert">{error}</p>}<form onSubmit={async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{await store.saveRecord({type:'addSupplier',name:String(f.get('name')),category:String(f.get('category')),description:String(f.get('description')),delivery:String(f.get('delivery')),minimum:Number(f.get('minimum')),deliveryFee:Number(f.get('deliveryFee'))});setAdding(false)}catch(e){setError(e instanceof Error?e.message:'Could not save supplier.')}}}><Field label="Supplier name" name="name" required/><Field label="Category" name="category" defaultValue="Groceries" required/><Field label="Notes" name="description"/><Field label="Delivery terms" name="delivery"/><Field label="Minimum order (KES)" name="minimum" type="number" min={0} step="0.01" defaultValue={0} required/><Field label="Delivery fee (KES)" name="deliveryFee" type="number" min={0} step="0.01" defaultValue={0} required/><Button type="submit">Save supplier</Button><Button variant="secondary" onClick={()=>setAdding(false)}>Cancel</Button></form></section>}
+      <Button onClick={() => setAdding(true)}>Add supplier</Button>
+      {adding && (
+        <section className="panel">
+          <h2>Your supplier</h2>
+          {error && <p role="alert">{error}</p>}
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const f = new FormData(e.currentTarget);
+              try {
+                await store.saveRecord({
+                  type: "addSupplier",
+                  name: String(f.get("name")),
+                  category: String(f.get("category")),
+                  description: String(f.get("description")),
+                  delivery: String(f.get("delivery")),
+                  minimum: Number(f.get("minimum")),
+                  deliveryFee: Number(f.get("deliveryFee")),
+                });
+                setAdding(false);
+              } catch (e) {
+                setError(
+                  e instanceof Error ? e.message : "Could not save supplier.",
+                );
+              }
+            }}
+          >
+            <Field label="Supplier name" name="name" required />
+            <Field
+              label="Category"
+              name="category"
+              defaultValue="Groceries"
+              required
+            />
+            <Field label="Notes" name="description" />
+            <Field label="Delivery terms" name="delivery" />
+            <Field
+              label="Minimum order (KES)"
+              name="minimum"
+              type="number"
+              min={0}
+              step="0.01"
+              defaultValue={0}
+              required
+            />
+            <Field
+              label="Delivery fee (KES)"
+              name="deliveryFee"
+              type="number"
+              min={0}
+              step="0.01"
+              defaultValue={0}
+              required
+            />
+            <Button type="submit">Save supplier</Button>
+            <Button variant="secondary" onClick={() => setAdding(false)}>
+              Cancel
+            </Button>
+          </form>
+        </section>
+      )}
       <div className="supplier-intro">
         <div>
           <Badge>
@@ -124,7 +183,7 @@ export function SuppliersPage() {
                     <ProductArt
                       key={art}
                       art={art}
-                      name="Sample retail product"
+                      name="Retail product illustration"
                     />
                   ))}
                 </T>
@@ -162,7 +221,8 @@ export function SuppliersPage() {
 
       <p className="quiet-note">
         <T>
-          Supplier details and quotes are entered by your business. Contact the supplier to confirm prices and place an external order.
+          Supplier details and quotes are entered by your business. Contact the
+          supplier to confirm prices and place an external order.
         </T>
       </p>
     </>
@@ -181,7 +241,10 @@ export function SupplierDetailPage({ id }: { id: string }) {
     (p) => filter === "All" || p.category === filter,
   );
   const lines = state.products.filter((p) => quantities[p.id] > 0);
-  const subtotal = lines.reduce((sum, p) => sum + (supplier?.quotes?.[p.id]??p.cost) * quantities[p.id], 0);
+  const subtotal = lines.reduce(
+    (sum, p) => sum + (supplier?.quotes?.[p.id] ?? p.cost) * quantities[p.id],
+    0,
+  );
   function change(id: number, n: number) {
     setQuantities((q) => ({
       ...q,
@@ -189,31 +252,89 @@ export function SupplierDetailPage({ id }: { id: string }) {
     }));
   }
   async function create() {
- try {
-
-    if(!supplier)return;
-    const order = await store.createOrder(
-      supplier.name,
-      lines.map((p) => ({
-        productId: p.id,
-        quantity: quantities[p.id],
-        cost: supplier.quotes?.[p.id]??p.cost,
-      })),
+    try {
+      if (!supplier) return;
+      const order = await store.createOrder(
+        supplier.name,
+        lines.map((p) => ({
+          productId: p.id,
+          quantity: quantities[p.id],
+          cost: supplier.quotes?.[p.id] ?? p.cost,
+        })),
+        supplier.deliveryFee ?? 0,
+      );
+      setCreated(order);
+      setQuantities({});
+      toast(
+        "Purchase order saved. Arrange ordering directly with the supplier.",
+      );
+    } catch {
+      /* The shared connection banner retains the server error and retry action. */
+    }
+  }
+  if (!supplier)
+    return (
+      <EmptyState
+        icon={Truck}
+        title="Supplier not found"
+        description="Add your own suppliers to prepare purchase orders."
+      />
     );
-    setCreated(order);
-    setQuantities({});
-    toast("Sample order created. Nothing was sent to the supplier.");
-  
- } catch { /* The shared connection banner retains the server error and retry action. */ }
-}
-  if(!supplier)return <EmptyState icon={Truck} title="Supplier not found" description="Add your own suppliers to prepare purchase orders."/>;
   return (
     <>
       <Link href="/dashboard/suppliers" className="back-link">
         <ArrowLeft size={15} />
         <T>Back to suppliers</T>
       </Link>
-      <section className="panel"><h2>Record a supplier quote</h2><form onSubmit={async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{await store.saveRecord({type:'supplierQuote',id,productId:Number(f.get('product')),cost:Number(f.get('cost'))});toast('Quote saved.')}catch(e){toast(e instanceof Error?e.message:'Quote could not be saved.','info')}}}><label>Product<select name="product">{state.products.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><Field label="Quoted unit cost (KES)" name="cost" type="number" min={0} step="0.01" required/><Button type="submit" disabled={!state.products.length}>Save quote</Button></form><p>Fallback values on an order use your product cost; enter confirmed quotes before comparing suppliers.</p></section>
+      <section className="panel">
+        <h2>Record a supplier quote</h2>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const f = new FormData(e.currentTarget);
+            try {
+              await store.saveRecord({
+                type: "supplierQuote",
+                id,
+                productId: Number(f.get("product")),
+                cost: Number(f.get("cost")),
+              });
+              toast("Quote saved.");
+            } catch (e) {
+              toast(
+                e instanceof Error ? e.message : "Quote could not be saved.",
+                "info",
+              );
+            }
+          }}
+        >
+          <label>
+            Product
+            <select name="product">
+              {state.products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Field
+            label="Quoted unit cost (KES)"
+            name="cost"
+            type="number"
+            min={0}
+            step="0.01"
+            required
+          />
+          <Button type="submit" disabled={!state.products.length}>
+            Save quote
+          </Button>
+        </form>
+        <p>
+          Fallback values on an order use your product cost; enter confirmed
+          quotes before comparing suppliers.
+        </p>
+      </section>
       <div className="supplier-detail-hero">
         <Avatar name={supplier.initial} color={supplier.color} />
         <div>
@@ -229,7 +350,7 @@ export function SupplierDetailPage({ id }: { id: string }) {
             <Star size={15} />
             <T>{supplier.rating}</T> <T> </T>
             <span>
-              <T>(sample rating)</T>
+              <T>(recorded rating)</T>
             </span>
           </p>
         </div>
@@ -270,7 +391,8 @@ export function SupplierDetailPage({ id }: { id: string }) {
                       <T>{p.size}</T> <T>·</T> <T>{p.category}</T>
                     </small>
                     <span>
-                      <T>KES</T> <T>{money(p.cost)}</T> <T> </T>
+                      <T>KES</T>{" "}
+                      <T>{money(supplier.quotes?.[p.id] ?? p.cost)}</T> <T> </T>
                       <small>
                         <T>per unit</T>
                       </small>
@@ -310,7 +432,7 @@ export function SupplierDetailPage({ id }: { id: string }) {
             items={[
               supplier.delivery,
               `Minimum goods order: KES ${money(supplier.minimum)}`,
-              "Sample delivery fee: KES 300",
+              `Recorded delivery fee: KES ${money(supplier.deliveryFee ?? 0)}`,
               "Purchase orders are private business records",
             ]}
           />
@@ -337,7 +459,7 @@ export function SupplierDetailPage({ id }: { id: string }) {
             {subtotal > 0 && subtotal < supplier.minimum && (
               <p className="quiet-note text-amber">
                 <T>Add KES</T> <T>{money(supplier.minimum - subtotal)}</T>{" "}
-                <T>to meet the sample minimum.</T>
+                <T>to meet the recorded minimum.</T>
               </p>
             )}
           </T>
@@ -353,8 +475,8 @@ export function SupplierDetailPage({ id }: { id: string }) {
         }
         description={
           created
-            ? `Draft #${created.id} saved locally. No order has been sent.`
-            : `Sample purchase order · ${supplier.name}`
+            ? `Draft #${created.id} saved. Arrange ordering directly with the supplier.`
+            : `Purchase order · ${supplier.name}`
         }
       >
         <T>
@@ -366,8 +488,8 @@ export function SupplierDetailPage({ id }: { id: string }) {
               </h3>
               <p>
                 <T>
-                  Explore receiving it in your purchase orders. Sample stock
-                  will update when marked received.
+                  Record the delivery in Purchase orders when goods arrive.
+                  Marking it received updates your stock.
                 </T>
               </p>
               <Button href="/dashboard/orders" arrow>
@@ -385,11 +507,17 @@ export function SupplierDetailPage({ id }: { id: string }) {
                         <T>{p.name}</T>
                         <small>
                           <T>{quantities[p.id]}</T> <T>× KES</T>{" "}
-                          <T>{money(p.cost)}</T>
+                          <T>{money(supplier.quotes?.[p.id] ?? p.cost)}</T>
                         </small>
                       </span>
                       <strong>
-                        <T>KES</T> <T>{money(p.cost * quantities[p.id])}</T>
+                        <T>KES</T>{" "}
+                        <T>
+                          {money(
+                            (supplier.quotes?.[p.id] ?? p.cost) *
+                              quantities[p.id],
+                          )}
+                        </T>
                       </strong>
                     </div>
                   ))}
@@ -409,7 +537,7 @@ export function SupplierDetailPage({ id }: { id: string }) {
                     <T>Delivery</T>
                   </span>
                   <span>
-                    <T>KES 300</T>
+                    <T>KES {money(supplier.deliveryFee ?? 0)}</T>
                   </span>
                 </div>
                 <div className="cart-total">
@@ -417,7 +545,8 @@ export function SupplierDetailPage({ id }: { id: string }) {
                     <T>Total</T>
                   </span>
                   <strong>
-                    <T>KES</T> <T>{money(subtotal + 300)}</T>
+                    <T>KES</T>{" "}
+                    <T>{money(subtotal + (supplier.deliveryFee ?? 0))}</T>
                   </strong>
                 </div>
               </div>
@@ -581,7 +710,7 @@ export function OrdersPage() {
             <EmptyState
               icon={ShoppingCart}
               title="A little room for your next order."
-              description="Explore suppliers to prepare a sample purchase order."
+              description="Add a supplier and prepare a purchase order."
             >
               <Button href="/dashboard/suppliers" arrow>
                 <T>Find a supplier</T>
@@ -638,7 +767,7 @@ export function OrdersPage() {
                     <T>Delivery</T>
                   </span>
                   <span>
-                    <T>{money(current.deliveryFee ?? 300)}</T>
+                    <T>{money(current.deliveryFee ?? 0)}</T>
                   </span>
                 </div>
                 <div className="cart-total">
@@ -656,23 +785,22 @@ export function OrdersPage() {
                   <>
                     <p className="quiet-note">
                       <T>
-                        Marking this demo order received adds these quantities
-                        to your sample stock. No supplier is contacted.
+                        Mark this order received after checking the goods. These
+                        quantities will be added to your stock. No supplier is
+                        contacted.
                       </T>
                     </p>
                     <div className="modal-actions">
                       <Button
                         icon={CheckCircle2}
                         onClick={async () => {
- try {
-
-                          await store.receiveOrder(current.id);
-                          toast(
-                            "Goods received. Shared stock updated.",
-                          );
-                        
- } catch { /* The shared connection banner retains the server error and retry action. */ }
-}}
+                          try {
+                            await store.receiveOrder(current.id);
+                            toast("Goods received. Shared stock updated.");
+                          } catch {
+                            /* The shared connection banner retains the server error and retry action. */
+                          }
+                        }}
                       >
                         <T>Receive goods</T>
                       </Button>
@@ -681,7 +809,7 @@ export function OrdersPage() {
                 ) : (
                   <p className="inline-note">
                     <CheckCircle2 size={17} />
-                    <T>These goods have been added to your sample inventory.</T>
+                    <T>These goods have been added to your inventory.</T>
                   </p>
                 )}
               </T>

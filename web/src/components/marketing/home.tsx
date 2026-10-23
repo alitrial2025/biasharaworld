@@ -42,7 +42,7 @@ export function MiniDashboard({ large = false }: { large?: boolean }) {
           <T>BiasharaOS workspace</T>
         </div>
         <Badge tone="green" dot>
-          <T>Demo store</T>
+          <T>Example workspace</T>
         </Badge>
       </div>
       <div className="mini-content">
@@ -165,7 +165,7 @@ export function HomePage() {
                 <T>Start your next chapter</T>
               </Button>
               <Button href="/dashboard" size="large" variant="secondary">
-                <T>Explore the demo</T>
+                <T>Open workspace</T>
                 <ArrowUpRight size={17} />
               </Button>
             </div>
@@ -222,7 +222,7 @@ export function HomePage() {
                   <T>Another sale. Another step.</T>
                 </strong>
                 <small>
-                  <T>KES 1,250 · Demo M-Pesa payment</T>
+                  <T>KES 1,250 · Example payment record</T>
                 </small>
               </div>
               <Sparkles size={16} />
@@ -334,7 +334,7 @@ export function HomePage() {
               </div>
               <div className="mini-pay">
                 <CheckCircle2 size={15} />
-                <T>Demo payment complete</T>
+                <T>Payment record example</T>
                 <strong>
                   <T>KES 710</T>
                 </strong>
@@ -440,7 +440,7 @@ export function HomePage() {
               <ArrowUpRight size={14} />
             </div>
             <small>
-              <T>Sample insights in the demo.</T>
+              <T>Summaries from saved records. External AI coming later.</T>
             </small>
           </Link>
         </div>
@@ -476,8 +476,8 @@ export function HomePage() {
             />
             <p className="quiet-note">
               <T>
-                This preview uses separate demo data on each platform.
-                Keep your records together across your devices.
+                Sign in to the same business to keep your saved records together
+                across the web and app.
               </T>
             </p>
             <Button href="/download" variant="secondary" arrow>
@@ -570,7 +570,7 @@ export function HomePage() {
             height={1536}
           />
           <span>
-            <T>MEET YOUR DEMO STORE</T>
+            <T>BUILT FOR THE EVERYDAY ENTREPRENEUR</T>
           </span>
         </div>
         <div className="story-copy">
@@ -596,7 +596,7 @@ export function HomePage() {
                 <T>Wanjiku General Shop</T>
               </strong>
               <span>
-                <T>Nairobi, Kenya · Our sample business</T>
+                <T>Nairobi, Kenya · Illustrative shop story</T>
               </span>
             </div>
           </div>

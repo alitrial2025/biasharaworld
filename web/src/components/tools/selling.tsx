@@ -115,7 +115,7 @@ export function DetailedReceiptView({ receipt }: { receipt: DetailedReceipt }) {
       ) : null}
       <div className="document-total">
         <span>
-          <T>Total paid locally</T>
+          <T>Total payment recorded</T>
         </span>
         <strong>
           <T>{cash(receipt.total)}</T>
@@ -219,7 +219,9 @@ export function AdvancedCheckout({
       setQuery(scanCode);
       return;
     }
-    if (await act({ type: "cart", id: p.id, quantity: (op.cart[p.id] ?? 0) + 1 })) {
+    if (
+      await act({ type: "cart", id: p.id, quantity: (op.cart[p.id] ?? 0) + 1 })
+    ) {
       setQuery("");
       setScanOpen(false);
     }
@@ -528,21 +530,32 @@ export function AdvancedCheckout({
           <div className="document-shortcuts">
             <LocalButton
               onClick={async () =>
-                await act({ type: "document", kind: "Quotation", due: localDate() })
+                await act({
+                  type: "document",
+                  kind: "Quotation",
+                  due: localDate(),
+                })
               }
             >
               <T>Save quotation</T>
             </LocalButton>
             <LocalButton
               onClick={async () =>
-                await act({ type: "document", kind: "Invoice", due: localDate() })
+                await act({
+                  type: "document",
+                  kind: "Invoice",
+                  due: localDate(),
+                })
               }
             >
               <T>Save invoice</T>
             </LocalButton>
           </div>
           <p className="quiet-note centered">
-            <T>No payment request is sent. Sample stock will update.</T>
+            <T>
+              Record payment after receiving it. Confirming the sale updates
+              your stock.
+            </T>
           </p>
         </aside>
       </div>
@@ -662,7 +675,7 @@ export function AdvancedCheckout({
         open={scanOpen}
         onClose={() => setScanOpen(false)}
         title="Find it in a little flash."
-        description="Sample scanner UI. Camera decoding is not connected."
+        description="Enter a barcode or use a keyboard scanner. Camera scanning is not available yet."
       >
         <div className="scanner-window">
           <ScanLine size={56} />
@@ -683,9 +696,6 @@ export function AdvancedCheckout({
           <div className="button-row">
             <Button type="submit">
               <T>Find & add product</T>
-            </Button>
-            <Button variant="secondary" onClick={() => setScanCode(barcode(1))}>
-              <T>Use sample code</T>
             </Button>
           </div>
 
@@ -738,7 +748,7 @@ export function ScannerTool() {
       <div className="tool-two-columns">
         <ToolPanel
           title="Find a familiar product"
-          description="Enter a barcode, use a keyboard scanner, or try the sample scan."
+          description="Enter a barcode or use a keyboard scanner to find your product."
         >
           <div className="scanner-window">
             <ScanLine size={64} />
@@ -760,16 +770,6 @@ export function ScannerTool() {
             <div className="button-row">
               <Button type="submit">
                 <T>Find product</T>
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setCode(barcode(1));
-                  setFound(1);
-                  setMissing(false);
-                }}
-              >
-                <T>Sample scan</T>
               </Button>
             </div>
           </form>
@@ -865,11 +865,11 @@ export function ScannerTool() {
             e.preventDefault();
             if (
               edit !== null &&
-              await act({
+              (await act({
                 type: "barcode",
                 id: edit,
                 code: String(new FormData(e.currentTarget).get("barcode")),
-              })
+              }))
             )
               setEdit(null);
           }}
@@ -925,12 +925,18 @@ export function BasketsTool() {
                   <T>·</T> <T>{b.redeem}</T> <T>reward points</T>
                 </p>
                 <div className="button-row">
-                  <Button onClick={async () => await act({ type: "resume", id: b.id })}>
+                  <Button
+                    onClick={async () =>
+                      await act({ type: "resume", id: b.id })
+                    }
+                  >
                     <T>Resume basket</T>
                   </Button>
                   <Button
                     variant="ghost"
-                    onClick={async () => await act({ type: "discard", id: b.id })}
+                    onClick={async () =>
+                      await act({ type: "discard", id: b.id })
+                    }
                   >
                     <T>Discard</T>
                   </Button>
@@ -1243,7 +1249,7 @@ export function ReturnsTool() {
               <EmptyState
                 icon={RotateCcw}
                 title="A fresh page for returns."
-                description="Recorded demo returns will appear here with their original receipt."
+                description="Recorded returns appear here with their original receipt."
               />
             )}
           </T>
@@ -1295,7 +1301,7 @@ export function DocumentsTool() {
                     </small>
                   </div>
                   <Badge tone={d.status === "Paid locally" ? "green" : "amber"}>
-                    <T>{d.status}</T>
+                    <T>{d.status.replace(" locally", "")}</T>
                   </Badge>
                   <strong>
                     <T>{cash(d.total)}</T>
@@ -1348,16 +1354,20 @@ export function DocumentsTool() {
                   {doc.status === "Draft" && (
                     <Button
                       variant="secondary"
-                      onClick={async () => await act({ type: "issueDocument", id: doc.id })}
+                      onClick={async () =>
+                        await act({ type: "issueDocument", id: doc.id })
+                      }
                     >
-                      <T>Mark issued locally</T>
+                      <T>Mark issued</T>
                     </Button>
                   )}
                 </T>{" "}
                 <T>
                   {doc.kind === "Invoice" && doc.status !== "Paid locally" && (
                     <Button
-                      onClick={async () => await act({ type: "payDocument", id: doc.id })}
+                      onClick={async () =>
+                        await act({ type: "payDocument", id: doc.id })
+                      }
                     >
                       <T>Record cash received</T>
                     </Button>
@@ -1421,7 +1431,7 @@ function InvoicePreview({ doc }: { doc: ShopDocument }) {
         </strong>
       </div>
       <Badge tone={doc.status === "Paid locally" ? "green" : "amber"}>
-        <T>{doc.status}</T>
+        <T>{doc.status.replace(" locally", "")}</T>
       </Badge>
 
       <T>
@@ -1626,7 +1636,7 @@ export function RegisterTool() {
           <p className="quiet-note">
             <T>
               Only this session’s recorded cash portions affect expected cash.
-              Older sample receipts are excluded.
+              Cash receipts before this register session are excluded.
             </T>
           </p>
         </ToolPanel>

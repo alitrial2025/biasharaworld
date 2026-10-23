@@ -51,22 +51,22 @@ export function ExpensesPage() {
     (e.name + e.category).toLowerCase().includes(query.toLowerCase()),
   );
   async function add(e: FormEvent<HTMLFormElement>) {
- try {
-
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    await store.addExpense({
-      name: String(f.get("name")).trim(),
-      category: String(f.get("category")),
-      amount: Number(f.get("amount")),
-      date: String(f.get("date")),
-      method: String(f.get("method")),
-    });
-    setOpen(false);
-    toast("Expense recorded. A clearer view of where your money goes.");
-  
- } catch { /* The shared connection banner retains the server error and retry action. */ }
-}
+    try {
+      e.preventDefault();
+      const f = new FormData(e.currentTarget);
+      await store.addExpense({
+        name: String(f.get("name")).trim(),
+        category: String(f.get("category")),
+        amount: Number(f.get("amount")),
+        date: String(f.get("date")),
+        method: String(f.get("method")),
+      });
+      setOpen(false);
+      toast("Expense recorded. A clearer view of where your money goes.");
+    } catch {
+      /* The shared connection banner retains the server error and retry action. */
+    }
+  }
   return (
     <>
       <PageHeading
@@ -191,7 +191,7 @@ export function ExpensesPage() {
             <EmptyState
               icon={Wallet}
               title="No expenses here yet."
-              description="Record a demo expense or try another search."
+              description="Record an expense or try another search."
             />
           )}
         </T>
@@ -204,7 +204,7 @@ export function ExpensesPage() {
         open={open}
         onClose={() => setOpen(false)}
         title="Give that expense a place."
-        description="Add a sample business cost to your records."
+        description="Add a business cost to your records."
       >
         <form onSubmit={add}>
           <Field
@@ -219,7 +219,8 @@ export function ExpensesPage() {
               label="Amount (KES)"
               name="amount"
               type="number"
-              min={1}
+              step="0.01"
+              min={0.01}
               max={10000000}
               required
             />
@@ -271,7 +272,7 @@ export function ExpensesPage() {
         open={remove !== null}
         onClose={() => setRemove(null)}
         title="Remove this expense?"
-        description="The sample expense total will update."
+        description="Your expense total will update."
       >
         <div className="modal-actions">
           <Button variant="secondary" onClick={() => setRemove(null)}>
@@ -280,14 +281,14 @@ export function ExpensesPage() {
           <Button
             variant="danger"
             onClick={async () => {
- try {
-
-              if (remove !== null) await store.removeExpense(remove);
-              setRemove(null);
-              toast("Expense removed.");
-            
- } catch { /* The shared connection banner retains the server error and retry action. */ }
-}}
+              try {
+                if (remove !== null) await store.removeExpense(remove);
+                setRemove(null);
+                toast("Expense removed.");
+              } catch {
+                /* The shared connection banner retains the server error and retry action. */
+              }
+            }}
           >
             <T>Remove expense</T>
           </Button>
@@ -301,16 +302,27 @@ export function ReportsPage() {
   const { state } = useDemo();
   const [period, setPeriod] = useState("Month");
   const [metric, setMetric] = useState("Sales");
-  const report=businessReport(state,period);
-  const expenses=report.expenses;
-  const value=metric==='Sales'?report.sales:metric==='Profit'?report.profit:metric==='Expenses'?expenses:state.products.reduce((s,p)=>s+p.cost*p.stock,0);
+  const report = businessReport(state, period);
+  const expenses = report.expenses;
+  const value =
+    metric === "Sales"
+      ? report.sales
+      : metric === "Profit"
+        ? report.profit
+        : metric === "Expenses"
+          ? expenses
+          : state.products.reduce((s, p) => s + p.cost * p.stock, 0);
   function exportReport() {
     downloadCSV(
       "business-report.csv",
       ["Metric", "Value KES", "Basis"],
       [
-        ["Today sales", salesTotal(state), "Recorded receipts less returns"],
-        ["Operating profit", report.profit, "Recorded receipts less item costs and expenses"],
+        [`${period} sales`, report.sales, "Recorded receipts less returns"],
+        [
+          "Operating profit",
+          report.profit,
+          "Recorded receipts less item costs and expenses",
+        ],
         ["Expenses", expenses, "Recorded expenses for this period"],
         [
           "Stock value",
@@ -344,7 +356,8 @@ export function ReportsPage() {
         <Sparkles size={18} />
         <span>
           <T>
-            Reports use recorded receipts, refunds, item costs and expenses. Payments are recorded manually after you receive them.
+            Reports use recorded receipts, refunds, item costs and expenses.
+            Payments are recorded manually after you receive them.
           </T>
         </span>
       </div>
@@ -376,13 +389,41 @@ export function ReportsPage() {
           </strong>
           <Badge tone={metric === "Expenses" ? "red" : "green"}>
             <T>
-              {metric === "Sales"
-                ? "Recorded receipts"
-                : "Recorded totals"}
+              {metric === "Sales" ? "Recorded receipts" : "Recorded totals"}
             </T>
           </Badge>
         </div>
-        <SalesChart period={period} series={report.series}/>
+        {metric === "Sales" ? (
+          <SalesChart period={period} series={report.series} />
+        ) : metric === "Stock" ? (
+          <p className="muted">
+            Current stock at recorded cost. Historical stock values are not
+            available.
+          </p>
+        ) : (
+            metric === "Profit" ? report.profitSeries : report.expenseSeries
+          ) ? (
+          <SalesChart
+            period={period}
+            series={
+              (metric === "Profit"
+                ? report.profitSeries
+                : report.expenseSeries)!
+            }
+            label={metric.toLowerCase()}
+          />
+        ) : (
+          <p className="muted">
+            Select Week or Month to see the daily trend. Expenses are recorded
+            by date.
+          </p>
+        )}
+        {metric === "Sales" && report.timingIncomplete && (
+          <p className="muted">
+            Some older records have no transaction time and appear only in the
+            total.
+          </p>
+        )}
       </section>
       <div className="report-bottom-grid">
         <section className="panel">
@@ -401,29 +442,31 @@ export function ReportsPage() {
           </div>
 
           <T>
-            {report.products.filter(r=>r.product).slice(0, 5).map(({product:p,amount}, i) => (
-              <div className="ranking-row" key={p!.id}>
-                <span className="ranking-number">
-                  <T>0</T> <T>{i + 1}</T>
-                </span>
-                <ProductArt art={p!.art} name={p!.name} small />
-                <div>
-                  <strong>
-                    <T>{p!.name}</T>
-                  </strong>
-                  <span>
-                    <T>{p!.size}</T>
+            {report.products
+              .filter((r) => r.product)
+              .slice(0, 5)
+              .map(({ product: p, amount }, i) => (
+                <div className="ranking-row" key={p!.id}>
+                  <span className="ranking-number">
+                    <T>0</T> <T>{i + 1}</T>
                   </span>
+                  <ProductArt art={p!.art} name={p!.name} small />
+                  <div>
+                    <strong>
+                      <T>{p!.name}</T>
+                    </strong>
+                    <span>
+                      <T>{p!.size}</T>
+                    </span>
+                  </div>
+                  <div className="ranking-bar">
+                    <span style={{ width: `${95 - i * 16}%` }} />
+                  </div>
+                  <strong>
+                    <T>KES</T> <T>{money(amount)}</T>
+                  </strong>
                 </div>
-                <div className="ranking-bar">
-                  <span style={{ width: `${95 - i * 16}%` }} />
-                </div>
-                <strong>
-                  <T>KES</T>{" "}
-                  <T>{money(amount)}</T>
-                </strong>
-              </div>
-            ))}
+              ))}
           </T>
         </section>
         <section className="panel">
@@ -491,7 +534,7 @@ export function AssistantPage() {
       const products = lowStock(state);
       response = products.length
         ? `A little shelf check: ${products.map((p) => `${p.name} (${p.stock} left)`).join(", ")}. These are at or below their reorder points. Review demand and supplier lead times before preparing your next order.`
-        : "Your sample products are all above their reorder points. Review what’s selling fastest before your next order.";
+        : "Your products are all above their reorder points. Review what’s selling fastest before your next order.";
     } else if (/owe|debt|balance|credit|customer/.test(lower)) {
       const customers = state.customers
         .filter((c) => c.balance > 0)
@@ -501,14 +544,14 @@ export function AssistantPage() {
         .map((c) => `${c.name}: KES ${money(c.balance)}`)
         .join(
           "; ",
-        )}. Open Customers to record a sample repayment. No reminders are sent.`;
+        )}. Open Customers to record a repayment. No reminders are sent.`;
     } else if (/expense|spend|cost/.test(lower)) {
       response = `Your recorded expenses add up to KES ${money(state.expenses.reduce((s, e) => s + e.amount, 0))}. ${state.expenses.length} records are in your expense book. Review the categories in Expenses to see what is keeping the shop running.`;
     } else if (/sale|today|business|profit|week/.test(lower)) {
       response = `Here’s a little clarity for ${state.profile.business}: today’s recorded sales are KES ${money(salesTotal(state))}, recorded expenses are KES ${money(state.expenses.reduce((s, e) => s + e.amount, 0))}, and ${lowStock(state).length} products need a stock check. Operating profit from these records is KES ${money(businessReport(state).profit)}.`;
     } else {
       response =
-        "I can help you explore this demo shop’s sales, stock, expenses and customer balances. Try ‘What should I restock?’ or ‘Who owes me money?’ These are rule-based summaries; a live AI service is planned for a later phase.";
+        "I can summarize your recorded sales, stock, expenses and customer balances. Try ‘What should I restock?’ or ‘Who owes me money?’ These are rule-based summaries; a live AI service is planned for a later phase.";
     }
     setMessages((m) => [
       ...m,
@@ -636,7 +679,7 @@ export function AssistantPage() {
         </form>
         <p className="quiet-note centered">
           <T>
-            Local sample responses from your demo data. Check your records
+            Summaries from your recorded business activity. Check your records
             before making a business decision.
           </T>
         </p>
@@ -738,8 +781,8 @@ export function FinancingPage() {
           </h3>
           <p>
             <T>
-              Your demo reports are a useful place to explore sales, expenses
-              and stock before planning your next step.
+              Your reports are a useful place to review sales, expenses and
+              stock before planning your next step.
             </T>
           </p>
           <Button href="/dashboard/reports" arrow>
@@ -754,26 +797,25 @@ export function FinancingPage() {
 export function SettingsPage() {
   const { state, store } = useDemo();
   const [tab, setTab] = useState("Business profile");
-  const [reset, setReset] = useState(false);
   const [billing, setBilling] = useState(false);
   const toast = useToast();
   async function save(e: FormEvent<HTMLFormElement>) {
- try {
-
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    await store.updateProfile({
-      name: String(f.get("name")).trim(),
-      business: String(f.get("business")).trim(),
-      email: String(f.get("email")).trim(),
-      phone: String(f.get("phone")),
-      location: String(f.get("location")).trim(),
-      type: String(f.get("type")),
-    });
-    toast("Business profile saved.");
-  
- } catch { /* The shared connection banner retains the server error and retry action. */ }
-}
+    try {
+      e.preventDefault();
+      const f = new FormData(e.currentTarget);
+      await store.updateProfile({
+        name: String(f.get("name")).trim(),
+        business: String(f.get("business")).trim(),
+        email: String(f.get("email")).trim(),
+        phone: String(f.get("phone")),
+        location: String(f.get("location")).trim(),
+        type: String(f.get("type")),
+      });
+      toast("Business profile saved.");
+    } catch {
+      /* The shared connection banner retains the server error and retry action. */
+    }
+  }
   return (
     <>
       <PageHeading
@@ -820,7 +862,9 @@ export function SettingsPage() {
                       <T>A little about your business.</T>
                     </h2>
                     <p>
-                      <T>Sample details stay in this browser.</T>
+                      <T>
+                        Confirmed changes are saved to your business account.
+                      </T>
                     </p>
                   </div>
                   <Avatar name={state.profile.name} photo />
@@ -949,7 +993,9 @@ export function SettingsPage() {
                         role="switch"
                         aria-checked={state.notifications[key]}
                         aria-label={title}
-                        onClick={async () => await store.toggleNotification(key)}
+                        onClick={async () =>
+                          await store.toggleNotification(key)
+                        }
                       >
                         <span />
                       </LocalButton>
@@ -977,9 +1023,7 @@ export function SettingsPage() {
                     <T>{state.profile.plan}</T>
                   </h3>
                   <p>
-                    <T>
-                      Free development access. Billing is not connected.
-                    </T>
+                    <T>Free development access. Billing is not connected.</T>
                   </p>
                   <Button
                     variant="secondary"
@@ -997,7 +1041,8 @@ export function SettingsPage() {
                     </strong>
                     <p>
                       <T>
-                        Online payments are not available yet. You can record payments you receive.
+                        Online payments are not available yet. You can record
+                        payments you receive.
                       </T>
                     </p>
                   </div>
@@ -1022,8 +1067,8 @@ export function SettingsPage() {
                     </h3>
                     <p>
                       <T>
-                        Export your demo products, customers, sales and expenses
-                        as separate CSV files from their pages.
+                        Export your products, customers, sales and expenses as
+                        separate CSV files from their pages.
                       </T>
                     </p>
                   </div>
@@ -1035,7 +1080,15 @@ export function SettingsPage() {
                     <T>Export a snapshot</T>
                   </Button>
                 </div>
-                <div className="data-setting"><p>Your business records are private. You can export a copy whenever you need it.</p><Button onClick={()=>void store.signOut()}>Sign out of this device</Button></div>
+                <div className="data-setting">
+                  <p>
+                    Your business records are private. You can export a copy
+                    whenever you need it.
+                  </p>
+                  <Button onClick={() => void store.signOut()}>
+                    Sign out of this device
+                  </Button>
+                </div>
                 <Link href="/" className="text-link">
                   <T>Back to the public website</T>
                   <ArrowRight size={15} />
@@ -1046,32 +1099,10 @@ export function SettingsPage() {
         </section>
       </div>
       <Modal
-        open={reset}
-        onClose={() => setReset(false)}
-        title="Ready for a fresh start?"
-        description="This will replace all BiasharaOS demo changes in this browser with the original sample shop."
-      >
-        <div className="modal-actions">
-          <Button variant="secondary" onClick={() => setReset(false)}>
-            <T>Keep my changes</T>
-          </Button>
-          <Button
-            variant="danger"
-            onClick={() => {
-              store.reset();
-              setReset(false);
-              toast("A fresh demo shop, ready for you.");
-            }}
-          >
-            <T>Reset demo data</T>
-          </Button>
-        </div>
-      </Modal>
-      <Modal
         open={billing}
         onClose={() => setBilling(false)}
         title="Room for every stage."
-        description="Proposed launch plans. Choosing a demo plan never starts a subscription."
+        description="Proposed launch plans. Choosing a plan does not start a subscription."
       >
         <div className="plan-picker">
           <T>
@@ -1083,9 +1114,11 @@ export function SettingsPage() {
               <LocalButton
                 key={name}
                 onClick={async () => {
-                  toast("Billing is not connected. Your free development account is unchanged.","info");
+                  toast(
+                    "Billing is not connected. Your free development account is unchanged.",
+                    "info",
+                  );
                   setBilling(false);
-                  
                 }}
               >
                 <div>

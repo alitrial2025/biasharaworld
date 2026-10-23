@@ -1,19 +1,311 @@
 "use client";
-import {useEffect,useState,type FormEvent} from 'react';
-import Link from 'next/link';
-import {Brand,Button,Field,ProductArt} from './ui';
-import {supabase} from '@/lib/supabase';
-import {cash} from '@/lib/operations';
-type Shop={name:string;description:string;fee:number;products:{id:number;name:string;size:string;price:number;art:number;stock:number}[]};
-export function PublicShop({slug}:{slug:string}) {
- const [shop,setShop]=useState<Shop|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[cart,setCart]=useState<Record<number,number>>({});
- const [pending,setPending]=useState<{requestId:string;cart:Record<number,number>;address:string}|null>(null);
- useEffect(()=>{fetch('/api/shop/'+slug,{cache:'no-store'}).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error);setShop(d)}).catch(e=>setError(e.message))},[slug]);
- async function order(e:FormEvent<HTMLFormElement>){e.preventDefault();const address=String(new FormData(e.currentTarget).get('address')||'');const body=pending||{requestId:crypto.randomUUID(),cart:Object.fromEntries(Object.entries(cart).filter(([,n])=>n>0)),address};setPending(body);setBusy(true);setError('');try{const {data:{session}}=await supabase().auth.getSession();if(!session){setPending(null);throw new Error('Sign in or create an account before ordering. Your basket stays on this page.')}const r=await fetch('/api/shop/'+slug,{method:'POST',headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok){if(r.status<500)setPending(null);throw new Error(d.error)}setMessage(`Order #${d.id} sent. The merchant will arrange delivery and payment.`);setPending(null);setCart({})}catch(e){setError(e instanceof Error?e.message:'Order unconfirmed. Retry safely.')}finally{setBusy(false)}}
- return <main id="main-content" className="container section"><header className="panel-heading"><Brand/><Link href={'/portal/'+slug}>My orders</Link><Link href="/login">Sign in</Link></header><h1>{shop?.name||'Your neighbourhood shop'}</h1><p>{shop?.description}</p>{error&&<p role="alert" className="operation-error">{error}</p>}{message&&<p role="status">{message}</p>}{shop&&<><div className="stats-grid">{shop.products.map(p=><article className="panel" key={p.id}><ProductArt art={p.art} name={p.name}/><h2>{p.name}</h2><p>{p.size} · {cash(Math.round(p.price*100))}</p><p>{p.stock} available</p><label>Quantity<input aria-label={'Quantity for '+p.name} type="number" min={0} max={p.stock} value={cart[p.id]||0} disabled={busy||!!pending} onChange={e=>setCart({...cart,[p.id]:Math.max(0,Math.min(p.stock,Math.floor(Number(e.target.value))))})}/></label></article>)}</div>{shop.products.length===0&&<p>The merchant has not listed products yet.</p>}<form onSubmit={order} className="panel"><h2>Your order</h2><p>Delivery fee: {cash(shop.fee)} · Total: {cash(shop.products.reduce((s,p)=>s+Math.round(p.price*100)*(cart[p.id]||0),shop.fee))}</p><Field name="address" label="Delivery address or pickup instructions" required minLength={3} maxLength={500}/><Button type="submit" disabled={busy||Object.values(cart).every(n=>!n)}>{pending?'Retry saved order':'Send order'}</Button><p>Payment is arranged directly with the merchant. No online payment is taken.</p></form></>}</main>
+import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { Brand, Button, Field, ProductArt } from "./ui";
+import { supabase } from "@/lib/supabase";
+import { cash } from "@/lib/operations";
+type Shop = {
+  name: string;
+  description: string;
+  fee: number;
+  products: {
+    id: number;
+    name: string;
+    size: string;
+    price: number;
+    art: number;
+    stock: number;
+  }[];
+};
+export function PublicShop({ slug }: { slug: string }) {
+  const [shop, setShop] = useState<Shop | null>(null),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false),
+    [message, setMessage] = useState(""),
+    [cart, setCart] = useState<Record<number, number>>({});
+  const [pending, setPending] = useState<{
+    requestId: string;
+    cart: Record<number, number>;
+    address: string;
+  } | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/shop/" + slug, { cache: "no-store", signal: controller.signal })
+      .then(async (r) => {
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error);
+        setShop(d);
+        try {
+          const raw = sessionStorage.getItem("biashara.shop.cart." + slug);
+          if (raw) {
+            const saved = JSON.parse(raw);
+            if (
+              saved &&
+              typeof saved === "object" &&
+              !Array.isArray(saved) &&
+              Object.entries(saved).every(
+                ([id, n]) =>
+                  /^\d+$/.test(id) &&
+                  Number.isInteger(n) &&
+                  Number(n) >= 0 &&
+                  Number(n) <= 10000,
+              )
+            )
+              setCart(saved);
+          }
+        } catch {}
+        const {
+          data: { session },
+        } = await supabase().auth.getSession();
+        if (session) {
+          const raw = sessionStorage.getItem(
+            "biashara.shop.pending." + session.user.id + "." + slug,
+          );
+          if (raw) setPending(JSON.parse(raw));
+        }
+      })
+      .catch((e) => {
+        if (!controller.signal.aborted) setError(e.message);
+      });
+    return () => controller.abort();
+  }, [slug]);
+  async function order(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const address = String(new FormData(e.currentTarget).get("address") || "");
+    const body = pending || {
+      requestId: crypto.randomUUID(),
+      cart: Object.fromEntries(Object.entries(cart).filter(([, n]) => n > 0)),
+      address,
+    };
+    setPending(body);
+    setBusy(true);
+    setError("");
+    try {
+      const {
+        data: { session },
+      } = await supabase().auth.getSession();
+      if (!session) {
+        setPending(null);
+        throw new Error(
+          "Sign in or create an account before ordering. Your basket will be kept.",
+        );
+      }
+      const pendingKey =
+        "biashara.shop.pending." + session.user.id + "." + slug;
+      const saved = sessionStorage.getItem(pendingKey);
+      const submission = saved ? JSON.parse(saved) : body;
+      sessionStorage.setItem(pendingKey, JSON.stringify(submission));
+      setPending(submission);
+      const r = await fetch("/api/shop/" + slug, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submission),
+        signal: AbortSignal.timeout(30000),
+      });
+      const d = await r.json();
+      if (!r.ok) {
+        if (r.status < 500) {
+          setPending(null);
+          sessionStorage.removeItem(pendingKey);
+        }
+        throw new Error(d.error);
+      }
+      sessionStorage.removeItem(pendingKey);
+      setMessage(
+        `Order #${d.id} sent. The merchant will arrange delivery and payment.`,
+      );
+      setPending(null);
+      setCart({});
+      sessionStorage.removeItem("biashara.shop.cart." + slug);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Order unconfirmed. Retry safely.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <main id="main-content" className="container section">
+      <header className="panel-heading">
+        <Brand />
+        <Link href={"/portal/" + slug}>My orders</Link>
+        <Link href={"/login?next=" + encodeURIComponent("/shop/" + slug)}>
+          Sign in
+        </Link>
+      </header>
+      <h1>{shop?.name || "Your neighbourhood shop"}</h1>
+      <p>{shop?.description}</p>
+      {error && (
+        <p role="alert" className="operation-error">
+          {error}
+        </p>
+      )}
+      {message && <p role="status">{message}</p>}
+      {shop && (
+        <>
+          <div className="stats-grid">
+            {shop.products.map((p) => (
+              <article className="panel" key={p.id}>
+                <ProductArt art={p.art} name={p.name} />
+                <h2>{p.name}</h2>
+                <p>
+                  {p.size} · {cash(Math.round(p.price * 100))}
+                </p>
+                <p>{p.stock} available</p>
+                <label>
+                  Quantity
+                  <input
+                    aria-label={"Quantity for " + p.name}
+                    type="number"
+                    min={0}
+                    max={p.stock}
+                    value={cart[p.id] || 0}
+                    disabled={busy || !!pending}
+                    onChange={(e) =>
+                      setCart((previous) => {
+                        const next = {
+                          ...previous,
+                          [p.id]: Math.max(
+                            0,
+                            Math.min(
+                              p.stock,
+                              Math.floor(Number(e.target.value)),
+                            ),
+                          ),
+                        };
+                        try {
+                          sessionStorage.setItem(
+                            "biashara.shop.cart." + slug,
+                            JSON.stringify(next),
+                          );
+                        } catch {}
+                        return next;
+                      })
+                    }
+                  />
+                </label>
+              </article>
+            ))}
+          </div>
+          {shop.products.length === 0 && (
+            <p>The merchant has not listed products yet.</p>
+          )}
+          <form onSubmit={order} className="panel">
+            <h2>Your order</h2>
+            <p>
+              Delivery fee: {cash(shop.fee)} · Total:{" "}
+              {cash(
+                shop.products.reduce(
+                  (s, p) => s + Math.round(p.price * 100) * (cart[p.id] || 0),
+                  shop.fee,
+                ),
+              )}
+            </p>
+            <Field
+              name="address"
+              defaultValue={pending?.address || ""}
+              key={pending?.requestId || "address"}
+              label="Delivery address or pickup instructions"
+              required
+              minLength={3}
+              maxLength={500}
+            />
+            <Button
+              type="submit"
+              disabled={busy || Object.values(cart).every((n) => !n)}
+            >
+              {pending ? "Retry saved order" : "Send order"}
+            </Button>
+            <p>
+              Payment is arranged directly with the merchant. No online payment
+              is taken.
+            </p>
+          </form>
+        </>
+      )}
+    </main>
+  );
 }
-export function PublicPortal({slug}:{slug:string}){
- const [data,setData]=useState<{business:string;customer:string;balance:number;points:number;orders:{id:number;status:string;total:number;paid:boolean}[];documents:{id:number;kind:string;total:number;status:string}[]}|null>(null),[error,setError]=useState('');
- useEffect(()=>{supabase().auth.getSession().then(async({data:{session}})=>{if(!session)throw new Error('Sign in with your verified customer email to view private records.');const r=await fetch('/api/portal/'+slug,{headers:{Authorization:`Bearer ${session.access_token}`},cache:'no-store'});const d=await r.json();if(!r.ok)throw new Error(d.error);setData(d)}).catch(e=>setError(e.message))},[slug]);
- return <main id="main-content" className="container section"><Brand/><h1>{data?`Hello, ${data.customer}`:'Your customer account'}</h1>{error&&<><p role="alert">{error}</p><Button href="/login">Sign in</Button></>}{data&&<><p>{data.business}</p><div className="stats-grid"><article className="panel"><h2>Outstanding balance</h2>{cash(Math.round(data.balance*100))}</article><article className="panel"><h2>Reward points</h2>{data.points}</article></div><h2>Your orders</h2>{data.orders.length?data.orders.map(o=><article className="panel" key={o.id}><h3>Order #{o.id}</h3><p>{o.status} · {cash(o.total)} · {o.paid?'Payment recorded':'Payment pending'}</p></article>):<p>No orders yet.</p>}<h2>Your documents</h2>{data.documents.map(d=><article className="panel" key={d.id}>{d.kind} #{d.id} · {cash(d.total)} · {d.status}</article>)}</>}<Link href={'/shop/'+slug}>Visit shop</Link></main>
+export function PublicPortal({ slug }: { slug: string }) {
+  const [data, setData] = useState<{
+      business: string;
+      customer: string;
+      balance: number;
+      points: number;
+      orders: { id: number; status: string; total: number; paid: boolean }[];
+      documents: { id: number; kind: string; total: number; status: string }[];
+    } | null>(null),
+    [error, setError] = useState("");
+  useEffect(() => {
+    supabase()
+      .auth.getSession()
+      .then(async ({ data: { session } }) => {
+        if (!session)
+          throw new Error(
+            "Sign in with your verified customer email to view private records.",
+          );
+        const r = await fetch("/api/portal/" + slug, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          cache: "no-store",
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error);
+        setData(d);
+      })
+      .catch((e) => setError(e.message));
+  }, [slug]);
+  return (
+    <main id="main-content" className="container section">
+      <Brand />
+      <h1>{data ? `Hello, ${data.customer}` : "Your customer account"}</h1>
+      {error && (
+        <>
+          <p role="alert">{error}</p>
+          <Button href={"/login?next=" + encodeURIComponent("/portal/" + slug)}>
+            Sign in
+          </Button>
+        </>
+      )}
+      {data && (
+        <>
+          <p>{data.business}</p>
+          <div className="stats-grid">
+            <article className="panel">
+              <h2>Outstanding balance</h2>
+              {cash(Math.round(data.balance * 100))}
+            </article>
+            <article className="panel">
+              <h2>Reward points</h2>
+              {data.points}
+            </article>
+          </div>
+          <h2>Your orders</h2>
+          {data.orders.length ? (
+            data.orders.map((o) => (
+              <article className="panel" key={o.id}>
+                <h3>Order #{o.id}</h3>
+                <p>
+                  {o.status} · {cash(o.total)} ·{" "}
+                  {o.paid ? "Payment recorded" : "Payment pending"}
+                </p>
+              </article>
+            ))
+          ) : (
+            <p>No orders yet.</p>
+          )}
+          <h2>Your documents</h2>
+          {data.documents.map((d) => (
+            <article className="panel" key={d.id}>
+              {d.kind} #{d.id} · {cash(d.total)} · {d.status}
+            </article>
+          ))}
+        </>
+      )}
+      <Link href={"/shop/" + slug}>Visit shop</Link>
+    </main>
+  );
 }

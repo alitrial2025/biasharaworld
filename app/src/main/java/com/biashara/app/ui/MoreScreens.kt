@@ -55,7 +55,10 @@ private fun MenuRow(
 fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
     var dialog by remember { mutableStateOf<String?>(null) }
     var team by remember { mutableStateOf(false) }
-    if(team){LiveTeamScreen(store,{team=false});return}
+    if (team) {
+        LiveTeamScreen(store, { team = false })
+        return
+    }
     Page {
         Column(
             Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 8.dp),
@@ -66,7 +69,7 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 AppText(store.ownerName, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 AppText(
-                    if(store.real)store.backend?.role?:"ACCOUNT" else "DEMO",
+                    if (store.real) store.backend?.role ?: "ACCOUNT" else "DEMO",
                     fontSize = 8.sp,
                     color = Color.White,
                     modifier =
@@ -92,14 +95,21 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
             ) {
                 dialog = "Payment Methods"
             }
-            MenuRow(Icons.Outlined.Groups, "Staff Management") { if(store.real)team=true else dialog = "Staff Management" }
+            MenuRow(Icons.Outlined.Groups, "Staff Management") {
+                if (store.real) team = true else dialog = "Staff Management"
+            }
             MenuRow(Icons.Outlined.NotificationsNone, "Notifications") { navigate(Screen.STOCK) }
             MenuRow(Icons.Outlined.Settings, "App Settings") { navigate(Screen.TOOLS) }
             MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, "Help & Support") {
                 dialog = "Help & Support"
             }
             Row(
-                Modifier.fillMaxWidth().clickable { if(store.real)store.backend?.action{store.backend?.signOut()}else dialog = "Log Out" }.padding(vertical = 17.dp),
+                Modifier.fillMaxWidth()
+                    .clickable {
+                        if (store.real) store.backend?.action { store.backend?.signOut() }
+                        else dialog = "Log Out"
+                    }
+                    .padding(vertical = 17.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 AppIcon(
@@ -126,7 +136,7 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
             MenuRow(Icons.Outlined.WavingHand, "Meet Biashara") { navigate(Screen.SETUP) }
         }
         AppText(
-            "BiasharaOS · UI preview 0.1.0",
+            "BiasharaOS · Early access 0.1.0",
             fontSize = 10.sp,
             color = Muted,
             modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -140,15 +150,19 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
                 AppText(
                     when (title) {
                         "Payment Methods" ->
-                            "M-Pesa and bank account connections will be available when payments are integrated. You can already try the demo checkout."
+                            "M-Pesa and bank account connections will be available when payments are integrated. Record payments after you receive them."
                         "Staff Management" ->
-                            if(store.real)store.liveState.records("members").joinToString("\n"){"${it.optString("name")} · ${it.optString("role")} · ${it.optString("status")}"}+"\nManage invitations on the website." else "Sample team"
+                            if (store.real)
+                                store.liveState.records("members").joinToString("\n") {
+                                    "${it.optString("name")} · ${it.optString("role")} · ${it.optString("status")}"
+                                } + "\nManage invitations on the website."
+                            else "Sample team"
                         "App Settings" ->
                             "Currency: KES – Kenyan Shilling\nLanguage: English\nTheme: Light\n\nYou are using the UI preview with local sample data."
                         "Log Out" ->
                             "You are exploring a demo store. Account sign-in and sign-out will be added with authentication."
                         else ->
-                            "Explore selling, stock, customers, suppliers and reports. This UI preview uses local demo data. Payments, orders, financing and AI are not connected to live services."
+                            "Manage sales, stock, customers, suppliers and reports. Saved changes are shared with your business account. Online payment collection, lending and external AI are coming later."
                     }
                 )
             },
@@ -224,7 +238,23 @@ fun ProfileScreen(store: DemoStore, onBack: () -> Unit) {
         PrimaryButton(
             if (saved) "Changes saved ✓" else "Save changes",
             {
-                if(store.real){store.backend?.action{store.backend?.command(json("type" to "updateProfile","profile" to json("name" to name.trim(),"business" to business.trim(),"location" to location.trim())));saved=true};return@PrimaryButton}
+                if (store.real) {
+                    store.backend?.action {
+                        store.backend?.command(
+                            json(
+                                "type" to "updateProfile",
+                                "profile" to
+                                    json(
+                                        "name" to name.trim(),
+                                        "business" to business.trim(),
+                                        "location" to location.trim(),
+                                    ),
+                            )
+                        )
+                        saved = true
+                    }
+                    return@PrimaryButton
+                }
                 store.ownerName = name.trim()
                 store.businessName = business.trim()
                 store.location = location.trim()
@@ -518,7 +548,7 @@ fun SetupScreen(store: DemoStore, done: () -> Unit) {
                             style = MaterialTheme.typography.headlineLarge,
                         )
                         AppText(
-                            "${store.businessName} is ready. Explore your demo store and make your first sale.",
+                            "${store.businessName} is ready. Add your products and record your first sale.",
                             fontSize = 14.sp,
                             color = Muted,
                         )
@@ -535,7 +565,22 @@ fun SetupScreen(store: DemoStore, done: () -> Unit) {
                     when (step) {
                         1 -> step = 2
                         2 -> {
-                            if(store.real){store.backend?.action{store.backend?.command(json("type" to "updateProfile","profile" to json("business" to business.trim(),"location" to location.trim())));done()};return@PrimaryButton}
+                            if (store.real) {
+                                store.backend?.action {
+                                    store.backend?.command(
+                                        json(
+                                            "type" to "updateProfile",
+                                            "profile" to
+                                                json(
+                                                    "business" to business.trim(),
+                                                    "location" to location.trim(),
+                                                ),
+                                        )
+                                    )
+                                    done()
+                                }
+                                return@PrimaryButton
+                            }
                             store.businessName = business.trim()
                             store.location = location.trim()
                             step = 3

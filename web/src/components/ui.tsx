@@ -557,27 +557,36 @@ export function SalesChart({
   bars = false,
   mini = false,
   series,
+  label = "sales",
 }: {
+  label?: string;
   period?: string;
   bars?: boolean;
   mini?: boolean;
   series?: number[];
 }) {
-  const values = series ? series.map(v=>Math.max(0,v)/Math.max(1,...series)*90) :
-    period === "Month"
+  const low = series ? Math.min(0, ...series) : 0;
+  const high = series ? Math.max(1, ...series) : 100;
+  const zeroY = 190 - ((0 - low) / (high - low)) * 90 * 1.65;
+  const values = series
+    ? series.map((v) => ((v - low) / (high - low)) * 90)
+    : period === "Month"
       ? [30, 23, 40, 35, 55, 43, 60, 56, 72, 64, 82, 76, 92]
       : period === "Day"
         ? [18, 28, 22, 40, 30, 52, 43, 62, 38, 74, 62, 90, 77]
         : [20, 33, 27, 49, 39, 58, 43, 65, 56, 78, 72, 94, 85];
   const id = useId().replaceAll(":", "");
   const points = values
-    .map((v, i) => `${28 + i * 42},${190 - v * 1.65}`)
+    .map(
+      (v, i) =>
+        `${28 + i * (504 / Math.max(1, values.length - 1))},${190 - v * 1.65}`,
+    )
     .join(" ");
   return (
     <div
       className={`sales-chart ${mini ? "chart-mini" : ""}`}
       role="img"
-      aria-label={`${series ? "Recorded" : "Illustrative"} ${period.toLowerCase()} sales trend`}
+      aria-label={`${series ? "Recorded" : "Illustrative"} ${period.toLowerCase()} ${label} trend`}
     >
       <svg viewBox="0 0 560 220" preserveAspectRatio="none">
         <defs>
@@ -608,10 +617,10 @@ export function SalesChart({
             values.map((v, i) => (
               <rect
                 key={i}
-                x={23 + i * 41}
-                y={190 - v * 1.65}
-                width="23"
-                height={v * 1.65}
+                x={23 + i * (520 / values.length)}
+                y={Math.min(190 - v * 1.65, zeroY)}
+                width={Math.max(2, (520 / values.length) * 0.65)}
+                height={Math.abs(zeroY - (190 - v * 1.65))}
                 rx="5"
                 fill={i === 8 ? "#00815d" : `url(#bar${id})`}
               />
@@ -619,7 +628,7 @@ export function SalesChart({
           ) : (
             <>
               <polygon
-                points={`28,195 ${points} 532,195`}
+                points={`28,${zeroY} ${points} 532,${zeroY}`}
                 fill={`url(#area${id})`}
               />
               <polyline
@@ -644,13 +653,17 @@ export function SalesChart({
       </svg>
       <div className="chart-labels">
         <T>
-          {(series ? ["Period start", "", "", "", "Period end"] : period === "Day"
-            ? ["8 AM", "11 AM", "2 PM", "5 PM", "8 PM"]
-            : period === "Month"
-              ? ["1 Oct", "7 Oct", "14 Oct", "21 Oct", "31 Oct"]
-              : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-          ).map((t) => (
-            <span key={t}>
+          {(series
+            ? period === "Day"
+              ? ["12 AM", "6 AM", "12 PM", "6 PM", "11 PM"]
+              : ["Period start", "", "", "", "Period end"]
+            : period === "Day"
+              ? ["8 AM", "11 AM", "2 PM", "5 PM", "8 PM"]
+              : period === "Month"
+                ? ["1 Oct", "7 Oct", "14 Oct", "21 Oct", "31 Oct"]
+                : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+          ).map((t, i) => (
+            <span key={i}>
               <T>{t}</T>
             </span>
           ))}

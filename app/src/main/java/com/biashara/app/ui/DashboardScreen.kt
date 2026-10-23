@@ -20,9 +20,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.biashara.app.data.DemoStore
-import com.biashara.app.data.report
 import com.biashara.app.data.minorMoney
 import com.biashara.app.data.money
+import com.biashara.app.data.report
 
 @Composable
 fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -> Unit = {}) {
@@ -113,7 +113,11 @@ fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -
                             fontSize = 12.sp,
                             modifier = Modifier.padding(start = 10.dp).weight(1f),
                         )
-                        AppText(minorMoney(p.priceMinor), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        AppText(
+                            minorMoney(p.priceMinor),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
                     }
                 }
             }
@@ -147,15 +151,15 @@ fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -
                     SummaryCard(
                         "Total Sales",
                         com.biashara.app.data.minorMoney(store.branchSalesMinor),
-                        if(store.real)"Recorded today" else "↑ 12%",
+                        if (store.real) "Recorded today" else "↑ 12%",
                         Mint,
                         Green,
                         Modifier.weight(1f),
                     )
                     SummaryCard(
                         "Profit",
-                        if(store.real)minorMoney(store.report().profit) else "KES 3,890",
-                        if(store.real)"Recorded today" else "↑ 8%",
+                        if (store.real) minorMoney(store.report().profit) else "KES 3,890",
+                        if (store.real) "Recorded today" else "↑ 8%",
                         BlueMist,
                         Indigo,
                         Modifier.weight(1f),
@@ -164,16 +168,16 @@ fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     SummaryCard(
                         "Expenses",
-                        if(store.real)minorMoney(store.report().expenses) else "KES 2,300",
-                        if(store.real)"Recorded today" else "↑ 5%",
+                        if (store.real) minorMoney(store.report().expenses) else "KES 2,300",
+                        if (store.real) "Recorded today" else "↑ 5%",
                         RoseMist,
                         Coral,
                         Modifier.weight(1f),
                     )
                     SummaryCard(
                         "Pending Debts",
-                        "KES ${money(store.customers.sumOf{it.balance})}",
-                        "${store.customers.count{it.balance>0}} customers",
+                        minorMoney(store.customers.sumOf { it.balanceMinor }),
+                        "${store.customers.count{it.balanceMinor>0}} customers",
                         Sand,
                         Amber,
                         Modifier.weight(1f),
@@ -197,7 +201,12 @@ fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -
                         AppIcon(Icons.Outlined.KeyboardArrowDown, null, Modifier.size(14.dp))
                     }
                 }
-                SalesChart(bars = period == "Day", modifier = Modifier.fillMaxWidth(),series=if(store.real)store.report(if(period=="Day")1 else 7).series else null)
+                SalesChart(
+                    bars = period == "Day",
+                    modifier = Modifier.fillMaxWidth(),
+                    series =
+                        if (store.real) store.report(if (period == "Day") 1 else 7).series else null,
+                )
             }
             Row(
                 Modifier.fillMaxWidth()

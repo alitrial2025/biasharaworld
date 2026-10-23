@@ -34,3 +34,7 @@ supabase/.branches/
 
 # Rebuild downloadable Android packages from source; do not keep binaries in Git.
 web/public/downloads/*.apk
+
+# Python tool caches
+__pycache__/
+*.pyc

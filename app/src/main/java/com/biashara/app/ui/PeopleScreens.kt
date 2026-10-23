@@ -41,8 +41,8 @@ fun CustomersScreen(store: DemoStore, onBack: () -> Unit) {
                 store.customers.filter {
                     it.name.contains(query, true) &&
                         when (filter) {
-                            "Owes you" -> it.balance > 0
-                            "All settled" -> it.balance == 0
+                            "Owes you" -> it.balanceMinor > 0
+                            "All settled" -> it.balanceMinor == 0L
                             else -> true
                         }
                 }
@@ -72,16 +72,16 @@ fun CustomersScreen(store: DemoStore, onBack: () -> Unit) {
                     Column(Modifier.weight(1f).padding(horizontal = 13.dp)) {
                         AppText(c.name, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         AppText(
-                            if (c.balance > 0) "Outstanding balance" else "All paid up",
+                            if (c.balanceMinor > 0) "Outstanding balance" else "All paid up",
                             fontSize = 10.sp,
                             color = Muted,
                             modifier = Modifier.padding(top = 4.dp),
                         )
                     }
                     AppText(
-                        if (c.balance == 0) "Settled ✓" else "${money(c.balance)}",
+                        if (c.balanceMinor == 0L) "Settled ✓" else minorMoney(c.balanceMinor),
                         fontSize = 12.sp,
-                        color = if (c.balance == 0) Green else Amber,
+                        color = if (c.balanceMinor == 0L) Green else Amber,
                         fontWeight = FontWeight.Bold,
                     )
                     AppIcon(
@@ -102,31 +102,44 @@ fun CustomersScreen(store: DemoStore, onBack: () -> Unit) {
             title = { AppText(c.name) },
             text = {
                 AppText(
-                    if (c.balance > 0)
-                        "KES ${money(c.balance)} outstanding.\n\nRecord payment only after you have received the money. The shared customer balance will update."
+                    if (c.balanceMinor > 0)
+                        "${minorMoney(c.balanceMinor)} outstanding.\n\nRecord payment only after you have received the money. The shared customer balance will update."
                     else "No outstanding balance."
                 )
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        if(store.real && c.balance>0) {
-                            val record=store.liveState.records("customers").firstOrNull{it.optString("name")==c.name}
-                            store.backend?.action {store.backend?.command(json("type" to "payBalance","id" to record?.optInt("id"),"amount" to record?.optDouble("balance")));selected=null}
+                        if (store.real && c.balanceMinor > 0) {
+                            val record =
+                                store.liveState.records("customers").firstOrNull {
+                                    it.optString("name") == c.name
+                                }
+                            store.backend?.action {
+                                store.backend?.command(
+                                    json(
+                                        "type" to "payBalance",
+                                        "id" to record?.optInt("id"),
+                                        "amount" to record?.optDouble("balance"),
+                                    )
+                                )
+                                selected = null
+                            }
                             return@TextButton
                         }
-                        if (c.balance > 0) {
+                        if (c.balanceMinor > 0) {
                             val i = store.customers.indexOf(c)
-                            if (i >= 0) store.customers[i] = c.copy(balance = 0)
+                            if (i >= 0) store.customers[i] = c.copy(balance = 0, balanceMinor = 0L)
                         }
                         selected = null
                     }
                 ) {
-                    AppText(if (c.balance > 0) "Record full repayment" else "Done")
+                    AppText(if (c.balanceMinor > 0) "Record full repayment" else "Done")
                 }
             },
             dismissButton = {
-                if (c.balance > 0) TextButton(onClick = { selected = null }) { AppText("Close") }
+                if (c.balanceMinor > 0)
+                    TextButton(onClick = { selected = null }) { AppText("Close") }
             },
         )
     }
@@ -146,7 +159,14 @@ fun CustomersScreen(store: DemoStore, onBack: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                 )
-                OutlinedTextField(email,{email=it},label={AppText("Customer email (optional)")},singleLine=true,modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(16.dp))
+                OutlinedTextField(
+                    email,
+                    { email = it },
+                    label = { AppText("Customer email (optional)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                )
                 OutlinedTextField(
                     balance,
                     { balance = it.filter(Char::isDigit).take(7) },
@@ -159,8 +179,26 @@ fun CustomersScreen(store: DemoStore, onBack: () -> Unit) {
                 PrimaryButton(
                     "Add customer",
                     {
-                        if(store.real) {
-                            store.backend?.action {store.backend?.command(json("type" to "addCustomer","customer" to json("name" to name.trim(),"phone" to "","email" to email.trim(),"balance" to (balance.toDoubleOrNull()?:0.0),"purchases" to 0,"color" to "mint")));name="";balance="";adding=false}
+                        if (store.real) {
+                            store.backend?.action {
+                                store.backend?.command(
+                                    json(
+                                        "type" to "addCustomer",
+                                        "customer" to
+                                            json(
+                                                "name" to name.trim(),
+                                                "phone" to "",
+                                                "email" to email.trim(),
+                                                "balance" to (balance.toDoubleOrNull() ?: 0.0),
+                                                "purchases" to 0,
+                                                "color" to "mint",
+                                            ),
+                                    )
+                                )
+                                name = ""
+                                balance = ""
+                                adding = false
+                            }
                             return@PrimaryButton
                         }
                         store.customers.add(

@@ -22,6 +22,7 @@ export type Basket = {
   redeem: number;
 };
 export type DetailedReceipt = {
+  createdAt?: string;
   id: number;
   branch: string;
   customer: string;
@@ -115,6 +116,7 @@ export type Operations = {
   returns: {
     id: number;
     saleId: number;
+    createdAt?: string;
     productId: number;
     quantity: number;
     amount: number;
@@ -1343,8 +1345,9 @@ export function execute(
           !state.products.find((p) => p.id === action.productId)?.components,
         "Choose a destination and an available individual product quantity.",
       );
+      resultId = nextId(op.transfers);
       op.transfers.unshift({
-        id: nextId(op.transfers),
+        id: resultId,
         productId: action.productId,
         quantity: action.quantity,
         from: op.activeBranch,

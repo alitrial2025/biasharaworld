@@ -3,6 +3,7 @@ import { T, LocalButton, LocalSelect } from "@/components/locale";
 
 import Link from "next/link";
 import { ConnectionBanner } from "@/components/connection-banner";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
@@ -78,12 +79,31 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
   }, []);
-  useEffect(()=>{
-    if(!store.ready)return;
-    if(!store.authenticated)router.replace('/login');
-    else if(!store.workspace&&!store.error)router.replace('/onboarding');
-  },[store.ready,store.authenticated,store.workspace,store.error,router]);
-  if(!store.ready||!store.authenticated||!store.workspace)return <main id="main-content" className="container section"><Brand/><h1>{store.error?'Could not load your business':'Opening your workspace…'}</h1>{store.error&&<><p role="alert">{store.error}</p><Button onClick={()=>void store.hydrate()}>Retry connection</Button><Button href="/login">Sign in</Button></>}</main>;
+  useEffect(() => {
+    if (!store.ready) return;
+    if (!store.authenticated) router.replace("/login");
+    else if (!store.workspace && !store.error) router.replace("/onboarding");
+  }, [store.ready, store.authenticated, store.workspace, store.error, router]);
+  if (!store.ready || !store.authenticated || !store.workspace)
+    return (
+      <main id="main-content" className="container section">
+        <Brand />
+        <h1>
+          {store.error
+            ? "Could not load your business"
+            : "Opening your workspace…"}
+        </h1>
+        {store.error && (
+          <>
+            <p role="alert">{store.error}</p>
+            <Button onClick={() => void store.hydrate()}>
+              Retry connection
+            </Button>
+            <Button href="/login">Sign in</Button>
+          </>
+        )}
+      </main>
+    );
   const active = (href: string) =>
     href === "/dashboard" ? pathname === href : pathname.startsWith(href);
   function go(href: string) {
@@ -263,6 +283,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             </kbd>
           </LocalButton>
           <div className="topbar-right">
+            <ThemeToggle />
             <LocalSelect
               className="branch-top-select"
               aria-label="Active branch"
@@ -308,9 +329,28 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <ConnectionBanner />
-        {store.busy&&<div role="status" className="connection-banner">Saving to your business…</div>}
-        {store.error&&<div role="alert" className="operation-error">{store.error} {store.hasPending?<button onClick={()=>void store.retry().catch(()=>{})}>Retry saved request</button>:<button onClick={()=>void store.hydrate()}>Refresh records</button>}</div>}
-        {store.busy&&<div className="saving-overlay" aria-label="Saving changes"/>}
+        {store.busy && (
+          <div role="status" className="connection-banner">
+            Saving to your business…
+          </div>
+        )}
+        {store.error && (
+          <div role="alert" className="operation-error">
+            {store.error}{" "}
+            {store.hasPending ? (
+              <button onClick={() => void store.retry().catch(() => {})}>
+                Retry saved request
+              </button>
+            ) : (
+              <button onClick={() => void store.hydrate()}>
+                Refresh records
+              </button>
+            )}
+          </div>
+        )}
+        {store.busy && (
+          <div className="saving-overlay" aria-label="Saving changes" />
+        )}
 
         <T>
           {store.storageWarning && (
@@ -338,11 +378,18 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             <T>BiasharaOS · A little less juggling. A lot more growing.</T>
           </span>
           <span>
-            <button onClick={async()=>{
- try {
-await store.signOut();router.replace("/login")
- } catch { /* The shared connection banner retains the server error and retry action. */ }
-}}>Sign out</button>
+            <button
+              onClick={async () => {
+                try {
+                  await store.signOut();
+                  router.replace("/login");
+                } catch {
+                  /* The shared connection banner retains the server error and retry action. */
+                }
+              }}
+            >
+              Sign out
+            </button>
           </span>
         </footer>
       </div>
@@ -422,7 +469,7 @@ await store.signOut();router.replace("/login")
         open={alerts}
         onClose={() => setAlerts(false)}
         title="A few shelves need attention."
-        description="Sample stock alerts from your demo business."
+        description="Products at or below your reorder points."
       >
         <div className="alert-list">
           <T>

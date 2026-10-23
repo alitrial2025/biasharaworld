@@ -357,7 +357,8 @@ private fun FormDialog(form: ToolForm, errorProvider: () -> String, onClose: () 
                             { values[field.key] = it },
                         )
                 }
-                if (error.isNotEmpty()) AppText(errorProvider().ifBlank{error}, color = Coral, fontSize = 12.sp)
+                if (error.isNotEmpty())
+                    AppText(errorProvider().ifBlank { error }, color = Coral, fontSize = 12.sp)
             }
         },
         confirmButton = {
@@ -514,11 +515,17 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
     var tab by rememberSaveable { mutableStateOf("All") }
     var found by rememberSaveable { mutableIntStateOf(0) }
     fun run(action: String, values: Map<String, String> = emptyMap()): Boolean {
-        if(store.real && action !in listOf("cart","basket","clearCart","compareBasket","shopCart")) {
-            feedback="Saving to your business…";failed=false
-            store.backend?.perform(action,values){
-                feedback="Saved to your business.";failed=false;form=null
-                if(action in listOf("checkout","startCount"))selected=ops.lastId
+        if (
+            store.real &&
+                action !in listOf("cart", "basket", "clearCart", "compareBasket", "shopCart")
+        ) {
+            feedback = "Saving to your business…"
+            failed = false
+            store.backend?.perform(action, values) {
+                feedback = "Saved to your business."
+                failed = false
+                form = null
+                if (action in listOf("checkout", "startCount")) selected = ops.lastId
             }
             return false
         }
@@ -543,7 +550,12 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
         form =
             ToolForm(title, description, fields, confirm) { values -> run(action, extra + values) }
     }
-    LaunchedEffect(store.backend?.error){if(store.backend?.error?.isNotBlank()==true){feedback=store.backend!!.error;failed=true}}
+    LaunchedEffect(store.backend?.error) {
+        if (store.backend?.error?.isNotBlank() == true) {
+            feedback = store.backend!!.error
+            failed = true
+        }
+    }
     val products = store.products.toList()
     val productOptions =
         products
@@ -558,7 +570,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
     val customer = o.optString("customer", "Walk-in customer")
     Page {
         PageTitle(
-            feature?.title ?: if (slug == "storefront") "Your demo shop" else "Customer preview",
+            feature?.title ?: if (slug == "storefront") "Your shop" else "Customer preview",
             feature?.detail,
             onBack,
         )
@@ -599,7 +611,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                             color = Color.White,
                         )
                         AppText(
-                            "Sample scanner · camera decoding is not connected",
+                            "Use a barcode or keyboard scanner. Camera scanning is coming later.",
                             fontSize = 10.sp,
                             color = Color(0xFFBED4C6),
                         )
@@ -629,14 +641,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                     },
                     tone = Green,
                 )
-                ActionRow(
-                    "Sample scan" to
-                        {
-                            query = productBarcode(1)
-                            found = 1
-                        },
-                    "Open checkout" to { onOpen("checkout") },
-                )
+                ActionRow("Open checkout" to { onOpen("checkout") })
                 products
                     .firstOrNull { it.id == found }
                     ?.let { p ->
@@ -895,7 +900,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                         }
                     }
                     PrimaryButton(
-                        "Split & record demo sale",
+                        "Split & record sale",
                         {
                             form =
                                 ToolForm(
@@ -939,7 +944,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
             "returns" -> {
                 RecordCard(
                     "Start with the original receipt.",
-                    "Legacy receipts without line details remain in Sales. Detailed demo receipts support item-level returns.",
+                    "Legacy receipts without line details remain in Sales. Detailed receipts support item-level returns.",
                 )
                 o.records("receipts")
                     .filter { it.optString("branch") == ops.branch }
@@ -986,7 +991,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                             ),
                                         ),
                                         mapOf("id" to r.optInt("id").toString()),
-                                        "Record demo refund",
+                                        "Record refund",
                                         "Original net prices and payment portions are used. No money is sent.",
                                     )
                                 },
@@ -1110,7 +1115,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                 )
                             if (d.optString("status") == "Draft")
                                 ActionRow(
-                                    "Mark issued locally" to
+                                    "Mark issued" to
                                         {
                                             run(
                                                 "issueDocument",
@@ -1123,7 +1128,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                     d.optString("status") != "Paid locally"
                             )
                                 PrimaryButton(
-                                    "Record demo cash payment",
+                                    "Record cash payment",
                                     {
                                         run("payDocument", mapOf("id" to d.optInt("id").toString()))
                                     },
@@ -1144,7 +1149,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                         Mint,
                     ) {
                         PrimaryButton(
-                            "Open demo register",
+                            "Open cash register",
                             {
                                 ask(
                                     "openRegister",
@@ -1657,7 +1662,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
             "compare" -> {
                 RecordCard(
                     "The same basket. A clearer comparison.",
-                    "Prepare a sample restock basket, then compare goods, delivery and minimums.",
+                    "Choose products to compare your recorded supplier quotes, delivery fees and minimums.",
                     Sand,
                 ) {
                     ActionRow(
@@ -1688,13 +1693,43 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                 }
                 val compare = o.ints("compareCart")
                 store.suppliers.forEachIndexed { i, supplier ->
-                    val recorded=store.liveState.records("suppliers").firstOrNull{it.optString("name")==supplier.name}
-                    val goods = products.sumOf { p ->
-                        if(store.real)kotlin.math.round((recorded?.optJSONObject("quotes")?.optDouble(p.id.toString(),Double.NaN)?.takeIf{it.isFinite()}?:store.liveState.records("products").firstOrNull{it.optInt("id")==p.id}?.optDouble("cost")?:0.0)*100).toLong()*(compare[p.id]?:0)
-                        else p.priceMinor*8/10*(compare[p.id]?:0)*listOf(100,96,103)[i]/100
-                    }
-                    val fee = if(store.real)kotlin.math.round((recorded?.optDouble("deliveryFee")?:0.0)*100).toLong()else listOf(30000L,35000L,20000L)[i]
-                    val minimum = if(store.real)kotlin.math.round((recorded?.optDouble("minimum")?:0.0)*100).toLong()else listOf(100000L,150000L,80000L)[i]
+                    val recorded =
+                        store.liveState.records("suppliers").firstOrNull {
+                            it.optString("name") == supplier.name
+                        }
+                    val goods =
+                        products.sumOf { p ->
+                            if (store.real)
+                                kotlin.math
+                                    .round(
+                                        (recorded
+                                            ?.optJSONObject("quotes")
+                                            ?.optDouble(p.id.toString(), Double.NaN)
+                                            ?.takeIf { it.isFinite() }
+                                            ?: store.liveState
+                                                .records("products")
+                                                .firstOrNull { it.optInt("id") == p.id }
+                                                ?.optDouble("cost")
+                                            ?: 0.0) * 100
+                                    )
+                                    .toLong() * (compare[p.id] ?: 0)
+                            else
+                                p.priceMinor * 8 / 10 *
+                                    (compare[p.id] ?: 0) *
+                                    listOf(100, 96, 103)[i] / 100
+                        }
+                    val fee =
+                        if (store.real)
+                            kotlin.math
+                                .round((recorded?.optDouble("deliveryFee") ?: 0.0) * 100)
+                                .toLong()
+                        else listOf(30000L, 35000L, 20000L)[i]
+                    val minimum =
+                        if (store.real)
+                            kotlin.math
+                                .round((recorded?.optDouble("minimum") ?: 0.0) * 100)
+                                .toLong()
+                        else listOf(100000L, 150000L, 80000L)[i]
                     RecordCard(supplier.name, "${supplier.distance} · ${supplier.category}") {
                         AppText(
                             "Goods ${minorMoney(goods)}\nDelivery ${minorMoney(fee)}\nMinimum goods ${minorMoney(minimum)}",
@@ -1707,14 +1742,16 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                             fontWeight = FontWeight.Bold,
                         )
                         PrimaryButton(
-                            "Create demo purchase order",
+                            "Create purchase order",
                             {
                                 run(
                                     "purchaseOrder",
                                     mapOf(
                                         "supplier" to supplier.name,
-                                        "fee" to (fee / 100).toString(),
-                                        "factor" to if(store.real)"100" else listOf("100", "96", "103")[i],
+                                        "fee" to
+                                            java.math.BigDecimal.valueOf(fee, 2).toPlainString(),
+                                        "factor" to
+                                            if (store.real) "100" else listOf("100", "96", "103")[i],
                                     ),
                                 )
                             },
@@ -1740,7 +1777,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                             StatusLabel(order.optString("status"))
                             if (order.optString("status") == "Draft")
                                 PrimaryButton(
-                                    "Receive demo goods",
+                                    "Receive goods",
                                     {
                                         run(
                                             "receivePurchaseOrder",
@@ -1758,7 +1795,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                 if (orders.isEmpty())
                     EmptyState(
                         "Your next delivery starts with an order.",
-                        "Place a local demo order through your shopfront.",
+                        "Orders placed through your published shop appear here.",
                         Icons.Outlined.LocalShipping,
                     )
                 orders.forEach { order ->
@@ -1838,7 +1875,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                             )
                         if (!order.optBoolean("paid") && order.optString("status") == "Delivered")
                             ActionRow(
-                                "Record demo cash payment" to
+                                "Record cash payment" to
                                     {
                                         run(
                                             "orderPaid",
@@ -1868,7 +1905,9 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
             }
             "loyalty" -> {
                 val name =
-                    if (customer == "Walk-in customer") store.customers.firstOrNull()?.name ?: "Walk-in customer" else customer
+                    if (customer == "Walk-in customer")
+                        store.customers.firstOrNull()?.name ?: "Walk-in customer"
+                    else customer
                 ToolSelect("Customer", name, namedCustomers) {
                     run("basket", mapOf("customer" to it, "redeem" to "0"))
                 }
@@ -2065,13 +2104,13 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
             "customer-portal" -> {
                 RecordCard(
                     "A clearer view from their side.",
-                    "Preview a sample customer’s orders, invoices, balance and rewards. No account authentication is active.",
+                    "Review customer balances, rewards and documents. Customers sign in with a verified account on the website to view their private records.",
                     BlueMist,
                 )
                 store.customers.forEach { c ->
                     RecordCard(
                         c.name,
-                        "Balance ${money(c.balance)} KES · ${o.objectAt("loyalty").optInt(c.name)} points",
+                        "Balance ${minorMoney(c.balanceMinor)} · ${o.objectAt("loyalty").optInt(c.name)} points",
                     ) {
                         PrimaryButton(
                             "Preview as customer",
@@ -2189,31 +2228,32 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                         }
                     }
                 }
-                if(!store.real) RecordCard(
-                    "A fresh start, whenever you need it.",
-                    "Reset local demo records and preferences to the original sample shop.",
-                ) {
-                    OutlinedButton(
-                        onClick = {
-                            form =
-                                ToolForm(
-                                    "Ready for a fresh start?",
-                                    "This replaces local demo changes on this device.",
-                                    emptyList(),
-                                    "Reset demo",
-                                ) {
-                                    DemoPersistence.restore(
-                                        store,
-                                        DemoPersistence.snapshot(DemoStore()),
-                                    )
-                                    feedback = "A fresh demo shop, ready for you."
-                                    true
-                                }
-                        }
+                if (!store.real)
+                    RecordCard(
+                        "A fresh start, whenever you need it.",
+                        "Reset local demo records and preferences to the original sample shop.",
                     ) {
-                        AppText("Reset demo data", color = Coral)
+                        OutlinedButton(
+                            onClick = {
+                                form =
+                                    ToolForm(
+                                        "Ready for a fresh start?",
+                                        "This replaces local demo changes on this device.",
+                                        emptyList(),
+                                        "Reset demo",
+                                    ) {
+                                        DemoPersistence.restore(
+                                            store,
+                                            DemoPersistence.snapshot(DemoStore()),
+                                        )
+                                        feedback = "A fresh demo shop, ready for you."
+                                        true
+                                    }
+                            }
+                        ) {
+                            AppText("Reset demo data", color = Coral)
+                        }
                     }
-                }
             }
         }
         AppText(
@@ -2426,14 +2466,19 @@ private fun ColumnScope.NativeCustomerPreview(store: DemoStore, onOpen: (String)
     val o = store.operations.state
     val c =
         store.customers.firstOrNull { it.name == o.optString("customer") }
-            ?: store.customers.firstOrNull() ?: return
+            ?: store.customers.firstOrNull()
+            ?: return
     RecordCard(
         "Hello, ${c.name.substringBefore(" ")}.",
         "Your orders, records and rewards with ${o.objectAt("shop").optString("name")}",
         BlueMist,
     ) {
         StatusLabel("Customer-view preview · no sign-in", Amber)
-        AppText("Balance ${money(c.balance)} KES", fontSize = 23.sp, fontWeight = FontWeight.Bold)
+        AppText(
+            "Balance ${minorMoney(c.balanceMinor)}",
+            fontSize = 23.sp,
+            fontWeight = FontWeight.Bold,
+        )
         AppText(
             "${o.objectAt("loyalty").optInt(c.name)} loyalty points",
             fontSize = 18.sp,

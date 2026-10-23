@@ -32,7 +32,13 @@ data class Sale(
     val amountMinor: Long = amount * 100L,
 )
 
-data class Customer(val name: String, val initial: String, val balance: Int, val color: Int)
+data class Customer(
+    val name: String,
+    val initial: String,
+    val balance: Int,
+    val color: Int,
+    val balanceMinor: Long = balance * 100L,
+)
 
 data class Supplier(
     val name: String,
@@ -96,31 +102,173 @@ class DemoStore(val real: Boolean = false) {
             ChatMessage("Here’s your summary for today, Wanjiku 👋", false),
         )
     val operations = OperationsStore(this)
-    init { if(real) clearLive() }
+
+    init {
+        if (real) clearLive()
+    }
+
     fun clearLive() {
-        products.clear();sales.clear();customers.clear();suppliers.clear();messages.clear();cart.clear();supplierCart.clear()
-        businessName="";ownerName="";location="";liveState=org.json.JSONObject()
-        val state=org.json.JSONObject(OPERATIONS_SEED).getJSONObject("operations")
-        listOf("held","receipts","returns","promotions","documents","registers","counts","batches","transfers","movements","deliveries","rewards","purchaseOrders").forEach{state.put(it,org.json.JSONArray())}
-        state.put("branches",org.json.JSONArray(listOf(json("id" to "main","name" to "Main shop","location" to ""))))
-        state.put("stock",json("main" to json())).put("activeBranch","main").put("cart",json()).put("customer","Walk-in customer").put("loyalty",json())
-        state.put("shop",json("published" to false,"name" to "My business","description" to "","branch" to "main","hidden" to org.json.JSONArray(),"fee" to 0))
-        state.put("sync",json("mode" to "Local only","entries" to org.json.JSONArray()))
+        products.clear()
+        sales.clear()
+        customers.clear()
+        suppliers.clear()
+        messages.clear()
+        cart.clear()
+        supplierCart.clear()
+        businessName = ""
+        ownerName = ""
+        location = ""
+        liveState = org.json.JSONObject()
+        val state = org.json.JSONObject(OPERATIONS_SEED).getJSONObject("operations")
+        listOf(
+                "held",
+                "receipts",
+                "returns",
+                "promotions",
+                "documents",
+                "registers",
+                "counts",
+                "batches",
+                "transfers",
+                "movements",
+                "deliveries",
+                "rewards",
+                "purchaseOrders",
+            )
+            .forEach { state.put(it, org.json.JSONArray()) }
+        state.put(
+            "branches",
+            org.json.JSONArray(
+                listOf(json("id" to "main", "name" to "Main shop", "location" to ""))
+            ),
+        )
+        state
+            .put("stock", json("main" to json()))
+            .put("activeBranch", "main")
+            .put("cart", json())
+            .put("customer", "Walk-in customer")
+            .put("loyalty", json())
+        state.put(
+            "shop",
+            json(
+                "published" to false,
+                "name" to "My business",
+                "description" to "",
+                "branch" to "main",
+                "hidden" to org.json.JSONArray(),
+                "fee" to 0,
+            ),
+        )
+        state.put("sync", json("mode" to "Local only", "entries" to org.json.JSONArray()))
         operations.restore(state)
     }
-    fun restoreLive(value:org.json.JSONObject) {
-        liveState=value
-        val profile=value.getJSONObject("profile");businessName=profile.optString("business");ownerName=profile.optString("name");location=profile.optString("location")
-        val art=listOf("flour","spread","soda","water","soap","royco","milk","rice")
-        products.clear();products.addAll(value.records("products").map{p->Product(p.getInt("id"),p.getString("name"),p.optString("size"),p.getDouble("price").toInt(),p.getInt("stock"),p.getString("category"),art.getOrElse(p.optInt("art")){"rice"},kotlin.math.round(p.getDouble("price")*100).toLong(),p.getString("sku"),p.optString("barcode",productBarcode(p.getInt("id"))),if(p.isNull("variantOf"))null else p.optInt("variantOf"),p.records("components").associate{it.getInt("productId") to it.getInt("quantity")})})
-        sales.clear();sales.addAll(value.records("sales").map{s->Sale(s.getInt("id"),s.getString("customer"),s.getDouble("amount").toInt(),s.getInt("items"),s.getString("method"),s.optString("branch","main"),kotlin.math.round(s.getDouble("amount")*100).toLong())})
-        customers.clear();customers.addAll(value.records("customers").mapIndexed{i,c->Customer(c.getString("name"),c.getString("name").split(" ").take(2).mapNotNull{it.firstOrNull()}.joinToString(""),c.getDouble("balance").toInt(),i%5)})
-        suppliers.clear();suppliers.addAll(value.records("suppliers").map{s->Supplier(s.getString("name"),s.getString("category"),s.optString("distance"),s.optString("rating"),s.optString("initial"))})
-        val op=value.getJSONObject("operations")
-        val old=operations.state
-        listOf("compareCart","shopCart").forEach{op.put(it,old.optJSONObject(it)?:json())}
-        op.put("purchaseOrders",org.json.JSONArray(value.records("orders").map{o->json("id" to o.optInt("id"),"supplier" to o.optString("supplier"),"branch" to o.optString("branch","main"),"fee" to kotlin.math.round(o.optDouble("deliveryFee")*100).toLong(),"total" to kotlin.math.round(o.optDouble("amount")*100).toLong(),"status" to o.optString("status"),"lines" to org.json.JSONArray(o.records("items").map{i->json("productId" to i.optInt("productId"),"quantity" to i.optInt("quantity"),"name" to (products.firstOrNull{it.id==i.optInt("productId")}?.name?:"Product"),"unit" to kotlin.math.round(i.optDouble("cost")*100).toLong())}))}))
-        operations.restore(op);cart.clear();cart.putAll(op.ints("cart"))
+
+    fun restoreLive(value: org.json.JSONObject) {
+        liveState = value
+        val profile = value.getJSONObject("profile")
+        businessName = profile.optString("business")
+        ownerName = profile.optString("name")
+        location = profile.optString("location")
+        val art = listOf("flour", "spread", "soda", "water", "soap", "royco", "milk", "rice")
+        products.clear()
+        products.addAll(
+            value.records("products").map { p ->
+                Product(
+                    p.getInt("id"),
+                    p.getString("name"),
+                    p.optString("size"),
+                    p.getDouble("price").toInt(),
+                    p.getInt("stock"),
+                    p.getString("category"),
+                    art.getOrElse(p.optInt("art")) { "rice" },
+                    kotlin.math.round(p.getDouble("price") * 100).toLong(),
+                    p.getString("sku"),
+                    p.optString("barcode", productBarcode(p.getInt("id"))),
+                    if (p.isNull("variantOf")) null else p.optInt("variantOf"),
+                    p.records("components").associate {
+                        it.getInt("productId") to it.getInt("quantity")
+                    },
+                )
+            }
+        )
+        sales.clear()
+        sales.addAll(
+            value.records("sales").map { s ->
+                Sale(
+                    s.getInt("id"),
+                    s.getString("customer"),
+                    s.getDouble("amount").toInt(),
+                    s.getInt("items"),
+                    s.getString("method"),
+                    s.optString("branch", "main"),
+                    kotlin.math.round(s.getDouble("amount") * 100).toLong(),
+                )
+            }
+        )
+        customers.clear()
+        customers.addAll(
+            value.records("customers").mapIndexed { i, c ->
+                Customer(
+                    c.getString("name"),
+                    c.getString("name")
+                        .split(" ")
+                        .take(2)
+                        .mapNotNull { it.firstOrNull() }
+                        .joinToString(""),
+                    c.getDouble("balance").toInt(),
+                    i % 5,
+                    kotlin.math.round(c.getDouble("balance") * 100).toLong(),
+                )
+            }
+        )
+        suppliers.clear()
+        suppliers.addAll(
+            value.records("suppliers").map { s ->
+                Supplier(
+                    s.getString("name"),
+                    s.getString("category"),
+                    s.optString("distance"),
+                    s.optString("rating"),
+                    s.optString("initial"),
+                )
+            }
+        )
+        val op = value.getJSONObject("operations")
+        val old = operations.state
+        listOf("compareCart", "shopCart").forEach { op.put(it, old.optJSONObject(it) ?: json()) }
+        op.put(
+            "purchaseOrders",
+            org.json.JSONArray(
+                value.records("orders").map { o ->
+                    json(
+                        "id" to o.optInt("id"),
+                        "supplier" to o.optString("supplier"),
+                        "branch" to o.optString("branch", "main"),
+                        "fee" to kotlin.math.round(o.optDouble("deliveryFee") * 100).toLong(),
+                        "total" to kotlin.math.round(o.optDouble("amount") * 100).toLong(),
+                        "status" to o.optString("status"),
+                        "lines" to
+                            org.json.JSONArray(
+                                o.records("items").map { i ->
+                                    json(
+                                        "productId" to i.optInt("productId"),
+                                        "quantity" to i.optInt("quantity"),
+                                        "name" to
+                                            (products
+                                                .firstOrNull { it.id == i.optInt("productId") }
+                                                ?.name ?: "Product"),
+                                        "unit" to
+                                            kotlin.math.round(i.optDouble("cost") * 100).toLong(),
+                                    )
+                                }
+                            ),
+                    )
+                }
+            ),
+        )
+        operations.restore(op)
+        cart.clear()
+        cart.putAll(op.ints("cart"))
     }
 
     val total: Int
@@ -130,19 +278,21 @@ class DemoStore(val real: Boolean = false) {
 
     val branchSalesMinor: Long
         get() =
-            if(real) report().sales else (if (!real && operations.branch == "main") 1245000L else 0L) +
-                sales
-                    .filter { (real || it.id > 1048) && it.branch == operations.branch }
-                    .sumOf { it.amountMinor } -
-                operations.state
-                    .records("returns")
-                    .filter { refund ->
-                        operations.state.records("receipts").any {
-                            it.optInt("id") == refund.optInt("saleId") &&
-                                it.optString("branch") == operations.branch
+            if (real) report().sales
+            else
+                (if (!real && operations.branch == "main") 1245000L else 0L) +
+                    sales
+                        .filter { (real || it.id > 1048) && it.branch == operations.branch }
+                        .sumOf { it.amountMinor } -
+                    operations.state
+                        .records("returns")
+                        .filter { refund ->
+                            operations.state.records("receipts").any {
+                                it.optInt("id") == refund.optInt("saleId") &&
+                                    it.optString("branch") == operations.branch
+                            }
                         }
-                    }
-                    .sumOf { it.optLong("amount") }
+                        .sumOf { it.optLong("amount") }
 
     val branchSales: Int
         get() = (branchSalesMinor / 100).toInt()
@@ -151,7 +301,16 @@ class DemoStore(val real: Boolean = false) {
         get() = cart.values.sum()
 
     val lowStock: List<Product>
-        get() = products.filter { it.stock < 10 }
+        get() =
+            products.filter { p ->
+                if (real)
+                    p.stock <=
+                        (liveState
+                            .records("products")
+                            .firstOrNull { it.optInt("id") == p.id }
+                            ?.optInt("reorder") ?: 10)
+                else p.stock < 10
+            }
 
     fun add(id: Int) {
         val p = products.firstOrNull { it.id == id } ?: return
@@ -203,14 +362,25 @@ class DemoStore(val real: Boolean = false) {
 
     fun reply(question: String) {
         messages.add(ChatMessage(question, true))
-        if(real) {
-            val r=report()
-            val answer=when {
-                question.contains("stock",true)->if(lowStock.isEmpty())"No products are below their reorder level."else lowStock.joinToString { "${it.name}: ${it.stock} remaining" }
-                question.contains("owe",true)||question.contains("debt",true)->"Recorded balances: "+minorMoney(liveState.records("customers").sumOf{kotlin.math.round(it.optDouble("balance")*100).toLong()})
-                else->"Recorded today: sales ${minorMoney(r.sales)}, expenses ${minorMoney(r.expenses)}, operating profit ${minorMoney(r.profit)}. This summary uses your recorded business activity."
-            }
-            messages.add(ChatMessage(answer,false));return
+        if (real) {
+            val r = report()
+            val answer =
+                when {
+                    question.contains("stock", true) ->
+                        if (lowStock.isEmpty()) "No products are below their reorder level."
+                        else lowStock.joinToString { "${it.name}: ${it.stock} remaining" }
+                    question.contains("owe", true) || question.contains("debt", true) ->
+                        "Recorded balances: " +
+                            minorMoney(
+                                liveState.records("customers").sumOf {
+                                    kotlin.math.round(it.optDouble("balance") * 100).toLong()
+                                }
+                            )
+                    else ->
+                        "Recorded today: sales ${minorMoney(r.sales)}, expenses ${minorMoney(r.expenses)}, operating profit ${minorMoney(r.profit)}. This summary uses your recorded business activity."
+                }
+            messages.add(ChatMessage(answer, false))
+            return
         }
         val answer =
             when {

@@ -16,8 +16,8 @@ export function ExpandedTools() {
             </h2>
             <p>
               <T>
-                From your next sale to your next branch. Explore every tool with
-                local sample data.
+                From your next sale to your next branch. Manage your products,
+                customers and records in one workspace.
               </T>
             </p>
           </div>

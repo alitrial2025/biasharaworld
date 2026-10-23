@@ -47,37 +47,37 @@ export function CustomersPage({
         (filter === "With balance" ? c.balance > 0 : c.balance === 0)),
   );
   async function add(e: FormEvent<HTMLFormElement>) {
- try {
-
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    await store.addCustomer({
-      name: String(f.get("name")).trim(),
-      phone: String(f.get("phone")),
-      email: String(f.get("email")),
-      balance: Number(f.get("balance")),
-      purchases: 0,
-      color: "mint",
-    });
-    setOpen(false);
-    toast("Your customer list has a new face.");
-  
- } catch { /* The shared connection banner retains the server error and retry action. */ }
-}
+    try {
+      e.preventDefault();
+      const f = new FormData(e.currentTarget);
+      await store.addCustomer({
+        name: String(f.get("name")).trim(),
+        phone: String(f.get("phone")),
+        email: String(f.get("email")),
+        balance: Number(f.get("balance")),
+        purchases: 0,
+        color: "mint",
+      });
+      setOpen(false);
+      toast("Your customer list has a new face.");
+    } catch {
+      /* The shared connection banner retains the server error and retry action. */
+    }
+  }
   async function repay(e: FormEvent<HTMLFormElement>) {
- try {
-
-    e.preventDefault();
-    if (!customer) return;
-    await store.payBalance(
-      customer.id,
-      Number(new FormData(e.currentTarget).get("amount")),
-    );
-    setCustomer(null);
-    toast("Repayment recorded. Balance updated.");
-  
- } catch { /* The shared connection banner retains the server error and retry action. */ }
-}
+    try {
+      e.preventDefault();
+      if (!customer) return;
+      await store.payBalance(
+        customer.id,
+        Number(new FormData(e.currentTarget).get("amount")),
+      );
+      setCustomer(null);
+      toast("Repayment recorded. Balance updated.");
+    } catch {
+      /* The shared connection banner retains the server error and retry action. */
+    }
+  }
   return (
     <>
       <PageHeading
@@ -221,15 +221,14 @@ export function CustomersPage({
         </T>
 
         <div className="table-foot">
-          <T>{rows.length}</T>{" "}
-          <T>customers · Private customer records</T>
+          <T>{rows.length}</T> <T>customers · Private customer records</T>
         </div>
       </section>
       <Modal
         open={open}
         onClose={() => setOpen(false)}
         title="A new face in your business."
-        description="Use sample details while exploring the preview."
+        description="Add the customer details you use to keep accurate business records."
       >
         <form onSubmit={add}>
           <Field label="Full name" name="name" required maxLength={80} />
@@ -241,6 +240,7 @@ export function CustomersPage({
             label="Opening balance (KES)"
             name="balance"
             type="number"
+            step="0.01"
             min={0}
             max={10000000}
             defaultValue={0}
@@ -289,17 +289,18 @@ export function CustomersPage({
                 {customer.balance > 0 ? (
                   <form onSubmit={repay}>
                     <Field
-                      label="Record a demo repayment (KES)"
+                      label="Record repayment (KES)"
                       name="amount"
                       type="number"
-                      min={1}
+                      step="0.01"
+                      min={0.01}
                       max={customer.balance}
                       defaultValue={customer.balance}
                       required
                     />
                     <p className="quiet-note">
                       <T>
-                        Updates the sample balance. No money is collected or
+                        Updates the saved balance. No money is collected or
                         reminder sent.
                       </T>
                     </p>
@@ -329,27 +330,29 @@ export function TeamPage() {
   const [remove, setRemove] = useState<number | null>(null);
   const toast = useToast();
   async function invite(e: FormEvent<HTMLFormElement>) {
- try {
-
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const email = String(f.get("email")).trim();
-    if (
-      state.members.some((m) => m.email.toLowerCase() === email.toLowerCase())
-    ) {
-      toast("That email is already on your demo team.", "info");
-      return;
+    try {
+      e.preventDefault();
+      const f = new FormData(e.currentTarget);
+      const email = String(f.get("email")).trim();
+      if (
+        state.members.some((m) => m.email.toLowerCase() === email.toLowerCase())
+      ) {
+        toast("That email is already on your team.", "info");
+        return;
+      }
+      await store.inviteMember({
+        name: String(f.get("name")).trim(),
+        email,
+        role: String(f.get("role")),
+      });
+      setOpen(false);
+      toast(
+        "Invitation saved. Ask your teammate to sign up with this email and confirm it; access is granted when they sign in.",
+      );
+    } catch {
+      /* The shared connection banner retains the server error and retry action. */
     }
-    await store.inviteMember({
-      name: String(f.get("name")).trim(),
-      email,
-      role: String(f.get("role")),
-    });
-    setOpen(false);
-    toast("Invitation saved. Ask your teammate to sign up with this email and confirm it; access is granted when they sign in.");
-  
- } catch { /* The shared connection banner retains the server error and retry action. */ }
-}
+  }
   return (
     <>
       <PageHeading
@@ -453,21 +456,16 @@ export function TeamPage() {
                             aria-label={`Role for ${m.name}`}
                             value={m.role}
                             onChange={async (e) => {
- try {
-
-                              await store.updateMember(m.id, e.target.value);
-                              toast("Role saved.");
-                            
- } catch { /* The shared connection banner retains the server error and retry action. */ }
-}}
+                              try {
+                                await store.updateMember(m.id, e.target.value);
+                                toast("Role saved.");
+                              } catch {
+                                /* The shared connection banner retains the server error and retry action. */
+                              }
+                            }}
                           >
                             <T>
-                              {[
-                                "Manager",
-                                "Cashier",
-                                
-                                "Viewer",
-                              ].map((r) => (
+                              {["Manager", "Cashier", "Viewer"].map((r) => (
                                 <option key={r}>
                                   <T>{r}</T>
                                 </option>
@@ -547,7 +545,7 @@ export function TeamPage() {
           <Field label="Work email" name="email" type="email" required />
           <SelectField label="Role" name="role" defaultValue="Cashier">
             <T>
-              {["Manager", "Cashier",  "Viewer"].map((r) => (
+              {["Manager", "Cashier", "Viewer"].map((r) => (
                 <option key={r}>
                   <T>{r}</T>
                 </option>
@@ -565,7 +563,7 @@ export function TeamPage() {
         open={remove !== null}
         onClose={() => setRemove(null)}
         title="Remove this teammate?"
-        description="You can add them back with a new demo invitation."
+        description="You can add them back with a new invitation."
       >
         <div className="modal-actions">
           <Button variant="secondary" onClick={() => setRemove(null)}>
@@ -574,14 +572,14 @@ export function TeamPage() {
           <Button
             variant="danger"
             onClick={async () => {
- try {
-
-              if (remove !== null) await store.removeMember(remove);
-              setRemove(null);
-              toast("Access removed.");
-            
- } catch { /* The shared connection banner retains the server error and retry action. */ }
-}}
+              try {
+                if (remove !== null) await store.removeMember(remove);
+                setRemove(null);
+                toast("Access removed.");
+              } catch {
+                /* The shared connection banner retains the server error and retry action. */
+              }
+            }}
           >
             <T>Remove teammate</T>
           </Button>

@@ -67,7 +67,21 @@ export type Profile = {
   type: string;
   plan: string;
 };
-export type BusinessSupplier = {id:string;name:string;initial:string;category:string;description:string;distance:string;rating:string;reviews:number;color:string;delivery:string;minimum:number;deliveryFee?:number;quotes?:Record<number,number>};
+export type BusinessSupplier = {
+  id: string;
+  name: string;
+  initial: string;
+  category: string;
+  description: string;
+  distance: string;
+  rating: string;
+  reviews: number;
+  color: string;
+  delivery: string;
+  minimum: number;
+  deliveryFee?: number;
+  quotes?: Record<number, number>;
+};
 export type DemoState = {
   suppliers?: BusinessSupplier[];
   version: 1 | 2;
@@ -433,9 +447,22 @@ export const today = () =>
     month: "2-digit",
     day: "2-digit",
   }).format(new Date());
-export const salesTotal = (state:DemoState) =>
- state.operations.receipts.filter(r=>r.branch===state.operations.activeBranch&&r.date===today()).reduce((sum,r)=>sum+r.total/100,0)-
- state.operations.returns.filter(r=>r.date===today()&&state.operations.receipts.some(s=>s.id===r.saleId&&s.branch===state.operations.activeBranch)).reduce((sum,r)=>sum+r.amount/100,0);
+export const salesTotal = (state: DemoState) =>
+  state.operations.receipts
+    .filter(
+      (r) => r.branch === state.operations.activeBranch && r.date === today(),
+    )
+    .reduce((sum, r) => sum + r.total / 100, 0) -
+  state.operations.returns
+    .filter(
+      (r) =>
+        r.date === today() &&
+        state.operations.receipts.some(
+          (s) =>
+            s.id === r.saleId && s.branch === state.operations.activeBranch,
+        ),
+    )
+    .reduce((sum, r) => sum + r.amount / 100, 0);
 export const lowStock = (state: DemoState) =>
   state.products.filter((p) => p.stock <= p.reorder);
 
@@ -530,34 +557,34 @@ export const articles = [
 export const faqs = [
   [
     "What is BiasharaOS?",
-    "BiasharaOS brings sales, stock, expenses, customers, suppliers and business insights into one workspace, with a shared experience on Android and the web.",
+    "BiasharaOS brings sales, stock, expenses, customers, suppliers and business insights into one workspace, on Android and the web.",
   ],
   [
     "Can I use it without downloading an app?",
-    "Yes. The responsive web workspace works in your browser on a laptop, tablet or phone. You can explore it now with the demo store.",
+    "Yes. Sign in to the web workspace on a laptop, tablet or phone. No installation is required.",
   ],
   [
     "Is this connected to real M-Pesa payments?",
-    "Not in this UI preview. Checkout records a demo sale and updates sample stock. No payment request is sent and no money is collected.",
+    "Payment collection is not connected yet. Record payments after you receive them. A saved M-Pesa, cash or card entry does not move money or verify it with a payment provider.",
   ],
   [
-    "Will my demo changes be saved?",
-    "Web demo changes are saved in this browser’s local storage. They are not synced to another device or to the Android preview. Reset the demo from Settings whenever you want a fresh start.",
+    "Will my business records be saved?",
+    "Confirmed changes are saved to your business account. Sign in to the same business to access them across your devices. If a save is unconfirmed, use its retry action before submitting the change again.",
   ],
   [
     "Are the prices on the pricing page final?",
-    "The plans are proposed launch pricing for review. Billing is not connected, and choosing a demo plan will not charge you.",
+    "The plans are proposed launch pricing. Billing is not connected, and choosing a plan will not charge you.",
   ],
   [
     "Can I place a real supplier order?",
-    "You can prepare a sample purchase order and explore receiving it in the demo. It is not sent to a supplier. Live ordering will be connected in a later phase.",
+    "You can keep supplier contacts, record quotes, prepare purchase orders and record goods received. Orders are not automatically sent to suppliers; arrange ordering and payment directly.",
   ],
   [
-    "Does the preview work offline?",
-    "There is no offline web mode yet. The Android preview uses in-memory sample data. Offline support and cross-device sync need additional implementation.",
+    "Does BiasharaOS work offline?",
+    "A connection is required to load business records and confirm changes. An unconfirmed save can be retried safely when you reconnect. Full offline business access is not available yet.",
   ],
   [
     "Is BiasharaAI a live AI service?",
-    "This preview uses local sample responses informed by your demo stock and customer balances. No question is sent to an external AI service.",
+    "The assistant provides summaries from your recorded business activity. An external AI service is not connected yet.",
   ],
 ];

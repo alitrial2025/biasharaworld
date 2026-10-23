@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { Brand, Button } from "@/components/ui";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const menus = {
   Product: [
@@ -45,8 +46,8 @@ const menus = {
     {
       href: "/dashboard",
       icon: Laptop,
-      title: "Explore the demo",
-      text: "Take a look around a sample shop",
+      title: "Open workspace",
+      text: "Sign in to your business",
     },
   ],
   Solutions: [
@@ -199,6 +200,7 @@ export function SiteHeader() {
           </div>
         </nav>
         <div className="nav-auth">
+          <ThemeToggle />
           <Link href="/login">
             <T>Log in</T>
           </Link>
@@ -293,7 +295,7 @@ export function SiteFooter() {
               <T>Terms</T>
             </Link>
             <span className="footer-demo">
-              <T>UI preview</T>
+              <T>Early access</T>
             </span>
           </div>
         </div>
@@ -328,7 +330,7 @@ export function CTABanner({
             <T>Let’s get started</T>
           </Button>
           <Link href="/dashboard">
-            <T>Or take the demo for a spin</T>
+            <T>Already have an account? Open workspace</T>
             <ArrowRight size={14} />
           </Link>
         </div>

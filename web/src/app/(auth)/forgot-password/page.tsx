@@ -3,8 +3,8 @@ export const metadata = { title: "Reset your password" };
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ plan?: string }>;
+  searchParams: Promise<{ plan?: string; next?: string }>;
 }) {
   const query = await searchParams;
-  return <AuthPage mode="forgot" plan={query.plan} />;
+  return <AuthPage mode="forgot" plan={query.plan} returnTo={query.next} />;
 }

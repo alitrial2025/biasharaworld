@@ -81,19 +81,18 @@ export function SalesPage() {
         <StatCard
           label="Today’s sales"
           value={`KES ${money(salesTotal(state))}`}
-          change="12%"
           icon={ShoppingBag}
         />
         <StatCard
-          label="Receipts in this preview"
+          label="Recorded receipts"
           value={String(state.sales.length)}
           tone="blue"
           icon={Receipt}
-          note="Includes five sample receipts"
+          note="Receipts saved to your business"
         />
         <StatCard
           label="Average listed sale"
-          value={`KES ${money(state.sales.reduce((s, r) => s + r.amount, 0) / state.sales.length)}`}
+          value={`KES ${money(state.sales.reduce((s, r) => s + r.amount, 0) / Math.max(1, state.sales.length))}`}
           tone="amber"
           icon={Wallet}
         />
@@ -196,8 +195,7 @@ export function SalesPage() {
         </T>
 
         <div className="table-foot">
-          <T>{rows.length}</T>{" "}
-          <T>receipts shown · Sample records for this preview</T>
+          <T>{rows.length}</T> <T>saved receipts shown</T>
         </div>
       </section>
       <ReceiptModal sale={receipt} close={() => setReceipt(null)} />
@@ -265,7 +263,7 @@ function ReceiptModal({
                   <T>Payment method</T>
                 </dt>
                 <dd>
-                  <T>{sale.method}</T> <T>(demo)</T>
+                  <T>{sale.method}</T> <T>(recorded)</T>
                 </dd>
               </div>
               <div>
@@ -333,19 +331,19 @@ export function NewSalePage() {
     }));
   }
   async function checkout() {
- try {
-
-    const result = await store.checkout(cart, method, customer);
-    if (!result) {
-      toast("Check your stock and add at least one product.", "info");
-      return;
+    try {
+      const result = await store.checkout(cart, method, customer);
+      if (!result) {
+        toast("Check your stock and add at least one product.", "info");
+        return;
+      }
+      setSale(result);
+      setCart({});
+      toast("Sale recorded. Shared stock updated.");
+    } catch {
+      /* The shared connection banner retains the server error and retry action. */
     }
-    setSale(result);
-    setCart({});
-    toast("Sale recorded. Shared stock updated.");
-  
- } catch { /* The shared connection banner retains the server error and retry action. */ }
-}
+  }
   return (
     <>
       <Link href="/dashboard/sales" className="back-link">
@@ -572,7 +570,10 @@ export function NewSalePage() {
             <T>Record received payment</T>
           </Button>
           <p className="quiet-note centered">
-            <T>No payment request is sent. Sample stock will update.</T>
+            <T>
+              Record payment after receiving it. Confirming the sale updates
+              your stock.
+            </T>
           </p>
         </aside>
       </div>
@@ -602,42 +603,42 @@ export function InventoryPage({
   );
   const value = state.products.reduce((sum, p) => sum + p.cost * p.stock, 0);
   async function submit(e: FormEvent<HTMLFormElement>) {
- try {
-
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const product = {
-      name: String(f.get("name")).trim(),
-      size: String(f.get("size")).trim(),
-      sku: String(f.get("sku")).trim(),
-      category: String(f.get("category")),
-      price: Number(f.get("price")),
-      cost: Number(f.get("cost")),
-      stock: Number(f.get("stock")),
-      reorder: Number(f.get("reorder")),
-      art: editing?.art ?? 0,
-    };
-    if (
-      state.products.some(
-        (p) =>
-          p.id !== editing?.id &&
-          p.sku.toLowerCase() === product.sku.toLowerCase(),
-      )
-    ) {
-      toast("That SKU already belongs to another product.", "info");
-      return;
+    try {
+      e.preventDefault();
+      const f = new FormData(e.currentTarget);
+      const product = {
+        name: String(f.get("name")).trim(),
+        size: String(f.get("size")).trim(),
+        sku: String(f.get("sku")).trim(),
+        category: String(f.get("category")),
+        price: Number(f.get("price")),
+        cost: Number(f.get("cost")),
+        stock: Number(f.get("stock")),
+        reorder: Number(f.get("reorder")),
+        art: editing?.art ?? 0,
+      };
+      if (
+        state.products.some(
+          (p) =>
+            p.id !== editing?.id &&
+            p.sku.toLowerCase() === product.sku.toLowerCase(),
+        )
+      ) {
+        toast("That SKU already belongs to another product.", "info");
+        return;
+      }
+      if (editing) await store.updateProduct(editing.id, product);
+      else await store.addProduct(product);
+      setOpen(false);
+      toast(
+        editing
+          ? "Product and stock updated."
+          : "A new product, ready for your shelves.",
+      );
+    } catch {
+      /* The shared connection banner retains the server error and retry action. */
     }
-    if (editing) await store.updateProduct(editing.id, product);
-    else await store.addProduct(product);
-    setOpen(false);
-    toast(
-      editing
-        ? "Product and stock updated."
-        : "A new product, ready for your shelves.",
-    );
-  
- } catch { /* The shared connection banner retains the server error and retry action. */ }
-}
+  }
   return (
     <>
       <PageHeading
@@ -841,7 +842,7 @@ export function InventoryPage({
         description={
           editing
             ? "Update product details or set the new stock quantity."
-            : "Add a product to your demo shop."
+            : "Add a product to your business."
         }
         wide
       >
@@ -889,7 +890,8 @@ export function InventoryPage({
               label="Selling price (KES)"
               name="price"
               type="number"
-              min={1}
+              step="0.01"
+              min={0.01}
               max={10000000}
               required
               defaultValue={editing?.price}
@@ -898,6 +900,7 @@ export function InventoryPage({
               label="Cost price (KES)"
               name="cost"
               type="number"
+              step="0.01"
               min={0}
               max={10000000}
               required

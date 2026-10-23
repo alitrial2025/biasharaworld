@@ -106,7 +106,7 @@ class ExpansionUiTest {
         compose.onNodeWithText("More").performClick()
         compose.onNodeWithText("Explore all 20 business tools").performScrollTo().performClick()
         compose.onNodeWithText("Daily cash register").performScrollTo().performClick()
-        compose.onNodeWithText("Open demo register").performScrollTo().performClick()
+        compose.onNodeWithText("Open cash register").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Opening float (KES)").performTextReplacement("1500")
         compose.onNodeWithText("Open register").performClick()
         compose.onNodeWithText("KES 1,500").assertExists()

@@ -40,12 +40,14 @@ export function Overview() {
   const [period, setPeriod] = useState("Day");
   const [targetOpen, setTargetOpen] = useState(false);
   const toast = useToast();
-  const report=businessReport(state,period);
-  const todayReport=businessReport(state);
+  const report = businessReport(state, period);
+  const todayReport = businessReport(state);
   const expenses = todayReport.expenses;
   const balance = state.customers.reduce((s, c) => s + c.balance, 0);
   const total = salesTotal(state);
-  const progress = state.target ? Math.min((total / state.target) * 100, 100) : 0;
+  const progress = state.target
+    ? Math.min((total / state.target) * 100, 100)
+    : 0;
   const date = new Intl.DateTimeFormat("en-KE", {
     weekday: "long",
     day: "numeric",
@@ -53,15 +55,17 @@ export function Overview() {
     timeZone: "Africa/Nairobi",
   }).format(new Date());
   async function saveTarget(e: FormEvent<HTMLFormElement>) {
- try {
-
-    e.preventDefault();
-    await store.setTarget(Number(new FormData(e.currentTarget).get("target")));
-    setTargetOpen(false);
-    toast("Your daily target is saved.");
-  
- } catch { /* The shared connection banner retains the server error and retry action. */ }
-}
+    try {
+      e.preventDefault();
+      await store.setTarget(
+        Number(new FormData(e.currentTarget).get("target")),
+      );
+      setTargetOpen(false);
+      toast("Your daily target is saved.");
+    } catch {
+      /* The shared connection banner retains the server error and retry action. */
+    }
+  }
   return (
     <>
       <div className="overview-eyebrow">
@@ -115,14 +119,12 @@ export function Overview() {
         <StatCard
           label="Total sales"
           value={`KES ${money(total)}`}
-          
           note="Recorded today"
           icon={ShoppingBag}
         />
         <StatCard
           label="Operating profit"
           value={`KES ${money(todayReport.profit)}`}
-          
           note="Recorded today"
           icon={BarChart3}
           tone="blue"
@@ -130,7 +132,6 @@ export function Overview() {
         <StatCard
           label="Expenses"
           value={`KES ${money(expenses)}`}
-          
           note="Recorded today"
           icon={Wallet}
           tone="red"
@@ -165,12 +166,7 @@ export function Overview() {
           </div>
           <div className="chart-total">
             <strong>
-              <T>KES</T>{" "}
-              <T>
-                {money(
-                  report.sales,
-                )}
-              </T>
+              <T>KES</T> <T>{money(report.sales)}</T>
             </strong>
             <Badge tone="green">
               <T>Recorded</T>
@@ -179,7 +175,17 @@ export function Overview() {
               <T>for this period</T>
             </span>
           </div>
-          <SalesChart period={period} bars={period === "Day"} series={report.series}/>
+          <SalesChart
+            period={period}
+            bars={period === "Day"}
+            series={report.series}
+          />
+          {report.timingIncomplete && (
+            <p className="muted">
+              Some older records have no transaction time and appear only in the
+              total.
+            </p>
+          )}
         </section>
         <section className="panel target-panel">
           <div className="panel-heading">
@@ -401,7 +407,7 @@ export function Overview() {
           </h3>
           <p>
             <T>
-              Ask BiasharaAI about your sample stock, sales and customer
+              Ask BiasharaAI about your recorded stock, sales and customer
               balances.
             </T>
           </p>
@@ -415,7 +421,7 @@ export function Overview() {
         open={targetOpen}
         onClose={() => setTargetOpen(false)}
         title="A little target to work towards."
-        description="Set a demo daily sales goal for your shop."
+        description="Set a daily sales goal for your shop."
       >
         <form onSubmit={saveTarget}>
           <Field

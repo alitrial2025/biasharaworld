@@ -37,7 +37,7 @@ export function CompareTool() {
   });
   const [result, setResult] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
-  const offers = (state.suppliers??[]).map((supplier) => {
+  const offers = (state.suppliers ?? []).map((supplier) => {
     const items = state.products
       .filter((p) => quantities[p.id] > 0 && !p.components)
       .map((p) => ({
@@ -49,14 +49,20 @@ export function CompareTool() {
       (s, p) => s + Math.round(p.cost * 100) * p.quantity,
       0,
     );
-    const delivery = Math.round((supplier.deliveryFee??0)*100);
+    const delivery = Math.round((supplier.deliveryFee ?? 0) * 100);
     return { supplier, items, subtotal, delivery, total: subtotal + delivery };
   });
   return (
     <>
       <OperationError message={error} />
-      <p className="quiet-note">Comparisons use your recorded supplier quotes and delivery fees. Product cost is used where no quote has been entered. Confirm prices with the supplier.</p>
-      <Button href="/dashboard/suppliers" variant="secondary">Manage suppliers and quotes</Button>
+      <p className="quiet-note">
+        Comparisons use your recorded supplier quotes and delivery fees. Product
+        cost is used where no quote has been entered. Confirm prices with the
+        supplier.
+      </p>
+      <Button href="/dashboard/suppliers" variant="secondary">
+        Manage suppliers and quotes
+      </Button>
       <div className="tool-two-columns compare-layout">
         <ToolPanel title="The same basket. A clearer comparison.">
           <div className="bundle-picker">
@@ -96,8 +102,9 @@ export function CompareTool() {
           </Button>
           <p className="quiet-note">
             <T>
-              Supplier prices, delivery fees and lead times are illustrative. No
-              supplier is contacted.
+              Compare your recorded supplier quotes. Missing quotes use your
+              product cost as an estimate. Confirm terms directly with
+              suppliers.
             </T>
           </p>
         </ToolPanel>
@@ -110,7 +117,7 @@ export function CompareTool() {
                 description={offer.supplier.delivery}
               >
                 <Badge tone={i === 1 ? "blue" : "green"}>
-                  <T>Sample quote</T>
+                  <T>Recorded quote or product-cost estimate</T>
                 </Badge>
                 <dl className="offer-totals">
                   <div>
@@ -239,7 +246,7 @@ export function CompareTool() {
                         offer.items,
                         offer.delivery / 100,
                       );
-                      setResult(`Demo draft #${order.id} is ready.`);
+                      setResult(`Purchase order #${order.id} is ready.`);
                     }}
                   >
                     <T>Prepare purchase order</T>
@@ -263,7 +270,11 @@ export function DeliveriesTool() {
       <ToolPanel
         title="A good order, from start to doorstep."
         action={
-          <Button href={`/shop/${store.workspace?.slug||""}`} variant="secondary" icon={ShoppingBag}>
+          <Button
+            href={`/shop/${store.workspace?.slug || ""}`}
+            variant="secondary"
+            icon={ShoppingBag}
+          >
             <T>Preview customer shop</T>
           </Button>
         }
@@ -333,7 +344,7 @@ export function DeliveriesTool() {
             <EmptyState
               icon={Truck}
               title="Your next delivery starts with an order."
-              description="Place a local demo order through your shopfront and follow it here."
+              description="Orders from your published shop appear here. Track packing, dispatch and delivery."
             />
           )}
         </T>
@@ -461,7 +472,9 @@ export function DeliveriesTool() {
                   {!order.paid && order.status === "Delivered" && (
                     <Button
                       variant="secondary"
-                      onClick={async () => await act({ type: "orderPaid", id: order.id })}
+                      onClick={async () =>
+                        await act({ type: "orderPaid", id: order.id })
+                      }
                     >
                       <T>Record cash received</T>
                     </Button>
@@ -836,18 +849,21 @@ export function OnlineShopTool() {
                   await act({ type: "shop", published: !op.shop.published })
                 }
               >
-                <T>
-                  {op.shop.published ? "Unpublish shop" : "Publish shop"}
-                </T>
+                <T>{op.shop.published ? "Unpublish shop" : "Publish shop"}</T>
               </Button>
             </div>
           </form>
           <p className="quiet-note">
             <T>
-              Publishing makes your selected products, prices and availability public. Customer orders are saved to your business.
+              Publishing makes your selected products, prices and availability
+              public. Customer orders are saved to your business.
             </T>
           </p>
-          <Button href={`/shop/${store.workspace?.slug||""}`} variant="dark" icon={Globe}>
+          <Button
+            href={`/shop/${store.workspace?.slug || ""}`}
+            variant="dark"
+            icon={Globe}
+          >
             <T>Open your online shop</T>
           </Button>
         </ToolPanel>
@@ -923,11 +939,14 @@ export function PortalTool() {
                   Orders, invoices, balance and rewards in a familiar place.
                 </T>
               </p>
-              <Button href={`/portal/${store.workspace?.slug||""}`} icon={Globe}>
-                <T>Open customer preview</T>
+              <Button
+                href={`/portal/${store.workspace?.slug || ""}`}
+                icon={Globe}
+              >
+                <T>Open customer portal</T>
               </Button>
               <Badge tone="amber">
-                <T>Sample access · no authentication</T>
+                <T>Verified customer sign-in required</T>
               </Badge>
             </div>
           )}
@@ -935,8 +954,8 @@ export function PortalTool() {
 
         <p className="quiet-note">
           <T>
-            This is a merchant preview of sample customer data. Secure portal
-            access is available after signing in with a confirmed email.
+            This merchant view shows your customer records. Customers sign in
+            with a confirmed email to see their own private records.
           </T>
         </p>
       </ToolPanel>
@@ -1085,7 +1104,9 @@ export function SyncTool() {
                       <Button
                         size="small"
                         variant="secondary"
-                        onClick={async () => await act({ type: "retrySync", id: e.id })}
+                        onClick={async () =>
+                          await act({ type: "retrySync", id: e.id })
+                        }
                       >
                         <T>Review / retry</T>
                       </Button>
@@ -1117,7 +1138,10 @@ export function PreferencesTool() {
             label="Language / Lugha"
             value={op.preferences.language}
             onChange={async (language) =>
-              await act({ type: "preferences", language: language as "en" | "sw" })
+              await act({
+                type: "preferences",
+                language: language as "en" | "sw",
+              })
             }
           >
             <option value="en">
@@ -1608,7 +1632,10 @@ export function CustomerPortal({ id }: { id: number }) {
                     <T>{op.shop.name}</T> <T>.</T>
                   </p>
                 </div>
-                <Button href={`/shop/${store.workspace?.slug||""}`} icon={ShoppingBag}>
+                <Button
+                  href={`/shop/${store.workspace?.slug || ""}`}
+                  icon={ShoppingBag}
+                >
                   <T>Visit the demo shop</T>
                 </Button>
               </section>
@@ -1706,7 +1733,9 @@ export function CustomerPortal({ id }: { id: number }) {
                             title="Your next order is waiting to happen."
                             description="Explore the demo shop and place a local sample order using this customer’s name."
                           >
-                            <Button href={`/shop/${store.workspace?.slug||""}`}>
+                            <Button
+                              href={`/shop/${store.workspace?.slug || ""}`}
+                            >
                               <T>Explore the shop</T>
                             </Button>
                           </EmptyState>

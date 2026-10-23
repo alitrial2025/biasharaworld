@@ -1,38 +1,126 @@
 {
+  "checkedAt": "2026-10-23T16:38:51.472649+00:00",
   "supabaseProjectRef": "rhgoiebknrpxtouswaar",
-  "supabaseOrganizationPlan": "free",
-  "supabaseProjectStatus": "ACTIVE_HEALTHY",
-  "region": "eu-west-2",
   "vercelProject": "biasharaworld",
-  "vercelPlan": "hobby",
-  "applicationBackendImplemented": false,
-  "schemaMigrationsApplied": false,
-  "publicDeploymentCreated": false,
-  "apiChecks": {
-    "/auth/v1/health": {
-      "blocked": true,
-      "reason": "Tunnel connection failed: 403 Forbidden"
+  "applicationBackendImplemented": true,
+  "hostedDeployment": {
+    "status": "Earlier UI preview exists; connected backend update not deployed",
+    "alias": "https://biasharaworld.vercel.app",
+    "freshVerification": "blocked by cloud proxy"
+  },
+  "migrations": {
+    "previouslyApplied": 6,
+    "latest": "20261023131500_contact_inquiries.sql",
+    "tracking": "app_migrations.applied",
+    "freshHostedHashCheck": "blocked",
+    "appliedFilesEdited": false
+  },
+  "localVerification": {
+    "services": "Postgres 17, Supabase Auth, PostgREST, captured email; real services on loopback",
+    "apiChecks": {
+      "passed": 29,
+      "failed": 0,
+      "host": "127.0.0.1"
     },
-    "/rest/v1/": {
-      "blocked": true,
-      "reason": "Tunnel connection failed: 403 Forbidden"
+    "browserAndDomainTests": {
+      "passed": 48,
+      "failed": 0,
+      "skipped": 0
+    },
+    "androidJvm": {
+      "tests": 26,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "androidLint": "passed",
+    "androidDebugBuild": "passed",
+    "webLint": "passed",
+    "webTypecheck": "passed",
+    "webBuildWithTestConfiguration": "passed",
+    "webBuildWithProductionConfiguration": "passed",
+    "emailConfirmationAndRecovery": "passed using local capture; hosted delivery not verified",
+    "localServiceRestart": "passed without resetting data"
+  },
+  "productionConfigurationChecks": [
+    {
+      "check": "web production account target",
+      "passed": true
+    },
+    {
+      "check": "Android uses the same account project and public key",
+      "passed": true
+    },
+    {
+      "check": "Android uses the hosted application API",
+      "passed": true
+    },
+    {
+      "check": "server credential configured separately",
+      "passed": true
+    },
+    {
+      "check": "native configuration contains no server credential",
+      "passed": true
+    },
+    {
+      "check": "checkout linked to the intended hosting project",
+      "passed": true
+    },
+    {
+      "check": "browser assets contain no server credential",
+      "passed": true
+    },
+    {
+      "check": "browser build includes the production account configuration",
+      "passed": true
+    },
+    {
+      "check": "Android package contains no server credential",
+      "passed": true
+    },
+    {
+      "check": "Android package includes production targets",
+      "passed": true
     }
+  ],
+  "hostedChecks": [
+    {
+      "check": "hosted account service",
+      "passed": false,
+      "detail": "Cloud proxy denied the connection"
+    },
+    {
+      "check": "public website",
+      "passed": false,
+      "detail": "Cloud proxy denied the connection"
+    },
+    {
+      "check": "hosted workspace rejects anonymous requests",
+      "passed": false,
+      "detail": "Cloud proxy denied the connection"
+    }
+  ],
+  "hostedCheckedAt": "2026-10-23T16:24:54.950547+00:00",
+  "androidPackage": {
+    "sha256": "878495df96aaa6f1bff70115b6e730d4e420efcf357f07463e22685919dcc9e6",
+    "release": "debug development build",
+    "downloadEnabled": false,
+    "physicalDeviceAuthAndNetworking": "unverified"
   },
   "credentialsOutsideRepository": true,
-  "credentialFileMode": "0600",
-  "publicConfigInVercel": [
-    "development",
-    "preview",
-    "production"
+  "stagedCredentialScan": "passed",
+  "freeDevelopmentServicesOnly": true,
+  "remaining": [
+    "Restore cloud runtime access to the existing six allowed service hosts",
+    "Verify existing CLI sessions and remote migrations",
+    "Update hosted account callback allowlist for next/recovery parameters",
+    "Deploy and verify connected website/API",
+    "Refresh and enable the Android download after matching API verification",
+    "Configure a shared verified email sender before public registration",
+    "Physical-device account links/network checks and release signing",
+    "Commercial hosting eligibility and launch operations"
   ],
-  "cliVersions": {
-    "vercel": "65.2.0",
-    "supabase": "2.122.0"
-  },
-  "cliReinstallAndAuthPersistence": "passed",
-  "webProductionBuild": "passed",
-  "webTypecheck": "passed",
-  "networkDraft": "saved; exact project host added",
-  "networkRuntime": "provider APIs reachable; project Auth and REST hosts still blocked by proxy 403",
-  "requiresPublish": true
+  "payments": "manual records; Daraja/banks/Stripe not connected",
+  "externalAiFinancingBilling": "not connected"
 }

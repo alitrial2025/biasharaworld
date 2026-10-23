@@ -43,7 +43,7 @@ export const features: {
     slug: "scanner",
     title: "A quicker way to find it.",
     description:
-      "Scan a sample barcode, enter a code or prepare labels for your shelves.",
+      "Enter a barcode, use a keyboard scanner or prepare labels for your shelves.",
     icon: Barcode,
     group: "Selling",
     tone: "green",
@@ -73,7 +73,7 @@ export const features: {
     slug: "split-payments",
     title: "One basket. Your way to pay.",
     description:
-      "Share a demo payment across cash, M-Pesa and card, down to the last shilling.",
+      "Record a payment across cash, M-Pesa and card, down to the last shilling.",
     icon: CreditCard,
     group: "Selling",
     tone: "blue",
@@ -93,7 +93,7 @@ export const features: {
     slug: "documents",
     title: "From a good quote to a clear invoice.",
     description:
-      "Give every agreement a place, from your first draft to a recorded demo sale.",
+      "Give every agreement a place, from your first draft to a recorded sale.",
     icon: BookOpen,
     group: "Selling",
     tone: "blue",

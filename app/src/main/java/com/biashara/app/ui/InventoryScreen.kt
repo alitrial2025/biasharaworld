@@ -30,7 +30,7 @@ fun InventoryScreen(store: DemoStore) {
     var quantity by remember { mutableStateOf("12") }
     var name by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
-    var cost by remember { mutableStateOf("") }
+    var cost by remember { mutableStateOf("0") }
     var opening by remember { mutableStateOf("") }
     Column(Modifier.fillMaxSize().padding(horizontal = 18.dp).padding(top = 12.dp)) {
         PageTitle("Inventory") {
@@ -130,8 +130,22 @@ fun InventoryScreen(store: DemoStore) {
                         PrimaryButton(
                             "Add to stock",
                             {
-                                if(store.real)store.backend?.perform("batch",mapOf("product" to id.toString(),"quantity" to quantity,"code" to "RESTOCK-$id","expires" to "2099-12-31")){selected=null}
-                                else {store.restock(id, quantity.toIntOrNull() ?: 0);selected=null}
+                                if (store.real)
+                                    store.backend?.perform(
+                                        "batch",
+                                        mapOf(
+                                            "product" to id.toString(),
+                                            "quantity" to quantity,
+                                            "code" to "RESTOCK-$id",
+                                            "expires" to "2099-12-31",
+                                        ),
+                                    ) {
+                                        selected = null
+                                    }
+                                else {
+                                    store.restock(id, quantity.toIntOrNull() ?: 0)
+                                    selected = null
+                                }
                             },
                             enabled = (quantity.toIntOrNull() ?: 0) > 0,
                             icon = Icons.Outlined.Add,
@@ -163,14 +177,21 @@ fun InventoryScreen(store: DemoStore) {
                 )
                 OutlinedTextField(
                     price,
-                    { price = it.filter(Char::isDigit).take(6) },
+                    { if (it.matches(Regex("[0-9]{0,6}(\\.[0-9]{0,2})?"))) price = it },
                     label = { AppText("Selling price (KES)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                 )
-                OutlinedTextField(cost,{cost=it},label={AppText("Cost price (KES)")},singleLine=true,modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(16.dp))
+                OutlinedTextField(
+                    cost,
+                    { cost = it },
+                    label = { AppText("Cost price (KES)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                )
                 OutlinedTextField(
                     opening,
                     { opening = it.filter(Char::isDigit).take(5) },
@@ -183,14 +204,50 @@ fun InventoryScreen(store: DemoStore) {
                 PrimaryButton(
                     "Add product",
                     {
-                        if(store.real) store.backend?.action {
-                            store.backend?.command(json("type" to "addProduct","product" to json("name" to name.trim(),"size" to "","sku" to "SKU-${System.currentTimeMillis()}","category" to "Food","price" to (price.toDoubleOrNull()?:0.0),"cost" to (cost.toDoubleOrNull()?:0.0),"stock" to (opening.toIntOrNull()?:0),"reorder" to 10,"art" to 7)))
-                            name="";price="";opening="";adding=false
-                        } else {store.addProduct(name,price.toIntOrNull()?:0,opening.toIntOrNull()?:0);name="";price="";opening="";adding=false}
+                        if (store.real)
+                            store.backend?.action {
+                                store.backend?.command(
+                                    json(
+                                        "type" to "addProduct",
+                                        "product" to
+                                            json(
+                                                "name" to name.trim(),
+                                                "size" to "",
+                                                "sku" to "SKU-${System.currentTimeMillis()}",
+                                                "category" to "Food",
+                                                "price" to (price.toDoubleOrNull() ?: 0.0),
+                                                "cost" to (cost.toDoubleOrNull() ?: 0.0),
+                                                "stock" to (opening.toIntOrNull() ?: 0),
+                                                "reorder" to 10,
+                                                "art" to 7,
+                                            ),
+                                    )
+                                )
+                                name = ""
+                                price = ""
+                                cost = "0"
+                                opening = ""
+                                adding = false
+                            }
+                        else {
+                            store.addProduct(
+                                name,
+                                price.toIntOrNull() ?: 0,
+                                opening.toIntOrNull() ?: 0,
+                            )
+                            name = ""
+                            price = ""
+                            cost = "0"
+                            opening = ""
+                            adding = false
+                        }
                     },
                     enabled =
                         name.isNotBlank() &&
-                            (price.toIntOrNull() ?: 0) > 0 &&
+                            (price.toBigDecimalOrNull()?.signum() ?: 0) > 0 &&
+                            (cost.toBigDecimalOrNull()?.let {
+                                it.signum() >= 0 && it.scale() <= 2
+                            } == true) &&
                             opening.toIntOrNull() != null,
                     icon = Icons.Outlined.Check,
                 )

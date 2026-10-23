@@ -30,13 +30,17 @@ import {
 } from "@/components/ui";
 import { useDemo } from "@/lib/store";
 import { supabase } from "@/lib/supabase";
+import { accountReturn } from "@/lib/account-return";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function AuthPage({
   mode,
   plan = "Starter",
+  returnTo,
 }: {
   mode: "login" | "signup" | "forgot";
   plan?: string;
+  returnTo?: string;
 }) {
   const [show, setShow] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -44,33 +48,72 @@ export function AuthPage({
   const router = useRouter();
   const { store } = useDemo();
   const toast = useToast();
-  const [error,setError]=useState("");
-  const [busy,setBusy]=useState(false);
-  const [notice,setNotice]=useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data=new FormData(event.currentTarget);
-    const email=String(data.get('email')||'').trim();
-    setError("");setNotice("");setBusy(true);
+    const data = new FormData(event.currentTarget);
+    const email = String(data.get("email") || "").trim();
+    setError("");
+    setNotice("");
+    setBusy(true);
     try {
-      const client=supabase();
-      if(mode==='forgot') {
-        const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/auth/callback?intent=recovery'});
-        if(error)throw error;setSuccess(true);return;
+      const client = supabase();
+      const destination = accountReturn(returnTo);
+      const callback =
+        location.origin +
+        "/auth/callback" +
+        (destination ? "?next=" + encodeURIComponent(destination) : "");
+      if (mode === "forgot") {
+        const { error } = await client.auth.resetPasswordForEmail(email, {
+          redirectTo: location.origin + "/auth/callback?intent=recovery",
+        });
+        if (error) throw error;
+        setSuccess(true);
+        return;
       }
-      const password=String(data.get('password')||'');
-      if(mode==='signup') {
-        const {data:result,error}=await client.auth.signUp({email,password,options:{emailRedirectTo:location.origin+'/auth/callback',data:{name:String(data.get('name')||'').trim(),business:String(data.get('business')||'').trim()}}});
-        if(error)throw error;
-        if(!result.session){setNotice('Check your email to confirm your account, then sign in. If you already have an account, use Log in.');return;}
-        store.session(result.user?.id||'');await store.hydrate();router.push('/onboarding');
+      const password = String(data.get("password") || "");
+      if (mode === "signup") {
+        const { data: result, error } = await client.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: callback,
+            data: {
+              name: String(data.get("name") || "").trim(),
+              business: String(data.get("business") || "").trim(),
+            },
+          },
+        });
+        if (error) throw error;
+        if (!result.session) {
+          setNotice(
+            "Check your email to confirm your account, then sign in. If you already have an account, use Log in.",
+          );
+          return;
+        }
+        store.session(result.user?.id || "");
+        await store.hydrate();
+        router.push(destination || "/onboarding");
       } else {
-        const {data:result,error}=await client.auth.signInWithPassword({email,password});
-        if(error)throw error;store.session(result.user.id);await store.hydrate();
-        toast('Welcome back.');router.push(store.workspace?'/dashboard':'/onboarding');
+        const { data: result, error } = await client.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+        store.session(result.user.id);
+        await store.hydrate();
+        toast("Welcome back.");
+        router.push(
+          destination || (store.workspace ? "/dashboard" : "/onboarding"),
+        );
       }
-    } catch(e) {setError(e instanceof Error?e.message:'Please try again.');}
-    finally{setBusy(false);}
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -105,29 +148,80 @@ export function AuthPage({
           </div>
         </div>
         <span className="auth-photo-caption">
-          <T>Wanjiku General Shop · Our sample business</T>
+          <T>Wanjiku General Shop · Illustrative shop story</T>
         </span>
       </aside>
       <section className="auth-form-area">
         <div className="auth-mobile-brand">
           <Brand />
         </div>
-        <Link href="/" className="back-link">
-          <ArrowLeft size={15} />
-          <T>Back to home</T>
-        </Link>
+        <div className="auth-utility-row">
+          <Link href="/" className="back-link">
+            <ArrowLeft size={15} />
+            <T>Back to home</T>
+          </Link>
+          <ThemeToggle />
+        </div>
         <div className="auth-form-wrap">
-          {error && <p role="alert" className="operation-error">{error}</p>}
-          {notice && <p role="status" className="auth-demo-note">{notice}</p>}
+          {error && (
+            <p role="alert" className="operation-error">
+              {error}
+            </p>
+          )}
+          {notice && (
+            <>
+              <p role="status" className="auth-demo-note">
+                {notice}
+              </p>
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={async () => {
+                  const field = document.querySelector<HTMLInputElement>(
+                    'input[name="email"]',
+                  );
+                  if (!field?.value) return;
+                  setBusy(true);
+                  try {
+                    const { error } = await supabase().auth.resend({
+                      type: "signup",
+                      email: field.value,
+                      options: {
+                        emailRedirectTo:
+                          location.origin +
+                          "/auth/callback" +
+                          (accountReturn(returnTo)
+                            ? "?next=" +
+                              encodeURIComponent(accountReturn(returnTo)!)
+                            : ""),
+                      },
+                    });
+                    if (error) throw error;
+                    setNotice(
+                      "A new confirmation link was requested. Check your email.",
+                    );
+                  } catch (e) {
+                    setError(
+                      e instanceof Error
+                        ? e.message
+                        : "Could not request a new link.",
+                    );
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                Resend confirmation
+              </Button>
+            </>
+          )}
           <T>
             {mode === "forgot" ? (
               <>
                 <IconBox icon={success ? CheckCircle2 : ShieldCheck} />
                 <h1>
                   <T>
-                    {success
-                      ? "Check your email."
-                      : "Let’s get you back in."}
+                    {success ? "Check your email." : "Let’s get you back in."}
                   </T>
                 </h1>
                 <p>
@@ -326,7 +420,15 @@ export function AuthPage({
                       : "New around here?"}
                   </T>{" "}
                   <T> </T>
-                  <Link href={mode === "signup" ? "/login" : "/signup"}>
+                  <Link
+                    href={
+                      (mode === "signup" ? "/login" : "/signup") +
+                      (accountReturn(returnTo)
+                        ? "?next=" +
+                          encodeURIComponent(accountReturn(returnTo)!)
+                        : "")
+                    }
+                  >
                     <T>{mode === "signup" ? "Log in" : "Get started"}</T>
                   </Link>
                 </p>
@@ -359,14 +461,11 @@ export function AuthPage({
         description="Google sign-in is not available yet. Use your email to continue."
       >
         <p className="muted">
-          <T>
-            For now, explore the web workspace with sample data. No Google
-            account is accessed.
-          </T>
+          <T>Use your email and password to sign in to your business.</T>
         </p>
         <div className="modal-actions">
           <Button href="/dashboard" arrow>
-            <T>Explore the demo</T>
+            <T>Continue with email</T>
           </Button>
         </div>
       </Modal>
@@ -382,23 +481,48 @@ function OnboardingContent() {
   const [step, setStep] = useState(0);
   const [goals, setGoals] = useState(["Sales & payments", "Inventory"]);
   const router = useRouter();
-  const [error,setError]=useState('');
-  async function submit(e:FormEvent<HTMLFormElement>) {
-    e.preventDefault();const d=new FormData(e.currentTarget);setError('');
+  const [error, setError] = useState("");
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const d = new FormData(e.currentTarget);
+    setError("");
     try {
-      if(!store.authenticated){router.replace('/login');return;}
-      if(store.workspace) await store.updateProfile({business:String(d.get('business')),type:String(d.get('type')),location:String(d.get('location'))});
-      else {const {data:{user}}=await supabase().auth.getUser();await store.createBusiness({name:user?.user_metadata?.name||user?.email?.split('@')[0]||'Owner',business:String(d.get('business')),type:String(d.get('type')),location:String(d.get('location'))});}
+      if (!store.authenticated) {
+        router.replace("/login");
+        return;
+      }
+      if (store.workspace)
+        await store.updateProfile({
+          business: String(d.get("business")),
+          type: String(d.get("type")),
+          location: String(d.get("location")),
+        });
+      else {
+        const {
+          data: { user },
+        } = await supabase().auth.getUser();
+        await store.createBusiness({
+          name:
+            user?.user_metadata?.name || user?.email?.split("@")[0] || "Owner",
+          business: String(d.get("business")),
+          type: String(d.get("type")),
+          location: String(d.get("location")),
+        });
+      }
       setStep(1);
-    }catch(e){setError(e instanceof Error?e.message:'Could not save your business.');}
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Could not save your business.",
+      );
+    }
   }
 
   return (
     <main id="main-content" className="onboarding-page">
       <div className="container onboarding-top">
         <Brand />
-        <Link href="/dashboard">
-          <T>Explore first</T>
+        <Link href="/help">
+          <T>Need help?</T>
           <ArrowRight size={15} />
         </Link>
       </div>
@@ -446,7 +570,11 @@ function OnboardingContent() {
           </p>
         </aside>
         <section className="onboarding-card">
-          {error&&<p role="alert" className="operation-error">{error}</p>}
+          {error && (
+            <p role="alert" className="operation-error">
+              {error}
+            </p>
+          )}
           <span className="step-count">
             <T>STEP</T> <T>{step + 1}</T> <T>OF 3</T>
           </span>
@@ -571,15 +699,15 @@ function OnboardingContent() {
                 </h1>
                 <p>
                   <T>
-                    We’ve prepared a sample shop so you can explore without
-                    starting from a blank page.
+                    Your business is ready. Add your products, record your first
+                    sale, and keep track of your customers.
                   </T>
                 </p>
                 <div className="ready-list">
                   <T>
                     {[
-                      "Products and shelves to explore",
-                      "Sample sales and customer balances",
+                      "Your products and stock in one place",
+                      "Sales and customer balances as you record them",
                       "A clear view of your everyday business",
                     ].map((t) => (
                       <span key={t}>
@@ -591,8 +719,8 @@ function OnboardingContent() {
                 </div>
                 <div className="inline-note">
                   <T>
-                    This is a demo workspace. Changes stay in this browser and
-                    no payment or supplier order is sent.
+                    Your saved records are available when you sign in on the web
+                    or in the app. Payments are recorded manually for now.
                   </T>
                 </div>
                 <Button onClick={() => router.push("/dashboard")} arrow>

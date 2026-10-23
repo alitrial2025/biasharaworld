@@ -42,7 +42,6 @@ import {
   Field,
   IconBox,
   SearchField,
-  useToast,
 } from "@/components/ui";
 import { articles, faqs } from "@/lib/data";
 import { CTABanner } from "./site-shell";
@@ -84,7 +83,7 @@ export function FeaturesPage() {
         text="The tools you need to run your business, with room for everything it can become."
       >
         <Button href="/dashboard" arrow>
-          <T>Explore the workspace</T>
+          <T>Open workspace</T>
         </Button>
       </PageIntro>
       <div className="container feature-nav">
@@ -104,9 +103,9 @@ export function FeaturesPage() {
             id: "sales",
             eyebrow: "SELL WITH CONFIDENCE",
             title: "Keep the line moving.\nKeep the details clear.",
-            text: "Find a product, build a basket and review a payment method in a few simple steps. Every demo sale updates stock and appears in your sales history.",
+            text: "Find a product, build a basket and review a payment method in a few simple steps. Every confirmed sale updates stock and appears in your sales history.",
             checks: [
-              "Cash, card and M-Pesa checkout previews",
+              "Record cash, card and M-Pesa payments received",
               "Searchable transactions and clear receipts",
               "Downloadable CSV sales exports",
             ],
@@ -135,8 +134,8 @@ export function FeaturesPage() {
             text: "The small expenses matter, too. Keep transport, utilities and supplies beside the bigger picture of your sales and customer balances.",
             checks: [
               "A simple expense ledger with categories",
-              "Customer credit and demo repayments",
-              "Sales, profit and expense report previews",
+              "Customer credit and recorded repayments",
+              "Sales, profit and expense reports from your records",
             ],
             image: "app-dashboard",
             icon: Wallet,
@@ -149,8 +148,8 @@ export function FeaturesPage() {
             text: "Keep your customers, suppliers and team organised. Prepare restock orders and give everyone a clearer view of the work ahead.",
             checks: [
               "Customer profiles and outstanding balances",
-              "Supplier listings and demo purchase orders",
-              "Web staff directory and role previews",
+              "Your supplier contacts, quotes and purchase orders",
+              "Team membership and role-based access",
             ],
             image: "app-inventory",
             icon: Users,
@@ -160,11 +159,11 @@ export function FeaturesPage() {
             id: "insights",
             eyebrow: "YOUR NEXT SMART MOVE",
             title: "Turn good questions\ninto a clearer picture.",
-            text: "Explore sample trends and ask BiasharaAI about stock, sales or balances. A friendly starting point for understanding your business.",
+            text: "Review recorded sales and stock, or ask for a summary of your business. External AI is not connected yet.",
             checks: [
               "Readable sales and product performance charts",
               "A conversational assistant interface",
-              "Local insights based on your demo shop",
+              "Summaries based on your recorded business activity",
             ],
             image: "app-assistant",
             icon: Sparkles,
@@ -195,7 +194,7 @@ export function FeaturesPage() {
               </p>
               <CheckList items={item.checks} />
               <Link href="/dashboard" className="text-link">
-                <T>Try it in the demo</T>
+                <T>Open workspace</T>
                 <ArrowRight size={16} />
               </Link>
             </div>
@@ -266,7 +265,7 @@ export const solutionData: Record<
     text: "Bring stock, customers and purchasing into the same picture. Make room for bigger baskets and longer-term relationships.",
     icon: Truck,
     benefits: [
-      "Clear customer balances and sample repayments",
+      "Clear customer balances and recorded repayments",
       "Purchase order drafts and receiving previews",
       "Inventory quantities and cost visibility",
       "Reports and exports on a larger screen",
@@ -342,7 +341,7 @@ export function SolutionPage({ slug }: { slug: string }) {
               <T>Make it yours</T>
             </Button>
             <Button href="/dashboard" variant="secondary">
-              <T>Try the demo</T>
+              <T>Open workspace</T>
             </Button>
           </div>
         </div>
@@ -668,7 +667,7 @@ export function AboutPage() {
             [
               ShieldCheck,
               "Clear from the beginning",
-              "Good relationships start with honesty. We keep demo features, proposed plans and future integrations clearly identified.",
+              "Good relationships start with honesty. We clearly identify available tools, proposed plans and future integrations.",
             ],
           ].map(([Icon, title, text]) => {
             const I = Icon as typeof Store;
@@ -693,12 +692,34 @@ export function AboutPage() {
 
 export function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
-  const [busy,setBusy]=useState(false);
-  const [error,setError]=useState('');
-  const [reference,setReference]=useState('');
-  async function submit(e:FormEvent<HTMLFormElement>){
-    e.preventDefault();const d=new FormData(e.currentTarget);setBusy(true);setError('');
-    try{const r=await fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(d)),signal:AbortSignal.timeout(30000)});const data=await r.json();if(!r.ok)throw new Error(data.error);setReference(data.id);setSubmitted(true)}catch(e){setError(e instanceof Error?e.message:'Message unconfirmed. Please try again later.')}finally{setBusy(false)}
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [reference, setReference] = useState("");
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const d = new FormData(e.currentTarget);
+    setBusy(true);
+    setError("");
+    try {
+      const r = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(Object.fromEntries(d)),
+        signal: AbortSignal.timeout(30000),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      setReference(data.id);
+      setSubmitted(true);
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Message unconfirmed. Please try again later.",
+      );
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -740,12 +761,17 @@ export function ContactPage() {
           </Link>
           <p className="quiet-note">
             <T>
-              Messages are saved privately for the team. Email notifications and guaranteed response times are not available yet.
+              Messages are saved privately for the team. Email notifications and
+              guaranteed response times are not available yet.
             </T>
           </p>
         </div>
         <div className="contact-card">
-          {error&&<p role="alert" className="operation-error">{error}</p>}
+          {error && (
+            <p role="alert" className="operation-error">
+              {error}
+            </p>
+          )}
           <T>
             {submitted ? (
               <div className="form-success">
@@ -755,7 +781,8 @@ export function ContactPage() {
                 </h2>
                 <p>
                   <T>
-                    Thank you for your message. Keep this reference for follow-up: {reference}
+                    Thank you for your message. Keep this reference for
+                    follow-up: {reference}
                   </T>
                 </p>
                 <Button variant="secondary" onClick={() => setSubmitted(false)}>
@@ -823,7 +850,7 @@ export function ContactPage() {
                   />
                 </div>
                 <Button type="submit" arrow>
-                  <T>{busy?"Saving…":"Send message"}</T>
+                  <T>{busy ? "Saving…" : "Send message"}</T>
                 </Button>
                 <p className="form-note">
                   <T>By sending this message, you agree to our</T>
@@ -851,7 +878,7 @@ export function HelpPage() {
       <PageIntro
         eyebrow="A LITTLE HELP GOES A LONG WAY"
         title="Let’s find your answer."
-        text="Get comfortable with the basics, explore the demo, and find a clearer way forward."
+        text="Get comfortable with accounts, stock and sales, and find a clearer way forward."
       >
         <SearchField
           value={query}
@@ -917,7 +944,7 @@ export function HelpPage() {
               </h3>
               <p>
                 <T>
-                  Try “demo”, “stock” or “payments”, or explore the workspace.
+                  Try “accounts”, “stock” or “payments”, or open your workspace.
                 </T>
               </p>
               <Button variant="secondary" onClick={() => setQuery("")}>
@@ -1038,8 +1065,8 @@ export function ArticlePage({ slug }: { slug: string }) {
             </h3>
             <p>
               <T>
-                Explore these ideas with sample products and customer balances
-                in the BiasharaOS demo.
+                Put these ideas to work with your own products and customer
+                balances in your BiasharaOS workspace.
               </T>
             </p>
             <Button href="/dashboard" size="small" arrow>
@@ -1054,7 +1081,6 @@ export function ArticlePage({ slug }: { slug: string }) {
 }
 
 export function DownloadPage() {
-  const toast = useToast();
   return (
     <>
       <PageIntro
@@ -1083,10 +1109,10 @@ export function DownloadPage() {
             <MiniDashboard />
           </div>
           <Button href="/dashboard" arrow>
-            <T>Open the web demo</T>
+            <T>Open web workspace</T>
           </Button>
           <span className="quiet-note">
-            <T>No installation required. Sample data only.</T>
+            <T>No installation required. Sign in to your business.</T>
           </span>
         </div>
         <div className="download-card bg-mint">
@@ -1101,7 +1127,8 @@ export function DownloadPage() {
           </h2>
           <p>
             <T>
-              A familiar, touch-friendly UI built in Kotlin and Jetpack Compose.
+              A familiar workspace for products, sales and customers, designed
+              for your phone.
             </T>
           </p>
           <div className="download-phone">
@@ -1112,19 +1139,11 @@ export function DownloadPage() {
               height={852}
             />
           </div>
-          <a
-            className="btn btn-dark"
-            href="/downloads/biasharaos-preview.apk"
-            download
-            onClick={() =>
-              toast("Android UI preview download started.", "info")
-            }
-          >
-            <ArrowDownToLine size={17} />
-            <T>Download Android preview</T>
-          </a>
+          <Button variant="dark" disabled icon={ArrowDownToLine}>
+            <T>Android update coming soon</T>
+          </Button>
           <span className="quiet-note">
-            <T>Android 8.0+ · Debug APK · Sample data · About 36 MB</T>
+            <T>Android 8.0+ · Development build being updated</T>
           </span>
         </div>
       </section>
@@ -1136,10 +1155,9 @@ export function DownloadPage() {
           </h3>
           <p>
             <T>
-              The Android APK is a development build for exploring the UI. It is
-              not a production release. There are no real payments, account
-              connections or live AI, and the Android and web demos use separate
-              data.
+              A new Android development build is being prepared for connected
+              accounts and business records. Use the web workspace while we
+              finish checking the app. Payment collection is coming later.
             </T>
           </p>
         </div>
@@ -1156,18 +1174,16 @@ export function LegalPage({ type }: { type: "privacy" | "terms" }) {
         <T>CLEAR FROM THE BEGINNING</T>
       </span>
       <h1>
-        <T>
-          {privacy ? "Privacy, in plain language." : "Terms for this preview."}
-        </T>
+        <T>{privacy ? "Privacy, in plain language." : "Early-access terms."}</T>
       </h1>
       <Badge tone="amber">
-        <T>Draft · UI preview only</T>
+        <T>Draft · Early access</T>
       </Badge>
       <p className="legal-lead">
         <T>
           {privacy
-            ? "This page explains the limited data behaviour of the current BiasharaOS prototype. Production privacy terms must be finalised before a public launch."
-            : "These draft terms describe the current prototype experience. They do not establish production service, payment or financing terms."}
+            ? "This page describes how the early-access service handles account and business information. Final policies must identify the operating business and its retention and deletion arrangements before public launch."
+            : "These draft terms describe the early-access service. Final operating, support and commercial terms must be completed before public launch."}
         </T>
       </p>
 
@@ -1175,16 +1191,16 @@ export function LegalPage({ type }: { type: "privacy" | "terms" }) {
         {(privacy
           ? [
               [
-                "What the preview stores",
+                "What BiasharaOS stores",
                 "Your signed-in business records are stored securely and shared across your devices. Account sessions and display preferences may be retained on your device. Sign out on devices you share.",
               ],
               [
                 "Account forms",
-                "Sign-in, sign-up and password-reset screens demonstrate account flows. They do not create or authenticate a real account. Passwords entered in these forms are not stored in the demo state.",
+                "Accounts use your email and password to authenticate. Account details and confirmation or recovery requests are processed by the account service. Passwords are not saved in business records. Never share account links or passwords.",
               ],
               [
                 "Messages and requests",
-                "Contact messages, team invitations, supplier orders and financing forms are previews. They are not sent to external recipients. BiasharaAI uses local sample responses.",
+                "Contact inquiries are saved for the business team. Team invitations and purchase orders are saved records; automatic emails and supplier notifications are not sent. The assistant summarizes recorded business activity. External AI and financing are not connected.",
               ],
               [
                 "Using the website",
@@ -1192,7 +1208,7 @@ export function LegalPage({ type }: { type: "privacy" | "terms" }) {
               ],
               [
                 "Your controls",
-                "Reset the demo in Account Settings or clear this site’s browser storage to remove locally saved demo data. Avoid entering sensitive information into a prototype.",
+                "Sign out on shared devices and review team access regularly. Clearing browser storage removes local sessions and preferences; it does not delete saved business records. Account deletion and retention arrangements must be finalized before public launch.",
               ],
               [
                 "Before launch",
@@ -1201,8 +1217,8 @@ export function LegalPage({ type }: { type: "privacy" | "terms" }) {
             ]
           : [
               [
-                "A prototype experience",
-                "BiasharaOS is currently a UI prototype for exploring business workflows. Data, reports, supplier listings and staff accounts are illustrative. Do not use sample figures as financial or trading records.",
+                "An early-access business workspace",
+                "BiasharaOS saves the business records you enter. You are responsible for their accuracy and for checking reports against actual stock, receipts and payments. Marketing illustrations show example figures rather than your business data.",
               ],
               [
                 "Payments and purchasing",
@@ -1210,15 +1226,15 @@ export function LegalPage({ type }: { type: "privacy" | "terms" }) {
               ],
               [
                 "Plans and availability",
-                "Pricing is proposed launch pricing. Billing, account security, cross-device sync, lending and live AI require further implementation. Choosing a plan in the demo does not create a paid subscription.",
+                "Pricing is proposed launch pricing. Choosing a plan does not create a paid subscription. Lending, online payment collection and external AI are not available yet. Early-access features may change or be interrupted.",
               ],
               [
-                "Use of the preview",
-                "Use the prototype to explore and evaluate the interface. Do not enter real payment credentials, identity documents or other sensitive information.",
+                "Using your account",
+                "Keep your account secure and grant team access only to authorized people. Do not enter bank credentials, card details or identity documents into business notes or contact forms.",
               ],
               [
                 "Changes and feedback",
-                "The interface and proposed features may change during development. The contact form demonstrates feedback collection but does not send messages in this version.",
+                "The interface and features may change during development. Contact inquiries are saved for follow-up; immediate replies and automated email notifications are not promised.",
               ],
               [
                 "Production terms",
@@ -1238,7 +1254,7 @@ export function LegalPage({ type }: { type: "privacy" | "terms" }) {
       </T>
 
       <Link href="/contact" className="text-link">
-        <T>Explore the contact form</T>
+        <T>Contact the team</T>
         <ArrowRight size={16} />
       </Link>
     </article>

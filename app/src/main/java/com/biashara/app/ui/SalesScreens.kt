@@ -339,10 +339,12 @@ fun NewSaleScreen(
                     "Record received payment",
                     {
                         try {
-                            if(store.real) {
-                                store.backend?.perform("checkout",mapOf("method" to method)) {
-                                    receipt=store.sales.firstOrNull{it.id==store.operations.lastId}
-                                    payment=false;paymentError=""
+                            if (store.real) {
+                                store.backend?.perform("checkout", mapOf("method" to method)) {
+                                    receipt =
+                                        store.sales.firstOrNull { it.id == store.operations.lastId }
+                                    payment = false
+                                    paymentError = ""
                                 }
                             } else {
                                 receipt = store.checkout(method)
@@ -452,7 +454,7 @@ fun SalesScreen(store: DemoStore, navigate: (Screen) -> Unit) {
                             )
                         }
                         AppText(
-                            "${money(sale.amount)}",
+                            minorMoney(sale.amountMinor),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                         )
@@ -467,7 +469,7 @@ fun SalesScreen(store: DemoStore, navigate: (Screen) -> Unit) {
             title = { AppText("Receipt #${sale.id}") },
             text = {
                 AppText(
-                    "${sale.customer}\n${sale.items} items · ${sale.method}\nKES ${money(sale.amount)}\n\nSample transaction in your demo store."
+                    "${sale.customer}\n${sale.items} items · ${sale.method}\n${minorMoney(sale.amountMinor)}\n\nManually recorded payment. No payment request was sent."
                 )
             },
             confirmButton = { TextButton(onClick = { selected = null }) { AppText("Done") } },

@@ -1,73 +1,67 @@
 # BiasharaOS · Android + web
 
-A native Android UI prototype for the everyday Kenyan entrepreneur. Built in **Kotlin with Jetpack Compose and Material 3**. The UI follows the supplied BiasharaOS reference: photographic shop headers and onboarding, clean white surfaces, pastel metric cards, familiar product imagery, green M-Pesa actions, compact lists and a flat bottom navigation bar.
+BiasharaOS brings sales, inventory, customer balances, purchasing and reports into one business workspace. The Kotlin/Jetpack Compose Android app and responsive Next.js website share account identity and a server-authoritative business API. The design follows the supplied reference with shop photography, white surfaces, pastel summary cards, green actions and compact product lists.
 
+The connected backend is implemented in source and verified with isolated local services. **It has not yet replaced the earlier hosted UI preview.** Cloud proxy access currently prevents final hosted verification/deployment. See [backend setup](docs/backend-setup.md), [implementation status](docs/backend-implementation-plan.md) and [verification evidence](docs/backend-setup-verification.json).
 
-## Next.js website
-
-The matching responsive web experience lives in [`web/`](web/README.md): a complete public website, account and onboarding UI, and a business workspace. It adds purchase orders, expenses, staff tools, CSV exports and account settings to the shared sales, stock, customer, supplier and reporting experience.
+## Develop the website
 
 ```sh
 cd web
 npm ci
 npm run dev
-# Verify: npm run lint && npm run build && npm run typecheck
-# Browser workflows: npm run test:e2e
+npm run lint
+npm run build
+npm run typecheck
 ```
 
-Node.js 20.9+ is required. In cloud, run `bash tools/setup-web.sh` from the repository root for a locked install and production checks. Accounts, payments, orders and AI remain frontend demo flows. Web changes persist in browser storage; Android and web do not sync yet.
+Node 20.9+ is required; the prepared cloud environment uses Node 24. Copy `web/.env.example` to an ignored local environment file and supply public account configuration plus the server-only credential. Never place server credentials in public variables or Android settings. The hosted project and CLI workflow are documented in [backend setup](docs/backend-setup.md).
 
-See [desktop landing preview](design/web/landing-1440.png), [web dashboard](design/web/dashboard-1440.png), and [mobile checkout](design/web/checkout-390.png). Full route coverage, run instructions and UI boundaries are in the [web README](web/README.md).
+Accounts start with empty business records. Inventory, sales, refunds, invoices, cash registers, stocktakes, branches/transfers, customer balances, supplier records/quotes, purchase orders, deliveries, loyalty, storefront and personal preferences save through authenticated commands. Duplicate requests are safe to retry; conflicting changes require refreshing and reviewing records. Public shops disclose only catalogue information, and customer portals require verified identity.
 
-## Twenty new tools on both platforms
+## Develop Android
 
-Selling now includes barcode lookup/labels, held baskets, promotions, split payments, partial returns, quotations/invoices and cash registers. Stock adds counts, expiry batches, variants/bundles, movement history and transfers. Growth adds supplier comparison, customer deliveries, loyalty, branches, an online shop and customer portal. Connectivity/activity previews and language/theme/text-size preferences complete the twenty-feature expansion.
+Open the repository in Android Studio, sync Gradle and run `app` on Android 8.0+. Requirements: JDK 17/21, Android SDK 35 and Build Tools 35.0.0. The wrapper uses Gradle 8.11.1.
 
-Open **More → Explore all 20 business tools** on Android or **Business tools → All business tools** on web. See the [feature checklist](docs/feature-expansion-plan.md), [review guide and demo boundaries](docs/feature-expansion-review.md), [Android review sheet](design/feature-expansion-android.png) and [web review sheet](design/feature-expansion-web.png).
-
-## Android app
-
-Open this folder in a current Android Studio, let Gradle sync, then run `app` on an Android 8.0+ emulator or device.
-
-Requirements: JDK 17 or 21, Android SDK 35, Build Tools 35.0.0. The checked-in wrapper downloads Gradle 8.11.1. Point `ANDROID_HOME` at your SDK or set `sdk.dir` in an ignored `local.properties`.
+Set ignored `backend.properties` with `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` and `API_URL`. These are public client settings. The prepared cloud can regenerate them with `python3 tools/configure-android-backend.py`.
 
 ```sh
-./gradlew :app:assembleDebug
-./gradlew :app:testDebugUnitTest :app:lintDebug
-# With an emulator or device connected:
+# Prepared cloud toolchain:
+source tools/cloud-env.sh
+./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+# With a device/emulator attached:
 ./gradlew :app:connectedDebugAndroidTest
 ```
 
-The APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.
+The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`. Android encrypts session and pending-command data with Android Keystore. Business changes are confirmed by the shared API; local baskets remain drafts. Real production stores reject sample snapshot imports and reset operations. JVM UI tests run without an emulator; real-device networking and account deep links remain unverified.
 
-## Cloud environment
+## Verify the shared backend
 
-In the prepared Codex cloud machine, source `tools/cloud-env.sh` before running Gradle, or run `bash tools/setup-cloud.sh`. Native graphics UI previews run on the JVM without an emulator. The optional software emulator is slow and has shown Android system instability in this machine; device instrumentation is not part of the verified cloud checks.
+```sh
+python3 tools/check-backend-connections.py --online
+# Isolated actual database/account services for development tests:
+python3 tools/local-backend.py start
+python3 tools/local-backend.py run -- npm run dev --prefix web -- --port 3001
+# Another terminal:
+python3 tools/local-backend.py run -- node web/tests/live-backend.mjs
+python3 tools/local-backend.py run -- npm run build --prefix web
+python3 tools/local-backend.py run -- npm run test:e2e --prefix web
+```
 
-## Explore the UI
+The test wrapper leaves production settings unchanged. Integration tests create and clean their own accounts/businesses. Local email capture tests account confirmation/recovery without claiming public email delivery. After local testing, rebuild with real configuration before deployment.
 
-- **Home:** daily snapshot, quick actions, sales trend, low-stock alerts, recent sales.
-- **New sale:** search products, build a basket, review payment method, complete a demo sale and see its receipt. Stock updates immediately.
-- **Sales:** filter by payment method and inspect receipts.
-- **Stock:** search and filter products, view details, restock, add a product.
-- **Customers:** search, filter balances, add customers, mark sample balances paid.
-- **Suppliers:** browse categories, view a supplier, build and review a demo restock order.
-- **Reports:** sales, profit and expense previews, week/month selector, product performance.
-- **Biashara AI:** interactive suggestions and local sample answers based on current demo stock and balances.
-- **Financing:** an honest preview of the future financing experience.
-- **Business profile:** edit the demo shop details.
-- **Meet Biashara:** a three-step welcome and store setup tour, available from More.
+## Current boundaries
 
-## Scope
+Payments are records of money received manually. Daraja, banks and Stripe are deferred. External AI, lending, paid billing and automated supplier/team email messaging are unavailable. Default account email sending is restricted to testing; a shared verified sender remains necessary before public registration. Merchants do not need their own domain.
 
-This phase prioritises UI and interaction design. There is no backend, authentication, real payment processing, live AI, supplier integration, or lending. Data lives in a ViewModel and is saved to Preferences DataStore, so local business records and display preferences survive app restarts. Reports and historical activity are illustrative. No internet permission is requested. Demo payments and orders are explicitly identified in the UI.
+Use free services during development. Commercial hosting eligibility, production email, Android signing, device verification and deployment checks remain launch work. Never claim that a successful build proves hosted connectivity.
 
-## Structure
+## Source and design
 
-`ui/` contains the design tokens, shared controls and screens. `data/DemoStore.kt` and `data/OperationsStore.kt` provide the local business state; `DemoPersistence.kt` snapshots it to DataStore. `MainActivity.kt` hosts navigation and the ViewModel. Unit tests cover basket, stock, receipt, transaction and persistence behaviour. Robolectric native graphics tests exercise checkout and render the screens to `app/build/outputs/ui-previews/`. Compose instrumented tests are also provided for real Android devices.
+- `app/`: native UI, account/network client, command adapters and tests.
+- `web/`: marketing, account/customer surfaces, workspace and server routes.
+- `supabase/migrations/`: additive SQL with tenant policies and transactional RPCs.
+- `tools/`: reproducible toolchains, isolated integration services and connection checks.
+- `design/`: reference previews from the UI phase; they are not current backend acceptance evidence.
 
-Shop, product and financing images are generated prototype assets. Inter is used for interface text and tabular amounts; Manrope is used for headings. Both are bundled under the SIL Open Font License in `third_party/`.
-
-## Backend phase
-
-Vercel and Supabase CLI setup is now documented in [backend setup](docs/backend-setup.md). Use `bash tools/backend-cli.sh vercel ...` or `bash tools/backend-cli.sh supabase ...` so credentials remain outside the checkout. Separate hosted projects have been prepared on the existing free accounts; application authentication and database feature integration are the next implementation phase. The current UI continues to use its local demo data.
+Inter and Manrope are bundled under the SIL Open Font License in `third_party/`. Product/shop/financing illustrations are prototype assets. Legacy sample-state tests remain explicitly separated from current live-workspace acceptance tests.
