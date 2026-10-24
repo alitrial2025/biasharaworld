@@ -33,7 +33,7 @@ export async function POST(request: Request, { params }: Context) {
       })
       .strict()
       .parse(JSON.parse(raw));
-    const shop = await shopRecord((await params).slug);
+    const shop = await shopRecord((await params).slug, false);
     const hash = createHash("sha256")
       .update(JSON.stringify({ cart: body.cart, address: body.address }))
       .digest("hex");
@@ -53,6 +53,8 @@ export async function POST(request: Request, { params }: Context) {
         throw new ApiError("Request ID already used.", 409);
       return json(previous.data.result);
     }
+    if (!shop.access.featuresUnlocked || !shop.state.operations.shop.published)
+      throw new ApiError("This shop is not available for new orders.", 404);
     if (
       Object.keys(body.cart).some(
         (id) => !publicShop(shop.state).products.some((p) => p.id === +id),

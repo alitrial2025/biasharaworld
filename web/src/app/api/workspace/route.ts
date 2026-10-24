@@ -8,6 +8,8 @@ import {
   fail,
   json,
   ApiError,
+  requireBusinessAccess,
+  clientWorkspace,
 } from "@/lib/backend/server";
 import { applyCommand } from "@/lib/backend/commands";
 import { splitState } from "@/lib/backend/empty";
@@ -15,7 +17,7 @@ import { validateProductImage } from "@/lib/backend/product-images";
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
-    return json({ workspace: await loadBusiness(await identity(request)) });
+    return json({ workspace: clientWorkspace(await loadBusiness(await identity(request))) });
   } catch (e) {
     return fail(e);
   }
@@ -38,7 +40,7 @@ export async function POST(request: Request) {
         })
         .strict()
         .parse(body.profile);
-      return json({ workspace: await ensureBusiness(user, profile) });
+      return json({ workspace: clientWorkspace(await ensureBusiness(user, profile)) });
     }
     const input = z
       .object({
@@ -89,10 +91,12 @@ export async function POST(request: Request) {
       )
         throw new ApiError("Request ID was used for another action.", 409);
       return json({
-        workspace,
+        workspace: clientWorkspace(workspace),
         result: { ...previous.data.result, duplicate: true },
       });
     }
+    const commandType = (input.command as { type?: unknown })?.type;
+    if (!["updateProfile", "preferences"].includes(String(commandType))) requireBusinessAccess(workspace);
     if (input.revision !== workspace.revision)
       throw new ApiError(
         "Records changed. Refresh and review before trying again.",
@@ -130,7 +134,7 @@ export async function POST(request: Request) {
         error.code === "40001" ? 409 : 503,
       );
     return json({
-      workspace: await loadBusiness(user, workspace.businessId),
+      workspace: clientWorkspace(await loadBusiness(user, workspace.businessId)),
       result: data,
     });
   } catch (e) {

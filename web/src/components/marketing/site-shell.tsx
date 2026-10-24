@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Brand, Button } from "@/components/ui";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { StoreBadges } from "./app-download";
 
 const menus = {
   Product: [
@@ -51,6 +52,12 @@ const menus = {
     },
   ],
   Solutions: [
+    {
+      href: "/solutions#business-types",
+      icon: Users,
+      title: "Find your business type",
+      text: "20 sectors, one focused workspace",
+    },
     {
       href: "/solutions/retail",
       icon: Store,
@@ -184,6 +191,13 @@ export function SiteHeader() {
           </T>
 
           <Link
+            href="/download"
+            className="nav-link"
+            onClick={() => setMobile(false)}
+          >
+            <T>Get app</T>
+          </Link>
+          <Link
             href="/pricing"
             className="nav-link"
             onClick={() => setMobile(false)}
@@ -240,6 +254,8 @@ export function SiteFooter() {
               <span className="status-dot" />
               <T>Made for everyday entrepreneurs.</T>
             </span>
+            <Link href="/download" className="text-link" style={{ marginTop: 18 }}><Smartphone size={16} /> Get app <ArrowRight size={14} /></Link>
+            <StoreBadges />
           </div>
 
           <T>

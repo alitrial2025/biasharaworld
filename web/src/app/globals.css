@@ -10311,3 +10311,36 @@ dialog.modal {
   .onboarding-layout li strong { max-width: none; overflow-wrap: anywhere; }
   .onboarding-card .badge { white-space: normal; }
 }
+
+/* The sector workspace keeps operational tools focused and uses the shared dark palette. */
+.industry-workbench-link { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px; margin-bottom: 24px; }
+.industry-workbench-link h2 { margin: 5px 0; font-size: 1.25rem; }
+.industry-workbench-link p { margin: 0; color: var(--muted); }
+.industry-filters { display: flex; gap: 24px; align-items: center; margin-bottom: 20px; }
+.industry-filters > .field { flex: 1; max-width: 480px; }
+.industry-records { display: grid; gap: 12px; }
+.industry-record { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 16px; text-align: left; color: var(--ink); padding: 20px; background: var(--surface, #fff); }
+.industry-record > div { display: grid; gap: 4px; min-width: 0; }
+.industry-record strong, .industry-record span { overflow-wrap: anywhere; }
+.industry-record > div > span { color: var(--muted); font-size: .85rem; }
+.industry-previous { margin-top: 28px; padding: 24px; }
+.industry-history { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 16px; }
+.industry-history summary { cursor: pointer; font-weight: 600; }
+.industry-history ul { padding-left: 20px; }
+.industry-history li { margin: 12px 0; overflow-wrap: anywhere; }
+.industry-history small { display: block; color: var(--muted); }
+.verification-reminder { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 30px; background: var(--sand); border-bottom: 1px solid var(--line); color: var(--ink); }
+.verification-reminder > div { display: grid; gap: 4px; }
+.verification-reminder span { font-size: .85rem; max-width: 850px; }
+.verification-reminder .btn { flex-shrink: 0; }
+.verification-locked { padding: clamp(24px, 5vw, 56px); max-width: 850px; margin: 24px auto; }
+.verification-locked h1 { font-size: clamp(1.5rem, 4vw, 2rem); }
+.verification-locked p { color: var(--muted); }
+@media (max-width: 700px) {
+ .industry-workbench-link, .industry-filters, .verification-reminder { flex-direction: column; align-items: stretch; gap: 14px; }
+ .industry-workbench-link { padding: 20px; }
+ .industry-record { flex-wrap: wrap; padding: 16px; }
+ .industry-record > div:first-child { flex-basis: 100%; }
+ .industry-record > div:last-child { margin-left: auto; text-align: right; }
+ .verification-reminder { padding: 16px 20px; }
+}

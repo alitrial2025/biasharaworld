@@ -1,0 +1,3672 @@
+[
+  {
+    "id": "wholesale",
+    "label": "Wholesale Distributors",
+    "description": "Bulk orders, dispatches and institutional account follow-up.",
+    "aliases": [
+      "Wholesale",
+      "Distributor"
+    ],
+    "recommendedTools": [
+      "inventory",
+      "customers",
+      "suppliers",
+      "orders",
+      "documents",
+      "reports"
+    ],
+    "labels": {
+      "catalog": "Stock catalogue",
+      "customers": "Trade customers",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "bulk-orders",
+        "label": "Bulk orders",
+        "singular": "bulk order",
+        "description": "Track quantities, customer references and fulfilment. Stock is adjusted separately through sales or batches.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Customer order reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "quantity",
+            "label": "Units / packs",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "unit",
+            "label": "Unit or pack size",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Required delivery date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "dispatches",
+        "label": "Dispatches",
+        "singular": "dispatch",
+        "description": "Coordinate bulk dispatches and proof-of-delivery references.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Order / dispatch reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "destination",
+            "label": "Delivery destination",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "vehicle",
+            "label": "Vehicle / transporter",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Dispatch date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "account-followups",
+        "label": "Account follow-ups",
+        "singular": "account follow-up",
+        "description": "Plan trade-account collection and account-service tasks. Payment entries are manual records.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Invoice / account reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Follow-up date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Responsible person",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      }
+    ]
+  },
+  {
+    "id": "events",
+    "label": "Concert & Event Management Companies",
+    "description": "Plan events, bookings and production tasks without mixing them with retail tools.",
+    "aliases": [
+      "Event management",
+      "Events",
+      "Concerts"
+    ],
+    "recommendedTools": [
+      "customers",
+      "documents",
+      "expenses",
+      "reports",
+      "team"
+    ],
+    "labels": {
+      "catalog": "Event services",
+      "customers": "Clients",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "events",
+        "label": "Events",
+        "singular": "event",
+        "description": "Coordinate the venue and event schedule; ticketing and public-safety approvals are handled separately.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "resource",
+            "label": "Venue / space ID",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "start",
+            "label": "Starts (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Ends (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "location",
+            "label": "Venue address",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "capacity",
+            "label": "Planned attendance",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)",
+        "reservation": {
+          "resourceField": "resource",
+          "startField": "start",
+          "endField": "end",
+          "pool": "venue"
+        }
+      },
+      {
+        "id": "production",
+        "label": "Production tasks",
+        "singular": "production task",
+        "description": "Track suppliers, staging and production deliverables.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Event reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Responsible team / supplier",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Deadline",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "deliverable",
+            "label": "Deliverable",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "sponsorships",
+        "label": "Sponsorships",
+        "singular": "sponsorship",
+        "description": "Record sponsor commitments and manually received payments.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Event / sponsor reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "deliverable",
+            "label": "Sponsor benefits",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Commitment date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      }
+    ]
+  },
+  {
+    "id": "rentals",
+    "label": "Event Equipment Rental Services",
+    "description": "Reserve individual assets, track returns and coordinate maintenance.",
+    "aliases": [
+      "Equipment rental",
+      "Rental services"
+    ],
+    "recommendedTools": [
+      "inventory",
+      "customers",
+      "documents",
+      "expenses",
+      "reports"
+    ],
+    "labels": {
+      "catalog": "Equipment catalogue",
+      "customers": "Hirers",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "reservations",
+        "label": "Equipment reservations",
+        "singular": "reservation",
+        "description": "Reserve an individual asset or kit. Use a unique asset ID for each independently rentable resource.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "resource",
+            "label": "Asset / equipment kit ID",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "start",
+            "label": "Starts (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Ends (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "location",
+            "label": "Delivery / pickup location",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)",
+        "reservation": {
+          "resourceField": "resource",
+          "startField": "start",
+          "endField": "end",
+          "pool": "asset"
+        }
+      },
+      {
+        "id": "returns",
+        "label": "Returns & inspections",
+        "singular": "return inspection",
+        "description": "Record condition and return checks against a reservation.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Reservation reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "resource",
+            "label": "Asset / equipment kit ID",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Return date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "condition",
+            "label": "Return condition",
+            "type": "select",
+            "required": true,
+            "options": [
+              "Good",
+              "Needs repair",
+              "Missing items"
+            ]
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "maintenance",
+        "label": "Maintenance",
+        "singular": "maintenance booking",
+        "description": "Block the asset while maintenance takes place.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "resource",
+            "label": "Asset / equipment kit ID",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "start",
+            "label": "Starts (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Ends (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Technician",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)",
+        "reservation": {
+          "resourceField": "resource",
+          "startField": "start",
+          "endField": "end",
+          "pool": "asset"
+        }
+      }
+    ]
+  },
+  {
+    "id": "agribusiness",
+    "label": "Agribusiness & Produce Dealers",
+    "description": "Organize produce lots, aggregation and delivery records.",
+    "aliases": [
+      "Agribusiness",
+      "Farm",
+      "Produce dealer",
+      "Agriculture"
+    ],
+    "recommendedTools": [
+      "inventory",
+      "suppliers",
+      "expiry",
+      "customers",
+      "reports"
+    ],
+    "labels": {
+      "catalog": "Produce catalogue",
+      "customers": "Buyers",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "produce-lots",
+        "label": "Produce lots",
+        "singular": "produce lot",
+        "description": "Record produce origin, weight and grade. Shared batches track sellable stock separately.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Lot / batch reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "produce",
+            "label": "Produce / product",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "quantity",
+            "label": "Weight / quantity",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "unit",
+            "label": "Unit",
+            "type": "select",
+            "required": true,
+            "options": [
+              "kg",
+              "tonnes",
+              "litres",
+              "crates",
+              "bags",
+              "head"
+            ]
+          },
+          {
+            "key": "grade",
+            "label": "Grade / quality",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Harvest / receipt date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "aggregation",
+        "label": "Aggregation orders",
+        "singular": "aggregation order",
+        "description": "Track sourcing agreements and collection targets.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "origin",
+            "label": "Farm / supplier",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "produce",
+            "label": "Produce",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "quantity",
+            "label": "Quantity",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "unit",
+            "label": "Unit",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Collection date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "produce-deliveries",
+        "label": "Produce deliveries",
+        "singular": "produce delivery",
+        "description": "Track delivery milestones and export documentation references; no customs filing is performed.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Lot / order reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "destination",
+            "label": "Buyer destination",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "vehicle",
+            "label": "Transporter / vehicle",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Delivery date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      }
+    ]
+  },
+  {
+    "id": "retail",
+    "label": "Retail Supermarkets & Minimarts",
+    "description": "Keep everyday checkout, stock and customer service close at hand.",
+    "aliases": [
+      "Retail shop",
+      "Mini market",
+      "Mini market / supermarket",
+      "Supermarket",
+      "Minimart",
+      "Retail"
+    ],
+    "recommendedTools": [
+      "sales",
+      "inventory",
+      "customers",
+      "suppliers",
+      "expenses",
+      "reports"
+    ],
+    "labels": {
+      "catalog": "Products",
+      "customers": "Customers",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "special-orders",
+        "label": "Special orders",
+        "singular": "special order",
+        "description": "Track customer requests and collections outside everyday checkout.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Order reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "items",
+            "label": "Requested items",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Collection date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "replenishment",
+        "label": "Replenishment tasks",
+        "singular": "replenishment task",
+        "description": "Coordinate shelf replenishment. Goods receipt and counts remain in inventory tools.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "location",
+            "label": "Shelf / section",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "items",
+            "label": "Products / replenishment task",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Assigned staff",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Due date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "customer-service",
+        "label": "Customer service",
+        "singular": "service request",
+        "description": "Track customer follow-up independently of refund records.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Receipt / order reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "issue",
+            "label": "Request",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Follow-up date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      }
+    ]
+  },
+  {
+    "id": "freight",
+    "label": "Clearing & Forwarding Agencies",
+    "description": "Follow shipments, clearance tasks and delivery milestones.",
+    "aliases": [
+      "Clearing & forwarding",
+      "Freight",
+      "Logistics"
+    ],
+    "recommendedTools": [
+      "customers",
+      "documents",
+      "expenses",
+      "reports",
+      "team"
+    ],
+    "labels": {
+      "catalog": "Logistics services",
+      "customers": "Shippers",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "shipments",
+        "label": "Shipments",
+        "singular": "shipment",
+        "description": "Track shipment references and milestones. Official customs submissions and carrier feeds are separate integrations.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Shipment / bill of lading reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "origin",
+            "label": "Origin",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "destination",
+            "label": "Destination",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "mode",
+            "label": "Transport mode",
+            "type": "select",
+            "required": true,
+            "options": [
+              "Sea",
+              "Air",
+              "Road",
+              "Rail"
+            ]
+          },
+          {
+            "key": "due",
+            "label": "Expected arrival",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "clearance",
+        "label": "Clearance checklist",
+        "singular": "clearance task",
+        "description": "Track document and clearance follow-ups without storing government credentials.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Shipment reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "task",
+            "label": "Required document / task",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Responsible agent",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Deadline",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "last-mile",
+        "label": "Delivery milestones",
+        "singular": "delivery milestone",
+        "description": "Record the last-mile handover and client-service steps.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Shipment reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "vehicle",
+            "label": "Transporter / vehicle",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "destination",
+            "label": "Handover destination",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Handover date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      }
+    ]
+  },
+  {
+    "id": "marketing",
+    "label": "Digital & Social Media Marketing Agencies",
+    "description": "Manage campaign briefs, content deadlines and client retainers.",
+    "aliases": [
+      "Marketing agency",
+      "Digital marketing",
+      "Social media agency"
+    ],
+    "recommendedTools": [
+      "customers",
+      "documents",
+      "expenses",
+      "reports",
+      "team"
+    ],
+    "labels": {
+      "catalog": "Services & packages",
+      "customers": "Clients",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "campaigns",
+        "label": "Campaigns",
+        "singular": "campaign",
+        "description": "Plan campaign goals, channels and delivery dates. Social-platform publishing is separate.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "objective",
+            "label": "Campaign objective",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "channel",
+            "label": "Channel",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "start",
+            "label": "Start date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "End date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "content",
+        "label": "Content deliverables",
+        "singular": "content deliverable",
+        "description": "Track content briefs, assigned creators and client approval.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Campaign / brief reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "deliverable",
+            "label": "Content deliverable",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Creator",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Deadline",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "retainers",
+        "label": "Client retainers",
+        "singular": "retainer",
+        "description": "Track service periods and manually received retainer payments.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "package",
+            "label": "Service package",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "start",
+            "label": "Period starts",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Period ends",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      }
+    ]
+  },
+  {
+    "id": "real-estate",
+    "label": "Real Estate Development & Agencies",
+    "description": "Organize properties, viewings and lease-service follow-up.",
+    "aliases": [
+      "Real estate",
+      "Property agency",
+      "Estate management"
+    ],
+    "recommendedTools": [
+      "customers",
+      "documents",
+      "expenses",
+      "reports",
+      "team"
+    ],
+    "labels": {
+      "catalog": "Properties & services",
+      "customers": "Clients & tenants",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "properties",
+        "label": "Property pipeline",
+        "singular": "property record",
+        "description": "Track listing and development administration; this is not a land-title register.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Property / unit reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "location",
+            "label": "Property location",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "type",
+            "label": "Property type",
+            "type": "select",
+            "required": true,
+            "options": [
+              "Residential",
+              "Commercial",
+              "Land",
+              "Development"
+            ]
+          },
+          {
+            "key": "purpose",
+            "label": "Purpose",
+            "type": "select",
+            "required": true,
+            "options": [
+              "Sale",
+              "Lease",
+              "Management"
+            ]
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "viewings",
+        "label": "Viewings",
+        "singular": "viewing",
+        "description": "Reserve an agent appointment for a property viewing.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "resource",
+            "label": "Agent / representative",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "start",
+            "label": "Starts (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Ends (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "reference",
+            "label": "Property reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "location",
+            "label": "Meeting location",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)",
+        "reservation": {
+          "resourceField": "resource",
+          "startField": "start",
+          "endField": "end",
+          "pool": "agent"
+        }
+      },
+      {
+        "id": "leases",
+        "label": "Lease follow-ups",
+        "singular": "lease follow-up",
+        "description": "Track lease periods, rent-service tasks and manual receipts. Legal contracts remain separate documents.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Property / lease reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "start",
+            "label": "Period begins",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Period ends",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Next follow-up",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      }
+    ]
+  },
+  {
+    "id": "travel",
+    "label": "Tour Operators & Travel Agencies",
+    "description": "Plan itineraries, customer reservations and supplier confirmations.",
+    "aliases": [
+      "Tour operator",
+      "Travel agency",
+      "Safari operator"
+    ],
+    "recommendedTools": [
+      "customers",
+      "documents",
+      "suppliers",
+      "expenses",
+      "reports"
+    ],
+    "labels": {
+      "catalog": "Travel packages",
+      "customers": "Travellers",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "travel-bookings",
+        "label": "Travel bookings",
+        "singular": "travel booking",
+        "description": "Track customer reservations and booking references; no live airline or hotel booking is performed.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Booking reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "package",
+            "label": "Tour / travel package",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "quantity",
+            "label": "Travellers",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "start",
+            "label": "Departure date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Return date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "itineraries",
+        "label": "Itinerary tasks",
+        "singular": "itinerary task",
+        "description": "Coordinate destinations, guides and itinerary deliverables.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Booking reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "destination",
+            "label": "Destination / activity",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Guide / coordinator",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Activity date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "supplier-confirmations",
+        "label": "Supplier confirmations",
+        "singular": "supplier confirmation",
+        "description": "Track hotel, transport and activity confirmations.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Booking reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "supplier",
+            "label": "Supplier",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "service",
+            "label": "Reserved service",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Confirmation deadline",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      }
+    ]
+  },
+  {
+    "id": "hardware",
+    "label": "Hardware & Construction Material Suppliers",
+    "description": "Coordinate material quotations, site deliveries and fabrication orders.",
+    "aliases": [
+      "Hardware",
+      "Construction materials",
+      "Building supplies"
+    ],
+    "recommendedTools": [
+      "inventory",
+      "customers",
+      "suppliers",
+      "documents",
+      "orders",
+      "reports"
+    ],
+    "labels": {
+      "catalog": "Materials catalogue",
+      "customers": "Trade customers",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "material-orders",
+        "label": "Material orders",
+        "singular": "material order",
+        "description": "Track material requirements and quoted totals; record stock movements through inventory.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Customer / quote reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "materials",
+            "label": "Material specification",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "quantity",
+            "label": "Quantity",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "unit",
+            "label": "Unit",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Required date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "site-deliveries",
+        "label": "Site deliveries",
+        "singular": "site delivery",
+        "description": "Coordinate site delivery and unloading requirements.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Order reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "destination",
+            "label": "Construction site",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "vehicle",
+            "label": "Vehicle / transporter",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Delivery date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "fabrication",
+        "label": "Fabrication jobs",
+        "singular": "fabrication job",
+        "description": "Record custom dimensions, assigned workshop and production status.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Order reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "specification",
+            "label": "Dimensions / specification",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Workshop / technician",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Ready date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      }
+    ]
+  },
+  {
+    "id": "agency-banking",
+    "label": "Mobile Money Transfer & Banking Agents",
+    "description": "Record service commissions and daily cash/float reconciliation.",
+    "aliases": [
+      "M-Pesa agent",
+      "Banking agent",
+      "Mobile money",
+      "Agency banking"
+    ],
+    "recommendedTools": [
+      "customers",
+      "expenses",
+      "register",
+      "reports"
+    ],
+    "labels": {
+      "catalog": "Agent services",
+      "customers": "Customers",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "agent-services",
+        "label": "Agent service log",
+        "singular": "service record",
+        "description": "Record an external provider transaction reference and earned commission. No transfer, deposit or withdrawal is executed here; never enter customer PINs.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Provider transaction reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "direction",
+            "label": "Service type",
+            "type": "select",
+            "required": true,
+            "options": [
+              "Deposit",
+              "Withdrawal",
+              "Transfer",
+              "Bill payment",
+              "Other"
+            ]
+          },
+          {
+            "key": "transactionAmount",
+            "label": "Provider transaction value (KES)",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "due",
+            "label": "Service date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Commission earned (KES)"
+      },
+      {
+        "id": "float-checks",
+        "label": "Cash & float checks",
+        "singular": "reconciliation",
+        "description": "Record expected and counted cash/float for reconciliation; this does not connect to a banking ledger.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "due",
+            "label": "Reconciliation date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "openingCash",
+            "label": "Opening cash (KES)",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "closingCash",
+            "label": "Counted closing cash (KES)",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "openingFloat",
+            "label": "Opening provider float (KES)",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "closingFloat",
+            "label": "Counted provider float (KES)",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Recorded fees / commission (KES)"
+      },
+      {
+        "id": "agent-followups",
+        "label": "Service follow-ups",
+        "singular": "follow-up",
+        "description": "Track provider support references and unresolved service issues.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Provider support reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "issue",
+            "label": "Operational issue",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Follow-up date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed service fee (KES)"
+      }
+    ]
+  },
+  {
+    "id": "hospitality",
+    "label": "Restaurants, Lounges & Nightclubs",
+    "description": "Organize tables, service orders and private functions.",
+    "aliases": [
+      "Restaurant",
+      "Lounge",
+      "Nightclub",
+      "Hospitality",
+      "Bar"
+    ],
+    "recommendedTools": [
+      "sales",
+      "inventory",
+      "expiry",
+      "customers",
+      "expenses",
+      "reports"
+    ],
+    "labels": {
+      "catalog": "Menu & stock",
+      "customers": "Guests",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "table-bookings",
+        "label": "Table reservations",
+        "singular": "reservation",
+        "description": "Reserve an individual table or private space.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "resource",
+            "label": "Table / private-space ID",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "start",
+            "label": "Starts (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Ends (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "quantity",
+            "label": "Guests",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)",
+        "reservation": {
+          "resourceField": "resource",
+          "startField": "start",
+          "endField": "end",
+          "pool": "table"
+        }
+      },
+      {
+        "id": "service-orders",
+        "label": "Service orders",
+        "singular": "service order",
+        "description": "Track kitchen/bar service tasks. Record the final stock sale and payment through checkout where required.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Table / order reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "items",
+            "label": "Order details",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Service team",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "private-functions",
+        "label": "Private functions",
+        "singular": "private function",
+        "description": "Coordinate private-space bookings and function requirements.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "resource",
+            "label": "Table / private-space ID",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "start",
+            "label": "Starts (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Ends (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "quantity",
+            "label": "Guests",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "requirements",
+            "label": "Service requirements",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)",
+        "reservation": {
+          "resourceField": "resource",
+          "startField": "start",
+          "endField": "end",
+          "pool": "table"
+        }
+      }
+    ]
+  },
+  {
+    "id": "healthcare",
+    "label": "Private Healthcare Facilities & Pharmacies",
+    "description": "Coordinate administrative appointments, pharmacy sourcing and service follow-ups.",
+    "aliases": [
+      "Healthcare",
+      "Clinic",
+      "Pharmacy",
+      "Chemist",
+      "Laboratory"
+    ],
+    "recommendedTools": [
+      "inventory",
+      "expiry",
+      "suppliers",
+      "customers",
+      "expenses",
+      "reports"
+    ],
+    "labels": {
+      "catalog": "Pharmacy stock & services",
+      "customers": "Administrative contacts",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "appointments",
+        "label": "Administrative appointments",
+        "singular": "appointment",
+        "description": "Track a contact reference, clinician slot and administration fee only. Do not enter diagnoses, medical histories, prescriptions or test results.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "resource",
+            "label": "Clinician / service-room ID",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "start",
+            "label": "Starts (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Ends (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "reference",
+            "label": "Administrative contact / booking reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)",
+        "reservation": {
+          "resourceField": "resource",
+          "startField": "start",
+          "endField": "end",
+          "pool": "clinical-resource"
+        }
+      },
+      {
+        "id": "pharmacy-sourcing",
+        "label": "Pharmacy sourcing",
+        "singular": "sourcing request",
+        "description": "Plan medicine-stock sourcing; batches/expiry remain in stock tools. This does not provide clinical or dispensing authorization.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Supplier / order reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "items",
+            "label": "Stock items",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Required date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "administrative-followups",
+        "label": "Administrative follow-ups",
+        "singular": "follow-up",
+        "description": "Track administrative service and billing tasks without clinical records.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Administrative contact / invoice reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "task",
+            "label": "Administrative task",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Responsible staff",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Follow-up date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      }
+    ]
+  },
+  {
+    "id": "software-it",
+    "label": "Software Development & IT Consultancies",
+    "description": "Track projects, milestones and support agreements.",
+    "aliases": [
+      "Software development",
+      "IT consultancy",
+      "Software agency",
+      "Technology services"
+    ],
+    "recommendedTools": [
+      "customers",
+      "documents",
+      "expenses",
+      "reports",
+      "team"
+    ],
+    "labels": {
+      "catalog": "Services & retainers",
+      "customers": "Clients",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "projects",
+        "label": "Projects",
+        "singular": "project",
+        "description": "Track scope, delivery dates and project financial records.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Project reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "scope",
+            "label": "Agreed scope",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "start",
+            "label": "Start date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Delivery target",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "milestones",
+        "label": "Project milestones",
+        "singular": "milestone",
+        "description": "Record deliverables, owners and acceptance follow-up.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Project reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "deliverable",
+            "label": "Milestone deliverable",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Responsible team",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Deadline",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "support",
+        "label": "Support requests",
+        "singular": "support request",
+        "description": "Track service requests and customer updates. Never store passwords, API secrets or recovery codes.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Client / support reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "issue",
+            "label": "Service request",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "priority",
+            "label": "Priority",
+            "type": "select",
+            "required": true,
+            "options": [
+              "Normal",
+              "High",
+              "Urgent"
+            ]
+          },
+          {
+            "key": "due",
+            "label": "Response target",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      }
+    ]
+  },
+  {
+    "id": "transport",
+    "label": "Public Transport Companies (Matatu Saccos)",
+    "description": "Plan vehicle trips, service tasks and trip-account reconciliations.",
+    "aliases": [
+      "Matatu sacco",
+      "Transport company",
+      "Public transport",
+      "Bus company",
+      "Shuttle"
+    ],
+    "recommendedTools": [
+      "customers",
+      "expenses",
+      "register",
+      "reports",
+      "team"
+    ],
+    "labels": {
+      "catalog": "Routes & services",
+      "customers": "Passengers / clients",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "trips",
+        "label": "Vehicle trips",
+        "singular": "trip",
+        "description": "Reserve a vehicle for a route and departure window. GPS tracking, ticketing and SACCO compliance filings are separate.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "resource",
+            "label": "Vehicle registration",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "start",
+            "label": "Starts (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Ends (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "origin",
+            "label": "Departure point",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "destination",
+            "label": "Destination",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "driver",
+            "label": "Driver",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "quantity",
+            "label": "Booked passengers",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)",
+        "reservation": {
+          "resourceField": "resource",
+          "startField": "start",
+          "endField": "end",
+          "pool": "vehicle"
+        }
+      },
+      {
+        "id": "vehicle-service",
+        "label": "Vehicle maintenance",
+        "singular": "maintenance booking",
+        "description": "Block a vehicle while scheduled service is performed.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "resource",
+            "label": "Vehicle registration",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "start",
+            "label": "Starts (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Ends (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Workshop / technician",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)",
+        "reservation": {
+          "resourceField": "resource",
+          "startField": "start",
+          "endField": "end",
+          "pool": "vehicle"
+        }
+      },
+      {
+        "id": "trip-accounts",
+        "label": "Trip reconciliations",
+        "singular": "trip reconciliation",
+        "description": "Record trip expenses and collection references. No fare payment is collected automatically.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Trip reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "vehicle",
+            "label": "Vehicle registration",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Trip date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "collections",
+            "label": "Counted collections (KES)",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "expenses",
+            "label": "Trip costs (KES)",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Recorded trip revenue (KES)"
+      }
+    ]
+  },
+  {
+    "id": "security",
+    "label": "Security & Guard Services",
+    "description": "Coordinate guard deployments, installations and customer-service follow-up.",
+    "aliases": [
+      "Security services",
+      "Guard services",
+      "CCTV installation"
+    ],
+    "recommendedTools": [
+      "customers",
+      "documents",
+      "expenses",
+      "reports",
+      "team"
+    ],
+    "labels": {
+      "catalog": "Contracts & services",
+      "customers": "Client sites",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "guard-deployments",
+        "label": "Guard deployments",
+        "singular": "deployment",
+        "description": "Reserve a guard or crew for a site shift. Do not enter access codes, alarm secrets or sensitive incident details.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "resource",
+            "label": "Guard / crew ID",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "start",
+            "label": "Starts (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Ends (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "location",
+            "label": "Client site reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)",
+        "reservation": {
+          "resourceField": "resource",
+          "startField": "start",
+          "endField": "end",
+          "pool": "crew"
+        }
+      },
+      {
+        "id": "installations",
+        "label": "Installation jobs",
+        "singular": "installation",
+        "description": "Track alarm/CCTV installation scope and completion tasks.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Client / job reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "location",
+            "label": "Site reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "scope",
+            "label": "Installation scope",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Completion target",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "service-checks",
+        "label": "Service checks",
+        "singular": "service check",
+        "description": "Track routine customer-service tasks; urgent incidents require your established response channels.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Client / contract reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "task",
+            "label": "Service task",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Responsible supervisor",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Due date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      }
+    ]
+  },
+  {
+    "id": "beauty",
+    "label": "Beauty Salons, Spas & Barbershops",
+    "description": "Organize client appointments, packages and service follow-ups.",
+    "aliases": [
+      "Salon",
+      "Spa",
+      "Barbershop",
+      "Beauty salon"
+    ],
+    "recommendedTools": [
+      "customers",
+      "inventory",
+      "expenses",
+      "reports",
+      "team"
+    ],
+    "labels": {
+      "catalog": "Services & products",
+      "customers": "Clients",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "appointments",
+        "label": "Appointments",
+        "singular": "appointment",
+        "description": "Reserve a stylist, barber or treatment resource.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "resource",
+            "label": "Stylist / treatment resource",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "start",
+            "label": "Starts (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Ends (Nairobi time)",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "service",
+            "label": "Booked service",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)",
+        "reservation": {
+          "resourceField": "resource",
+          "startField": "start",
+          "endField": "end",
+          "pool": "staff"
+        }
+      },
+      {
+        "id": "packages",
+        "label": "Client packages",
+        "singular": "package",
+        "description": "Track agreed service packages and manually received payments.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "package",
+            "label": "Package / services",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "quantity",
+            "label": "Sessions",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "due",
+            "label": "Valid until",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "client-followups",
+        "label": "Client follow-ups",
+        "singular": "follow-up",
+        "description": "Track non-clinical client service and appointment follow-up.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Appointment / package reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "task",
+            "label": "Follow-up task",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Follow-up date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      }
+    ]
+  },
+  {
+    "id": "laundry",
+    "label": "Commercial Laundromats & Dry Cleaners",
+    "description": "Track intake, cleaning work and collection/delivery.",
+    "aliases": [
+      "Laundry",
+      "Dry cleaner",
+      "Laundromat"
+    ],
+    "recommendedTools": [
+      "customers",
+      "documents",
+      "expenses",
+      "reports"
+    ],
+    "labels": {
+      "catalog": "Cleaning services",
+      "customers": "Customers",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "laundry-orders",
+        "label": "Laundry orders",
+        "singular": "laundry order",
+        "description": "Record intake quantities, cleaning instructions and collection dates.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Intake / bag reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "quantity",
+            "label": "Item count / weight",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "unit",
+            "label": "Unit",
+            "type": "select",
+            "required": true,
+            "options": [
+              "items",
+              "kg",
+              "bags",
+              "sets"
+            ]
+          },
+          {
+            "key": "instructions",
+            "label": "Cleaning instructions",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Ready / collection date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "quality-checks",
+        "label": "Quality checks",
+        "singular": "quality check",
+        "description": "Track inspection and rework against an intake reference.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Intake reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Responsible staff",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "check",
+            "label": "Inspection / rework details",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Check date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "collections",
+        "label": "Collections & deliveries",
+        "singular": "collection",
+        "description": "Coordinate customer pickup and laundry delivery.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Intake reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "destination",
+            "label": "Collection / delivery location",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Collection date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      }
+    ]
+  },
+  {
+    "id": "apparel",
+    "label": "Boutiques & Apparel Stores",
+    "description": "Keep stock, customer orders and alteration work together.",
+    "aliases": [
+      "Boutique",
+      "Apparel",
+      "Clothing store",
+      "Fashion",
+      "Footwear"
+    ],
+    "recommendedTools": [
+      "sales",
+      "inventory",
+      "variants",
+      "customers",
+      "suppliers",
+      "reports"
+    ],
+    "labels": {
+      "catalog": "Styles & sizes",
+      "customers": "Customers",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "customer-orders",
+        "label": "Customer orders",
+        "singular": "customer order",
+        "description": "Track requested styles, sizes and collection dates; checkout records stock sales separately.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Order reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "items",
+            "label": "Style / size requests",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "quantity",
+            "label": "Items",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "due",
+            "label": "Collection date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "alterations",
+        "label": "Alterations",
+        "singular": "alteration",
+        "description": "Track tailoring instructions and completion targets.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Garment / order reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "instructions",
+            "label": "Alteration instructions",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Tailor",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Ready date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "supplier-arrivals",
+        "label": "Supplier arrivals",
+        "singular": "arrival",
+        "description": "Track expected stock deliveries before goods receipt.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Supplier / purchase reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "items",
+            "label": "Expected styles / sizes",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Expected date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      }
+    ]
+  },
+  {
+    "id": "printing",
+    "label": "Printing & Branding Firms",
+    "description": "Track production specifications, proof approval and installation.",
+    "aliases": [
+      "Printing",
+      "Branding",
+      "Signage",
+      "Print shop"
+    ],
+    "recommendedTools": [
+      "customers",
+      "documents",
+      "inventory",
+      "expenses",
+      "reports"
+    ],
+    "labels": {
+      "catalog": "Print services & materials",
+      "customers": "Clients",
+      "operations": "Operations"
+    },
+    "workflows": [
+      {
+        "id": "print-jobs",
+        "label": "Print jobs",
+        "singular": "print job",
+        "description": "Track print specifications, quantities and production deadlines.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Job / customer reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "specification",
+            "label": "Size, material & finishing",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "key": "quantity",
+            "label": "Quantity",
+            "type": "number",
+            "required": true,
+            "min": 0,
+            "max": 1000000
+          },
+          {
+            "key": "due",
+            "label": "Ready date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "proofs",
+        "label": "Proof approvals",
+        "singular": "proof approval",
+        "description": "Record artwork proof references and approval follow-up; files and final client approval are handled separately.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Job / artwork reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "deliverable",
+            "label": "Proof / version reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Designer / coordinator",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Approval target",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      },
+      {
+        "id": "installations",
+        "label": "Delivery & installation",
+        "singular": "installation",
+        "description": "Coordinate signage delivery or on-site installation.",
+        "statuses": [
+          "Planned",
+          "Confirmed",
+          "In progress",
+          "Completed",
+          "Cancelled"
+        ],
+        "terminalStatuses": [
+          "Completed",
+          "Cancelled"
+        ],
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Job reference",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "location",
+            "label": "Installation location",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "assignee",
+            "label": "Installation team",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "due",
+            "label": "Installation date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Operational notes",
+            "type": "textarea",
+            "required": false
+          }
+        ],
+        "amountLabel": "Agreed total (KES)"
+      }
+    ]
+  }
+]

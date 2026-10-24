@@ -33,10 +33,12 @@ import {
 import { lowStock, money, salesTotal } from "@/lib/data";
 import { businessReport } from "@/lib/backend/reports";
 import { useDemo } from "@/lib/store";
+import { resolveIndustry } from "@/lib/industries";
 import { downloadCSV } from "@/lib/csv";
 
 export function Overview() {
   const { state, store } = useDemo();
+  const industry = resolveIndustry(state.profile.type);
   const [period, setPeriod] = useState("Day");
   const [targetOpen, setTargetOpen] = useState(false);
   const toast = useToast();
@@ -68,6 +70,18 @@ export function Overview() {
   }
   return (
     <>
+      <section className="panel industry-workbench-link">
+        <div>
+          <span className="eyebrow">{industry.label}</span>
+          <h2>Your business, organised around your work.</h2>
+          <p>
+            {industry.workflows.map((workflow) => workflow.label).join(" · ")}
+          </p>
+        </div>
+        <Button href="/dashboard/operations" arrow>
+          Open operations
+        </Button>
+      </section>
       <div className="overview-eyebrow">
         <span>
           <T>{date}</T>

@@ -17,7 +17,7 @@ fun emptyVerificationProfile(name: String = "", email: String = "") = json(
 
 fun verificationMissing(profile: JSONObject): List<String> = buildList {
     if (profile.optString("country") != "KE") add("Kenya launch country")
-    listOf("legalName" to "Legal business or owner name", "tradingName" to "Business name", "contactName" to "Owner contact name", "phone" to "Contact phone", "email" to "Contact email", "businessAddress" to "Business address").forEach { (key, label) -> if (profile.optString(key).isBlank()) add(label) }
+    listOf("legalName" to "Legal business or owner name", "tradingName" to "Business name", "contactName" to "Owner contact name", "phone" to "Contact phone", "email" to "Contact email", "businessAddress" to "Business address", "businessType" to "Business sector").forEach { (key, label) -> if (profile.optString(key).isBlank()) add(label) }
     if (!validEmail(profile.optString("email"))) add("Valid contact email")
     val phone = profile.optString("phone")
     if (phone.isNotBlank() && (!Regex("\\+?[\\d\\s().-]{7,30}").matches(phone) || phone.count { it.isDigit() } !in 7..15)) add("Valid contact phone")

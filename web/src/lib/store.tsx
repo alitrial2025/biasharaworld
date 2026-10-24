@@ -18,6 +18,7 @@ import type {
 import type { Action } from "./operations";
 import { emptyBusiness } from "./backend/empty";
 import { supabase } from "./supabase";
+import type { BusinessAccess } from "./verification";
 export type LiveWorkspace = {
   businessId: string;
   slug: string;
@@ -25,6 +26,7 @@ export type LiveWorkspace = {
   revision: number;
   updatedAt: string;
   state: ReturnType<typeof emptyBusiness>;
+  access?: BusinessAccess;
 };
 class BusinessStore {
   storageWarning = "";

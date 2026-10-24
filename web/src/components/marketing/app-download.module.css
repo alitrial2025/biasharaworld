@@ -1,0 +1,53 @@
+.stores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border: 1px solid #464646;
+  border-radius: 12px;
+  color: #fff;
+  background: #161a18;
+  min-width: 168px;
+}
+.badge span {
+  display: grid;
+  gap: 3px;
+}
+.badge strong {
+  font-size: 16px;
+  line-height: 1.2;
+}
+.badge small {
+  font-size: 12px;
+  color: #cbd5cf;
+}
+.download {
+  display: grid;
+  gap: 14px;
+}
+.download > p,
+.download details {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.download summary {
+  cursor: pointer;
+  color: var(--ink);
+}
+.download details p {
+  margin-top: 12px;
+}
+.hash {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  margin-top: 6px;
+  color: var(--ink);
+}

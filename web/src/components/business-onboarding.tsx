@@ -6,6 +6,7 @@ import { CheckCircle2, ShieldCheck, Store } from "lucide-react";
 import { Brand, Button, Field, SelectField, Badge, Modal } from "./ui";
 import { useDemo } from "@/lib/store";
 import { supabase } from "@/lib/supabase";
+import { industries, resolveIndustry } from "@/lib/industries";
 import {
   africanMarkets,
   emptyVerification,
@@ -86,7 +87,7 @@ export function BusinessOnboarding({ manage = false }: { manage?: boolean }) {
           email: session.user.email || "",
           phone: state.profile.phone,
           businessAddress: state.profile.location,
-          businessType: state.profile.type || "Retail shop",
+          businessType: resolveIndustry(state.profile.type).label,
         });
         let nextStep = 0;
         let hasLocalDraft = false;
@@ -203,6 +204,7 @@ export function BusinessOnboarding({ manage = false }: { manage?: boolean }) {
       });
       setStatus(data.verification.status);
       setNotice(data.message);
+      await store.hydrate();
       if (submit) {
         sessionStorage.removeItem(draftKey.current);
         setStep(5);
@@ -212,6 +214,46 @@ export function BusinessOnboarding({ manage = false }: { manage?: boolean }) {
         e instanceof Error
           ? e.message
           : "Could not save your setup. Retry safely.",
+      );
+    } finally {
+      writing.current = false;
+      setBusy(false);
+    }
+  }
+  async function skipVerification() {
+    if (writing.current) return;
+    writing.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      if (!store.workspace) {
+        if (
+          !profile.tradingName.trim() ||
+          !profile.contactName.trim() ||
+          !profile.businessAddress.trim()
+        ) {
+          throw new Error(
+            "Enter your business name, owner contact name and location before creating your workspace.",
+          );
+        }
+        const previousKey = draftKey.current;
+        await store.createBusiness({
+          name: profile.contactName,
+          business: profile.tradingName,
+          location: profile.businessAddress,
+          type: resolveIndustry(profile.businessType).label,
+        });
+        if (previousKey.endsWith(".new")) {
+          draftKey.current =
+            previousKey.slice(0, -3) + store.workspace!.businessId;
+          rememberDraft();
+          sessionStorage.removeItem(previousKey);
+        }
+      } else rememberDraft();
+      router.push("/dashboard");
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Could not open your workspace.",
       );
     } finally {
       writing.current = false;
@@ -280,8 +322,9 @@ export function BusinessOnboarding({ manage = false }: { manage?: boolean }) {
             ))}
           </ol>
           <p>
-            Your business tools are separate from identity verification. Saving
-            readiness never means your identity or funding has been approved.
+            You can skip verification details and return later. Working tools
+            stay locked until readiness is complete. Saving readiness never
+            means your identity or funding has been approved.
           </p>
         </aside>
         <section className="onboarding-card">
@@ -338,17 +381,13 @@ export function BusinessOnboarding({ manage = false }: { manage?: boolean }) {
                     />
                     <SelectField
                       label="Business type"
-                      value={profile.businessType}
+                      value={resolveIndustry(profile.businessType).label}
                       onChange={(v) => update("businessType", v)}
                     >
-                      {[
-                        "Retail shop",
-                        "Mini market",
-                        "Wholesale",
-                        "Service business",
-                        "Other",
-                      ].map((v) => (
-                        <option key={v}>{v}</option>
+                      {industries.map((industry) => (
+                        <option key={industry.id} value={industry.label}>
+                          {industry.label}
+                        </option>
                       ))}
                     </SelectField>
                     <Field
@@ -532,8 +571,9 @@ export function BusinessOnboarding({ manage = false }: { manage?: boolean }) {
                       />
                     )}
                     <p className="inline-note">
-                      Your business workspace can operate while verification
-                      providers are being prepared. No KYC result or funding
+                      Complete the required business details to unlock your
+                      working tools. Identity verification and lender services
+                      will be connected later; no KYC result or funding
                       eligibility is implied.
                     </p>
                   </>
@@ -629,6 +669,15 @@ export function BusinessOnboarding({ manage = false }: { manage?: boolean }) {
           )}
           {step < 5 && (
             <Button
+              variant="secondary"
+              disabled={working}
+              onClick={() => void skipVerification()}
+            >
+              Verify later · open limited workspace
+            </Button>
+          )}
+          {step < 5 && (
+            <Button
               variant="ghost"
               disabled={working}
               onClick={() => void save(false)}
@@ -664,7 +713,7 @@ export function BusinessOnboarding({ manage = false }: { manage?: boolean }) {
           if (!working) setDeleteOpen(false);
         }}
         title="Clear verification readiness?"
-        description="Your business records and any funding request history remain saved."
+        description="Your working tools will lock again. Existing business records and funding request history remain saved."
       >
         {error && (
           <p role="alert" className="operation-error">
@@ -678,6 +727,7 @@ export function BusinessOnboarding({ manage = false }: { manage?: boolean }) {
             setBusy(true);
             try {
               const data = await request("DELETE");
+              await store.hydrate();
               setProfile(emptyVerification());
               setStatus(null);
               setStep(0);

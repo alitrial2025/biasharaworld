@@ -7,6 +7,7 @@ import {
   loadBusiness,
   json,
   fail,
+  requireBusinessAccess,
 } from "@/lib/backend/server";
 import {
   fundingReadiness,
@@ -55,6 +56,7 @@ export async function GET(request: Request) {
       request,
       query ? z.uuid().parse(query) : undefined,
     );
+    requireBusinessAccess(workspace);
     const records = await admin()
       .from("funding_applications")
       .select(
@@ -114,6 +116,7 @@ export async function POST(request: Request) {
         providerConfigured: false,
       });
     }
+    if (body.action !== "withdraw") requireBusinessAccess(workspace);
     const snapshot = await readiness(workspace);
     if (body.action === "submit") {
       validateFundingSubmission(body.payload);

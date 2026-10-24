@@ -2,6 +2,22 @@ import { ZodError } from "zod";
 import { createClient, type User } from "@supabase/supabase-js";
 import { emptyBusiness, mergeState } from "./empty";
 import type { DemoState } from "../data";
+import { businessAccess, type BusinessAccess } from "../verification";
+export async function getBusinessAccess(businessId: string): Promise<BusinessAccess> {
+  const result = await admin().from("business_verifications").select("status,profile,consent_version,consented_at").eq("business_id", businessId).maybeSingle();
+  if (result.error) throw new ApiError("Could not check business access. Please retry.", 503);
+  return businessAccess(result.data);
+}
+export function requireBusinessAccess(workspace: { access?: BusinessAccess }) {
+  if (!workspace.access?.featuresUnlocked) throw new ApiError("Complete your business-verification details to unlock this feature.", 403);
+}
+/** Essential settings survive the lock; operational records stay behind the access gate. */
+export function clientWorkspace<T extends { access: BusinessAccess; state: DemoState }>(workspace: T | null): T | null {
+  if (!workspace || workspace.access.featuresUnlocked) return workspace;
+  const state = emptyBusiness(workspace.state.profile);
+  state.operations.preferences = workspace.state.operations.preferences;
+  return { ...workspace, state };
+}
 export function admin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL,
     key = process.env.SUPABASE_SECRET_KEY;
@@ -62,7 +78,7 @@ export async function loadBusiness(user: User, businessId?: string) {
     return null;
   }
   const membership = members.find((m) => m.role === "Owner") || members[0];
-  const [record, workspace, business] = await Promise.all([
+  const [record, workspace, business, access] = await Promise.all([
     db
       .from("business_records")
       .select("state,revision,updated_at")
@@ -79,6 +95,7 @@ export async function loadBusiness(user: User, businessId?: string) {
       .select("slug")
       .eq("id", membership.business_id)
       .single(),
+    getBusinessAccess(membership.business_id),
   ]);
   if (record.error || workspace.error || business.error)
     throw new ApiError("Could not load business records. Please retry.", 503);
@@ -88,6 +105,7 @@ export async function loadBusiness(user: User, businessId?: string) {
     slug: business.data.slug,
     revision: record.data.revision,
     updatedAt: record.data.updated_at,
+    access,
     state: mergeState(
       record.data.state as DemoState,
       workspace.data?.state ?? {},

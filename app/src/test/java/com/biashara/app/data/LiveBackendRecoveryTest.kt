@@ -37,6 +37,7 @@ internal class TestBusinessApi : BackendTransport {
     val businessId = "11111111-1111-4111-8111-111111111111"
     var userId = "owner"
     var role = "Owner"
+    var access: JSONObject? = json("featuresUnlocked" to true, "verificationStatus" to "submitted", "identityStatus" to "provider_pending")
     var state = emptyLiveState()
     var revision = 0L
     var loseNextResponse = false
@@ -44,7 +45,7 @@ internal class TestBusinessApi : BackendTransport {
     var onCommand: ((JSONObject) -> Unit)? = null
     val requests = mutableListOf<JSONObject>()
     private val confirmed = mutableSetOf<String>()
-    fun workspace() = json("businessId" to businessId, "slug" to "amina", "role" to role, "revision" to revision, "state" to JSONObject(state.toString()))
+    fun workspace() = json("businessId" to businessId, "slug" to "amina", "role" to role, "access" to (access ?: JSONObject.NULL), "revision" to revision, "state" to JSONObject(state.toString()))
     override suspend fun request(base: String, path: String, method: String, body: JSONObject?, token: String?, auth: Boolean): JSONObject {
         if (path.startsWith("/auth/v1/token")) return json("access_token" to "test-token", "refresh_token" to "test-refresh", "expires_at" to Long.MAX_VALUE, "user" to json("id" to userId))
         if (method == "GET") return json("workspace" to workspace())

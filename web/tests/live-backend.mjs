@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { submitReadiness } from "./helpers/readiness.mjs";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -62,7 +63,8 @@ async function create(a) {
   });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   businesses.push(r.body.workspace.businessId);
-  return r.body.workspace;
+  assert.equal(r.body.workspace.access.featuresUnlocked, false);
+  return submitReadiness(base, a.token, r.body.workspace.businessId);
 }
 async function command(a, w, command, requestId = randomUUID()) {
   return req(a, {

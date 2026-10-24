@@ -100,6 +100,7 @@ fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -
             Modifier.padding(horizontal = 18.dp).padding(top = 18.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
+            if (store.real) IndustryShortcut(store, { navigate(Screen.OPERATIONS) })
             if (search.isNotBlank()) {
                 val results = store.products.filter { it.name.contains(search, true) || it.sku.contains(search, true) || it.barcode.contains(search) }
                 val suppliers = store.suppliers.filter { it.name.contains(search, true) || it.category.contains(search, true) }

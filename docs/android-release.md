@@ -1,15 +1,16 @@
 # Android signed test release
 
-The previous version 0.2.0 (version code 2) was a non-debuggable Android release APK signed with a dedicated RSA 3072-bit key. The current source is version 0.4.0 (version code 4). Its public account project and application API point to the intended production services. See [the 0.4.0 audit](release-0.4.0-audit.md) for completed checks and provider/device boundaries.
+The previous version 0.2.0 (version code 2) was a non-debuggable Android release APK signed with a dedicated RSA 3072-bit key. The current source is version 0.5.0 (version code 5). Its public account project and application API point to the intended production services. See [the 0.5.0 audit](release-0.5.0-audit.md) for scope and provider/device boundaries.
 
-The restored workspace does not contain the pinned private release key or password. Version 0.4.0 is therefore delivered as a **debug test APK**, `app/build/outputs/apk/debug/biasharaos-0.4.0-debug.apk`, with a SHA-256 sidecar. It cannot update the older signed release in place. Restore the original private key before producing a compatible release; do not generate a replacement identity.
+The restored workspace does not contain the pinned private release key or password. The 0.5.0 unsigned release output cannot be installed until signed; the debug test APK cannot update the older signed release in place. Restore the original private key before producing a compatible release; do not generate a replacement identity. The public website keeps Android downloads disabled until a verified signed release is staged.
 
 ## Build and verify
 
 ```sh
 source tools/cloud-env.sh
 python3 tools/build-release.py
-python3 tools/check-backend-connections.py --apk app/build/outputs/apk/release/biasharaos-0.2.0-release.apk
+python3 tools/check-backend-connections.py --apk app/build/outputs/apk/release/biasharaos-0.5.0-release.apk
+python3 tools/publish-android-release.py app/build/outputs/apk/release/biasharaos-0.5.0-release.apk
 ```
 
 The release helper runs the release unit tests, lint and APK assembly. It aligns the APK, signs it with APK signature schemes v2/v3, verifies the signature and alignment, checks that it is not debuggable, and writes a SHA-256 checksum plus verification JSON next to the APK. The version/file name comes from Android build metadata. Generated packages remain outside Git.

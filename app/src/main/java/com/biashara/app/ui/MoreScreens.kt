@@ -78,11 +78,12 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
             AppText(store.businessName, fontSize = 11.sp, color = Muted)
         }
         PrimaryButton(
-            "Explore all 20 business tools",
+            "Explore all business tools",
             { navigate(Screen.TOOLS) },
             icon = Icons.Outlined.Apps,
             tone = Green,
         )
+        if (store.real) IndustryShortcut(store, { navigate(Screen.OPERATIONS) })
         Column {
             MenuRow(Icons.Outlined.PersonOutline, "Business Profile") { navigate(Screen.PROFILE) }
             if (store.real && store.backend?.role == "Owner") {
@@ -130,6 +131,7 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
         }
         Column {
             Eyebrow("Business tools")
+            MenuRow(Icons.Outlined.Inventory2, "Products & stock") { navigate(Screen.STOCK) }
             MenuRow(Icons.Outlined.PeopleOutline, "Customers") { navigate(Screen.CUSTOMERS) }
             MenuRow(Icons.Outlined.LocalShipping, "Suppliers") { navigate(Screen.SUPPLIERS) }
             MenuRow(Icons.Outlined.BarChart, "Reports") { navigate(Screen.REPORTS) }
@@ -187,6 +189,8 @@ fun ProfileScreen(store: DemoStore, onBack: () -> Unit) {
     var saved by remember { mutableStateOf(false) }
     var phone by rememberSaveable { mutableStateOf(store.liveState.optJSONObject("profile")?.optString("phone").orEmpty()) }
     var email by rememberSaveable { mutableStateOf(store.liveState.optJSONObject("profile")?.optString("email").orEmpty()) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val industries = remember { industryCatalog(context) }
     var type by rememberSaveable { mutableStateOf(store.liveState.optJSONObject("profile")?.optString("type") ?: "Retail shop") }
     LaunchedEffect(store.backend?.confirmedRequestId) { if (store.backend?.confirmedCommand == "updateProfile") saved = true }
     Page {
@@ -242,7 +246,8 @@ fun ProfileScreen(store: DemoStore, onBack: () -> Unit) {
         if (store.real) {
             OutlinedTextField(phone, { phone = it; saved = false }, label = { AppText("Business phone") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(email, { email = it; saved = false }, label = { AppText("Business email") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            OutlinedTextField(type, { type = it; saved = false }, label = { AppText("Business type") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            SheetChoice("Business sector", resolveIndustry(industries, type).id, industries.map { it.id to it.label }, { selected -> type = industries.first { it.id == selected }.label; saved = false })
+            AppText("Your sector selects the tools and operational forms you see first. Existing records remain saved when you change it.", color = Muted)
         }
         SurfaceCard {
             Eyebrow("Your currency")

@@ -283,7 +283,9 @@ test("new owners complete six-step onboarding, resume their tab draft and save r
     else await route.continue();
   });
   await page.getByRole("button", { name: "Finish setup", exact: true }).click();
-  await expect(page.locator("main [role='alert']")).toContainText("Retry safely");
+  await expect(page.locator("main [role='alert']")).toContainText(
+    "Retry safely",
+  );
   await page.unroute("**/api/verification?businessId=*");
   await page.reload();
   await expect(
@@ -318,4 +320,50 @@ test("new owners complete six-step onboarding, resume their tab draft and save r
       () => document.documentElement.scrollWidth <= innerWidth + 1,
     ),
   ).toBe(true);
+});
+
+test("owners can defer verification and return from the locked workspace banner", async ({
+  page,
+}) => {
+  test.setTimeout(60000);
+  const owner = await actor();
+  const key =
+    "sb-" +
+    new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname.split(".")[0] +
+    "-auth-token";
+  await page.addInitScript(
+    ({ key, value }) => localStorage.setItem(key, value),
+    { key, value: JSON.stringify(owner.session) },
+  );
+  await page.goto("/onboarding");
+  await page
+    .getByLabel("Business or trading name", { exact: true })
+    .fill("Deferred setup business");
+  await page
+    .getByLabel("Business address or trading location", { exact: true })
+    .fill("Nairobi");
+  await page
+    .getByRole("button", {
+      name: "Verify later · open limited workspace",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Your workspace is waiting for you.",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Complete verification", exact: true }),
+  ).toBeVisible();
+  const workspace = await (await request(owner, "/api/workspace")).json();
+  expect(workspace.workspace.access.featuresUnlocked).toBe(false);
+  expect(workspace.workspace.access.identityStatus).toBe("provider_pending");
+  await page
+    .getByRole("link", { name: "Complete verification", exact: true })
+    .click();
+  await expect(
+    page.getByLabel("Business or trading name", { exact: true }),
+  ).toHaveValue("Deferred setup business");
 });

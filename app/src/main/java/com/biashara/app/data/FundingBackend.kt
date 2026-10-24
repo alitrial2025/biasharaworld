@@ -42,20 +42,20 @@ fun interface FundingTransport {
 }
 
 /** Production recovery records use a non-exportable Android Keystore key. */
-private class SecureFundingPendingStore(context: Context, accountId: String, businessId: String) : FundingPendingStore {
-    private val prefs = context.getSharedPreferences("biashara_funding", Context.MODE_PRIVATE)
+internal class SecureFundingPendingStore(context: Context, accountId: String, businessId: String, private val namespace: String = "funding") : FundingPendingStore {
+    private val prefs = context.getSharedPreferences("biashara_$namespace", Context.MODE_PRIVATE)
     private val scopeKey = MessageDigest.getInstance("SHA-256").digest("$accountId:$businessId".toByteArray()).joinToString("") { "%02x".format(it) }
     private fun key(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        return store.getKey("biashara-funding", null) as? SecretKey ?: KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").apply {
-            init(KeyGenParameterSpec.Builder("biashara-funding", KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT).setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build())
+        return store.getKey("biashara-$namespace", null) as? SecretKey ?: KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").apply {
+            init(KeyGenParameterSpec.Builder("biashara-$namespace", KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT).setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build())
         }.generateKey()
     }
     override fun write(value: JSONObject?) {
         if (value == null) { check(prefs.edit().remove(scopeKey).commit()) { "Saved, but the recovery record could not be cleared. Retry safely." }; return }
         val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key()) }
         val bytes = cipher.doFinal(value.toString().toByteArray())
-        check(prefs.edit().putString(scopeKey, Base64.encodeToString(cipher.iv + bytes, Base64.NO_WRAP)).commit()) { "Could not securely retain this funding request. No request was sent." }
+        check(prefs.edit().putString(scopeKey, Base64.encodeToString(cipher.iv + bytes, Base64.NO_WRAP)).commit()) { "Could not securely retain this request. No request was sent." }
     }
     override fun read(): JSONObject? {
         val encoded = prefs.getString(scopeKey, null) ?: return null
@@ -63,7 +63,7 @@ private class SecureFundingPendingStore(context: Context, accountId: String, bus
             val bytes = Base64.decode(encoded, Base64.NO_WRAP)
             val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, bytes.copyOfRange(0,12))) }
             return JSONObject(String(cipher.doFinal(bytes.copyOfRange(12,bytes.size))))
-        } catch (_: Exception) { error("The unconfirmed funding request could not be recovered. Review your requests or contact support before recording it again.") }
+        } catch (_: Exception) { error("The unconfirmed request could not be recovered. Review your requests or contact support before recording it again.") }
     }
 }
 

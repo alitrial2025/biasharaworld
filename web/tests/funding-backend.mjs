@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { submitReadiness } from "./helpers/readiness.mjs";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -78,6 +79,7 @@ try {
     manager = await actor();
   const businessId = await business(owner),
     otherBusiness = await business(other);
+  await submitReadiness(base, other.token, otherBusiness);
   const route = "/api/funding?businessId=" + businessId;
   assert.equal((await api(null, route)).status, 401);
   check("Anonymous funding access denied", () => {});
@@ -95,70 +97,28 @@ try {
   );
   assert.equal((await api(manager, route)).status, 403);
   check("Manager cannot access owner-only funding", () => {});
-  const initial = await api(owner, route);
-  assert.equal(initial.status, 200, JSON.stringify(initial.data));
-  assert.equal(initial.data.providerConfigured, false);
-  check("Owner sees real readiness without provider approval", () => {
-    assert.equal(initial.data.readiness.sales30, 0);
-    assert.equal(initial.data.verificationStatus, "not_started");
-  });
-  const body = {
-    businessId,
-    id: randomUUID(),
-    revision: 0,
-    requestId: randomUUID(),
-    action: "save",
-    payload: { ...payload, amount: "" },
-  };
-  const [saved, concurrentReplay] = await Promise.all([
-    api(owner, route, body),
-    api(owner, route, body),
-  ]);
-  assert.equal(saved.status, 200, JSON.stringify(saved.data));
-  assert.equal(
-    concurrentReplay.status,
-    200,
-    JSON.stringify(concurrentReplay.data),
-  );
-  check("Concurrent duplicate requests create one revision", () => {
-    assert.equal(
-      saved.data.application.id,
-      concurrentReplay.data.application.id,
-    );
-    assert.equal(saved.data.application.revision, 1);
-    assert.equal(concurrentReplay.data.application.revision, 1);
-    assert.ok(saved.data.duplicate || concurrentReplay.data.duplicate);
-  });
-  check("Incomplete funding draft is saved", () =>
-    assert.equal(saved.data.application.status, "draft"),
-  );
-  const replay = await api(owner, route, body);
-  assert.equal(replay.status, 200);
-  check("Retry preserves application revision", () => {
-    assert.equal(replay.data.duplicate, true);
-    assert.equal(replay.data.application.revision, 1);
-  });
-  assert.equal((await api(owner, route, { ...body, payload })).status, 409);
-  check("Request ID cannot be reused for different content", () => {});
-  const change = { ...body, revision: 1, requestId: randomUUID(), payload };
-  const changed = await api(owner, route, change);
-  assert.equal(changed.status, 200);
-  check("Draft revision increments once", () =>
-    assert.equal(changed.data.application.revision, 2),
+  assert.equal((await api(owner, route)).status, 403);
+  check(
+    "Funding remains locked until business readiness is complete",
+    () => {},
   );
   assert.equal(
-    (await api(owner, route, { ...change, requestId: randomUUID() })).status,
-    409,
+    (
+      await api(owner, route, {
+        businessId,
+        id: randomUUID(),
+        revision: 0,
+        requestId: randomUUID(),
+        action: "save",
+        payload: { ...payload, amount: "" },
+      })
+    ).status,
+    403,
   );
-  check("Stale edits are rejected", () => {});
-  const submit = {
-    ...change,
-    revision: 2,
-    requestId: randomUUID(),
-    action: "submit",
-  };
-  assert.equal((await api(owner, route, submit)).status, 409);
-  check("Business verification readiness is required", () => {});
+  check(
+    "Locked owners cannot bypass readiness by saving a funding draft",
+    () => {},
+  );
   const verificationRoute = "/api/verification?businessId=" + businessId;
   const verificationProfile = {
     legalName: "Temporary funding owner",
@@ -226,6 +186,68 @@ try {
       assert.ok(ready.data.verification.consent_version);
     },
   );
+  const initial = await api(owner, route);
+  assert.equal(initial.status, 200, JSON.stringify(initial.data));
+  assert.equal(initial.data.providerConfigured, false);
+  check("Owner sees real readiness without provider approval", () => {
+    assert.equal(initial.data.readiness.sales30, 0);
+    assert.equal(initial.data.verificationStatus, "submitted");
+  });
+  const body = {
+    businessId,
+    id: randomUUID(),
+    revision: 0,
+    requestId: randomUUID(),
+    action: "save",
+    payload: { ...payload, amount: "" },
+  };
+  const [saved, concurrentReplay] = await Promise.all([
+    api(owner, route, body),
+    api(owner, route, body),
+  ]);
+  assert.equal(saved.status, 200, JSON.stringify(saved.data));
+  assert.equal(
+    concurrentReplay.status,
+    200,
+    JSON.stringify(concurrentReplay.data),
+  );
+  check("Concurrent duplicate requests create one revision", () => {
+    assert.equal(
+      saved.data.application.id,
+      concurrentReplay.data.application.id,
+    );
+    assert.equal(saved.data.application.revision, 1);
+    assert.equal(concurrentReplay.data.application.revision, 1);
+    assert.ok(saved.data.duplicate || concurrentReplay.data.duplicate);
+  });
+  check("Incomplete funding draft is saved", () =>
+    assert.equal(saved.data.application.status, "draft"),
+  );
+  const replay = await api(owner, route, body);
+  assert.equal(replay.status, 200);
+  check("Retry preserves application revision", () => {
+    assert.equal(replay.data.duplicate, true);
+    assert.equal(replay.data.application.revision, 1);
+  });
+  assert.equal((await api(owner, route, { ...body, payload })).status, 409);
+  check("Request ID cannot be reused for different content", () => {});
+  const change = { ...body, revision: 1, requestId: randomUUID(), payload };
+  const changed = await api(owner, route, change);
+  assert.equal(changed.status, 200);
+  check("Draft revision increments once", () =>
+    assert.equal(changed.data.application.revision, 2),
+  );
+  assert.equal(
+    (await api(owner, route, { ...change, requestId: randomUUID() })).status,
+    409,
+  );
+  check("Stale edits are rejected", () => {});
+  const submit = {
+    ...change,
+    revision: 2,
+    requestId: randomUUID(),
+    action: "submit",
+  };
   assert.equal(
     (
       await api(owner, route, {
@@ -282,9 +304,9 @@ try {
         requestId: randomUUID(),
       })
     ).status,
-    409,
+    403,
   );
-  check("Recorded request cannot be edited", () => {});
+  check("Clearing readiness relocks new funding changes", () => {});
   const withdrawn = await api(owner, route, {
     ...submit,
     revision: 3,

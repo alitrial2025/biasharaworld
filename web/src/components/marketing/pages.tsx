@@ -11,7 +11,6 @@ import Link from "next/link";
 import { ExpandedTools } from "./expanded-tools";
 import { useState, type FormEvent } from "react";
 import {
-  ArrowDownToLine,
   ArrowRight,
   ArrowUpRight,
   BarChart3,
@@ -46,6 +45,8 @@ import {
 import { articles, faqs } from "@/lib/data";
 import { CTABanner } from "./site-shell";
 import { FAQList, MiniDashboard } from "./home";
+import { AndroidDownload } from "./app-download";
+import { IndustryDirectory } from "./industry-directory";
 
 function PageIntro({
   eyebrow,
@@ -294,6 +295,7 @@ export function SolutionsPage() {
         title="There’s room for you here."
         text="Different shops. Different days. The same ambition to build something that lasts."
       />
+      <IndustryDirectory />
       <div className="container solutions-grid">
         <T>
           {Object.entries(solutionData).map(([slug, s]) => (
@@ -1087,7 +1089,7 @@ export function DownloadPage() {
   return (
     <>
       <PageIntro
-        eyebrow="YOUR DESK. YOUR POCKET."
+        eyebrow="GET THE APP"
         title="Your business goes where you go."
         text="Use the web workspace on any screen, or explore the matching Android app."
       />
@@ -1124,7 +1126,7 @@ export function DownloadPage() {
             <T>ANDROID</T>
           </span>
           <h2>
-            <T>Your shop,</T>
+            <T>Your business,</T>
             <br />
             <T>in your pocket.</T>
           </h2>
@@ -1142,25 +1144,20 @@ export function DownloadPage() {
               height={852}
             />
           </div>
-          <Button variant="dark" disabled icon={ArrowDownToLine}>
-            <T>Android update coming soon</T>
-          </Button>
-          <span className="quiet-note">
-            <T>Android 8.0+ · Development build being updated</T>
-          </span>
+          <AndroidDownload />
         </div>
       </section>
       <section className="container download-note">
         <ShieldCheck size={22} />
         <div>
           <h3>
-            <T>A note about this preview</T>
+            <T>One account, on every screen</T>
           </h3>
           <p>
             <T>
-              A new Android development build is being prepared for connected
-              accounts and business records. Use the web workspace while we
-              finish checking the app. Payment collection is coming later.
+              Your account connects your business on Android and the web. Use
+              the same email to access your saved products, customers and business
+              records. Google Play and App Store listings are coming soon.
             </T>
           </p>
         </div>

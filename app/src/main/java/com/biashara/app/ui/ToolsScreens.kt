@@ -217,7 +217,10 @@ internal val businessFeatures =
 
 @Composable
 fun ToolsHubScreen(store: DemoStore, onBack: () -> Unit, onOpen: (String) -> Unit) {
-    var group by rememberSaveable { mutableStateOf("All tools") }
+    val context = LocalContext.current
+    val industries = remember { industryCatalog(context) }
+    val industry = resolveIndustry(industries, store.liveState.objectAt("profile").optString("type"))
+    var group by rememberSaveable { mutableStateOf(if (store.real) "Recommended" else "All tools") }
     Page {
         PageTitle(
             "Room for your next step.",
@@ -243,12 +246,21 @@ fun ToolsHubScreen(store: DemoStore, onBack: () -> Unit, onOpen: (String) -> Uni
             }
         }
         FilterPills(
-            listOf("All tools", "Selling", "Stock", "Growth", "Your space"),
+            (if (store.real) listOf("Recommended") else emptyList()) + listOf("All tools", "Selling", "Stock", "Growth", "Your space"),
             group,
             { group = it },
         )
+        if (store.real && group == "Recommended") {
+            IndustryShortcut(store, { onOpen("industry") })
+            AppText("Selected for ${industry.label}", fontWeight = FontWeight.Bold)
+            val shared = mapOf("sales" to "Sales", "inventory" to industry.catalogLabel, "customers" to industry.customerLabel, "suppliers" to "Suppliers", "orders" to "Purchase orders", "reports" to "Reports", "expenses" to "Expenses", "team" to "Team")
+            industry.recommendedTools.filter { it in shared }.forEach { slug ->
+                OutlinedButton(onClick = { onOpen(slug) }, modifier = Modifier.fillMaxWidth()) { AppText(shared.getValue(slug)) }
+            }
+            AppText("Specialist workflows are available in Operations on the bottom bar. Your shared sales, stock and people records work across every sector.", color = Muted)
+        }
         businessFeatures
-            .filter { group == "All tools" || it.group == group }
+            .filter { group == "All tools" || it.group == group || (group == "Recommended" && it.slug in industry.recommendedTools) }
             .forEach { f ->
                 SurfaceCard(Modifier.clickable { onOpen(f.slug) }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {

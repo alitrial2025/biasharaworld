@@ -1,4 +1,5 @@
 "use client";
+import { industries, resolveIndustry } from "@/lib/industries";
 import { FundingPageContent } from "./funding";
 import { ProductPhoto } from "@/components/product-photo";
 import { T, LocalButton, LocalInput } from "@/components/locale";
@@ -802,18 +803,12 @@ export function SettingsPage() {
                     <SelectField
                       label="Business type"
                       name="type"
-                      defaultValue={state.profile.type}
+                      defaultValue={resolveIndustry(state.profile.type).label}
                     >
                       <T>
-                        {[
-                          "Retail shop",
-                          "Mini market",
-                          "Wholesale",
-                          "Service business",
-                          "Other",
-                        ].map((t) => (
-                          <option key={t}>
-                            <T>{t}</T>
+                        {industries.map((industry) => (
+                          <option key={industry.id} value={industry.label}>
+                            {industry.label}
                           </option>
                         ))}
                       </T>

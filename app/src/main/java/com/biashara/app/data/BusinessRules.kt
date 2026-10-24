@@ -6,7 +6,7 @@ fun roleAllows(role: String, action: String): Boolean {
     if (action in setOf("inviteMember", "updateMember", "removeMember")) return role == "Owner"
     return role == "Owner" || role == "Manager" || (role == "Cashier" && action in cashierActions) || (role == "Viewer" && action in personalActions)
 }
-fun DemoStore.canPerform(action: String) = !real || roleAllows(backend?.role.orEmpty(), action)
+fun DemoStore.canPerform(action: String) = !real || ((backend?.featuresUnlocked == true || action in setOf("updateProfile", "preferences")) && roleAllows(backend?.role.orEmpty(), action))
 val DemoStore.canSave: Boolean get() = backend?.let { !it.busy && !it.hasPending } ?: !real
 fun moneyInput(value: Long): String = java.math.BigDecimal.valueOf(value, 2).toPlainString()
 fun wholeInput(value: String, label: String, minimum: Int = 0, maximum: Int = 1_000_000): Int {

@@ -38,7 +38,7 @@ class ExpansionUiTest {
     @Test
     fun allTwentyFeatureScreensRenderAndNavigateBack() {
         compose.onNodeWithText("More", useUnmergedTree = false).performClick()
-        compose.onNodeWithText("Explore all 20 business tools").performScrollTo().performClick()
+        compose.onNodeWithText("Explore all business tools").performScrollTo().performClick()
         businessFeatures.forEach { f ->
             compose.onNodeWithText(f.title, substring = false).performScrollTo().performClick()
             compose.onNodeWithText(f.title, substring = false).assertExists()
@@ -104,7 +104,7 @@ class ExpansionUiTest {
     @Test
     fun registerFormOpensClosesAndPersists() {
         compose.onNodeWithText("More").performClick()
-        compose.onNodeWithText("Explore all 20 business tools").performScrollTo().performClick()
+        compose.onNodeWithText("Explore all business tools").performScrollTo().performClick()
         compose.onNodeWithText("Daily cash register").performScrollTo().performClick()
         compose.onNodeWithText("Open cash register").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Opening float (KES)").performTextReplacement("1500")
@@ -129,7 +129,7 @@ class ExpansionUiTest {
         capture("dark-sw-large-home")
         compose.onNodeWithText(tr("More")).performClick()
         capture("dark-sw-large-more")
-        compose.onNodeWithText(tr("Explore all 20 business tools")).performScrollTo().performClick()
+        compose.onNodeWithText(tr("Explore all business tools")).performScrollTo().performClick()
         capture("dark-sw-large-tools")
         compose.onNodeWithText(tr("Language & appearance")).performScrollTo().performClick()
         capture("dark-sw-large-preferences")

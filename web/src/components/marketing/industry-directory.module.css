@@ -1,0 +1,51 @@
+.directory {
+  display: grid;
+  gap: 20px;
+}
+.directory > h2 {
+  max-width: 760px;
+  font-size: clamp(28px, 3vw, 42px);
+}
+.directory > p {
+  max-width: 800px;
+  line-height: 1.8;
+}
+.directory > label {
+  max-width: 600px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 24px;
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
+.card h3 {
+  font-size: 19px;
+  margin-bottom: 12px;
+}
+.card p,
+.card li {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.card ul {
+  padding-left: 18px;
+  margin-top: 12px;
+}
+@media (max-width: 1000px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

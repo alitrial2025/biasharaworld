@@ -19,6 +19,7 @@ enum class Screen {
     FINANCE,
     PROFILE,
     VERIFICATION,
+    OPERATIONS,
     SETUP,
     TOOLS,
     FEATURE,

@@ -32,6 +32,15 @@ class NativeLiveWorkflowTest {
         assertTrue(backend.workspaceLoaded); assertFalse(backend.hasBusiness)
         backend.createBusiness("Native verification", "Temporary Android verification", "Nairobi", "Retail shop")
         assertTrue(backend.hasBusiness); assertTrue(store.products.isEmpty()); assertEquals(0L, store.branchSalesMinor)
+        assertFalse(backend.featuresUnlocked)
+        val readiness = emptyVerificationProfile("Native owner", email).apply {
+            put("legalName", "Native owner"); put("tradingName", "Temporary Android verification")
+            put("phone", "+254700123456"); put("businessAddress", "Nairobi"); put("declaration", true)
+        }
+        assertTrue(verificationMissing(readiness).isEmpty())
+        assertEquals("submitted", backend.saveVerification(readiness, true).getJSONObject("verification").getString("status"))
+        assertEquals("submitted", backend.getVerification().getJSONObject("verification").getString("status"))
+        backend.load(); assertTrue(backend.featuresUnlocked)
         val image = Bitmap.createBitmap(16, 16, Bitmap.Config.ARGB_8888).apply { eraseColor(android.graphics.Color.GREEN) }
         val bytes = ByteArrayOutputStream().also { image.compress(Bitmap.CompressFormat.JPEG, 80, it) }.toByteArray(); image.recycle()
         val imagePath = backend.uploadProductImage(bytes)
@@ -120,13 +129,6 @@ class NativeLiveWorkflowTest {
         backend.signOut(); assertFalse(backend.authenticated); assertTrue(store.products.isEmpty())
         backend.signIn(email, password); assertEquals(businessId, backend.businessId); assertEquals(imagePath, store.products.first { it.id == product.id }.imagePath)
         assertEquals("dark", store.operations.state.objectAt("preferences").getString("theme"))
-        val readiness = emptyVerificationProfile("Native owner", email).apply {
-            put("legalName", "Native owner"); put("tradingName", "Temporary Android verification")
-            put("phone", "+254700123456"); put("businessAddress", "Nairobi"); put("declaration", true)
-        }
-        assertTrue(verificationMissing(readiness).isEmpty())
-        assertEquals("submitted", backend.saveVerification(readiness, true).getJSONObject("verification").getString("status"))
-        assertEquals("submitted", backend.getVerification().getJSONObject("verification").getString("status"))
         val funding = FundingRepository(context, backend, MemoryFundingPendingStore())
         assertFalse(funding.load().getBoolean("providerConfigured"))
         val fundingId = UUID.randomUUID().toString()
@@ -144,7 +146,23 @@ class NativeLiveWorkflowTest {
         assertEquals("10000.25", reloaded.getJSONObject("payload").getString("amount"))
         val withdrawn = funding.save(fundingId, recorded.getLong("revision"), "withdraw", plan).getJSONObject("application")
         assertEquals("withdrawn", withdrawn.getString("status")); assertNull(funding.pending())
+        val operations = IndustryRepository(context, backend, MemoryFundingPendingStore())
+        val retail = resolveIndustry(industryCatalog(context), "Retail shop")
+        val workflow = retail.workflows.first()
+        val operationalFields = json("reference" to "Native special order", "items" to "Coffee stock reservation", "due" to "2099-12-31", "notes" to "Native integration test")
+        val operationId = UUID.randomUUID().toString()
+        var operation = operations.save("create", operationId, 0, industryRecordInput(retail, workflow, "Native customer collection", "Native customer", operationalFields, "10.25")).getJSONObject("record")
+        operation = operations.save("payment", operationId, operation.getLong("revision"), payment = json("amountMinor" to 1025, "method" to "Cash", "reference" to "NATIVE-PAID")).getJSONObject("record")
+        assertEquals(1025L, operation.getLong("paid_minor"))
+        operation = operations.save("refund", operationId, operation.getLong("revision"), payment = json("amountMinor" to 25, "method" to "Cash", "reference" to "NATIVE-REFUND")).getJSONObject("record")
+        assertEquals(1000L, operation.getLong("paid_minor"))
+        operation = operations.save("status", operationId, operation.getLong("revision"), status = "Completed").getJSONObject("record")
+        assertEquals("Completed", operation.getString("status"))
+        assertTrue(operations.load().records("records").any { it.getString("id") == operationId })
+        operation = operations.save("archive", operationId, operation.getLong("revision")).getJSONObject("record")
+        assertTrue(operation.getBoolean("archived")); assertNull(operations.pending())
         backend.clearVerification()
         assertTrue(backend.getVerification().isNull("verification"))
+        backend.load(); assertFalse(backend.featuresUnlocked); assertTrue(store.products.isEmpty())
     }
 }

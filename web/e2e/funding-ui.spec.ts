@@ -49,6 +49,13 @@ test("funding wizard saves a draft, safely resumes an interrupted recording and 
           businessId,
           slug: "funding-ui",
           role: "Owner",
+          access: {
+            featuresUnlocked: true,
+            verificationStatus: "submitted",
+            identityStatus: "provider_pending",
+            reason:
+              "Business details completed. Identity verification provider coming soon.",
+          },
           revision: 1,
           updatedAt: new Date().toISOString(),
           state,

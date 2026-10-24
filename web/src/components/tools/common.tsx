@@ -27,6 +27,7 @@ import {
 import Link from "next/link";
 import { Badge, Button, PageHeading, useToast } from "@/components/ui";
 import { useDemo } from "@/lib/store";
+import { resolveIndustry } from "@/lib/industries";
 import type { Action } from "@/lib/operations";
 
 export const features: {
@@ -314,37 +315,128 @@ export function ToolPanel({
   );
 }
 export function ToolsHub() {
-  const [group, setGroup] = useState("All tools");
+  const { state } = useDemo();
+  const industry = resolveIndustry(state.profile.type);
+  const [group, setGroup] = useState("For your business");
+  const sharedTools = [
+    {
+      id: 21,
+      slug: "sales",
+      title: "Recorded sales",
+      description: "Receipts, recorded payments and returns for your business.",
+      icon: ShoppingBag,
+      group: "Selling",
+      tone: "green",
+    },
+    {
+      id: 22,
+      slug: "inventory",
+      title: industry.labels.catalog,
+      description: "Your business products, quantities and product photos.",
+      icon: Boxes,
+      group: "Stock",
+      tone: "blue",
+    },
+    {
+      id: 23,
+      slug: "customers",
+      title: industry.labels.customers,
+      description: "Customer contacts, balances and transaction history.",
+      icon: BookOpen,
+      group: "Selling",
+      tone: "purple",
+    },
+    {
+      id: 24,
+      slug: "suppliers",
+      title: "Suppliers",
+      description:
+        "Supplier contacts and purchasing relationships in one place.",
+      icon: Truck,
+      group: "Stock",
+      tone: "green",
+    },
+    {
+      id: 25,
+      slug: "orders",
+      title: "Purchase orders",
+      description: "Prepare supplier orders and record incoming stock.",
+      icon: ClipboardCheck,
+      group: "Stock",
+      tone: "blue",
+    },
+    {
+      id: 26,
+      slug: "expenses",
+      title: "Business expenses",
+      description: "Record business costs and retain clear expense references.",
+      icon: Wallet,
+      group: "Growth",
+      tone: "amber",
+    },
+    {
+      id: 27,
+      slug: "reports",
+      title: "Business reports",
+      description: "Review recorded sales, costs and operating performance.",
+      icon: BookOpen,
+      group: "Growth",
+      tone: "green",
+    },
+  ];
+  const availableTools = [...sharedTools, ...features];
+
   return (
     <>
       <PageHeading
         eyebrow="A LITTLE MORE POSSIBLE"
         title="Room for your next step."
-        description="Twenty useful ways to make your business day a little clearer."
+        description="Your relevant workflows first, with every shared business tool available when you need it."
       >
         <Button href="/dashboard/sales/new" arrow>
           <T>Make a sale</T>
         </Button>
       </PageHeading>
+      <section className="panel industry-workbench-link">
+        <div>
+          <span className="eyebrow">{industry.label}</span>
+          <h2>{industry.labels.operations}</h2>
+          <p>{industry.workflows.map((flow) => flow.label).join(" · ")}</p>
+        </div>
+        <Button href="/dashboard/operations" arrow>
+          Open your operations
+        </Button>
+      </section>
       <div className="tools-category-tabs">
         <T>
-          {["All tools", "Selling", "Stock", "Growth", "Your space"].map(
-            (g) => (
-              <LocalButton
-                className={g === group ? "active" : ""}
-                key={g}
-                onClick={() => setGroup(g)}
-              >
-                <T>{g}</T>
-              </LocalButton>
-            ),
-          )}
+          {[
+            "For your business",
+            "All tools",
+            "Selling",
+            "Stock",
+            "Growth",
+            "Your space",
+          ].map((g) => (
+            <LocalButton
+              className={g === group ? "active" : ""}
+              key={g}
+              onClick={() => setGroup(g)}
+            >
+              <T>{g}</T>
+            </LocalButton>
+          ))}
         </T>
       </div>
       <div className="tools-grid">
         <T>
-          {features
-            .filter((f) => group === "All tools" || f.group === group)
+          {availableTools
+            .filter(
+              (f) =>
+                group === "All tools" ||
+                (group === "For your business"
+                  ? industry.recommendedTools.includes(f.slug)
+                  : f.group === group),
+            )
             .map((f) => (
               <Link
                 href={`/dashboard/${f.slug}`}

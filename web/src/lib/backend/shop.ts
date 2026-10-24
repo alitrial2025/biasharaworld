@@ -1,4 +1,4 @@
-import { admin, ApiError } from "./server";
+import { admin, ApiError, getBusinessAccess } from "./server";
 import type { DemoState } from "../data";
 import { available } from "../operations";
 import { mergeState } from "./empty";
@@ -21,6 +21,8 @@ export async function shopRecord(slug: string, published = true) {
   const state = record.data.state as DemoState;
   if (published && !state.operations.shop.published)
     throw new ApiError("This shop is not published.", 404);
+  const access = await getBusinessAccess(business.data.id);
+  if (published && !access.featuresUnlocked) throw new ApiError("This shop is not available yet.", 404);
   const projected = mergeState(state, {
     activeBranch: state.operations.shop.branch,
   });
@@ -29,6 +31,7 @@ export async function shopRecord(slug: string, published = true) {
     state: projected,
     canonical: state,
     revision: record.data.revision,
+    access,
   };
 }
 export function publicShop(state: DemoState, slug?: string) {

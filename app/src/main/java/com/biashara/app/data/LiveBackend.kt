@@ -122,6 +122,11 @@ class LiveBackend(
     var hasBusiness by mutableStateOf(false)
         private set
 
+    var featuresUnlocked by mutableStateOf(false)
+        private set
+    var verificationStatus by mutableStateOf("missing")
+        private set
+
     var workspaceLoaded by mutableStateOf(false)
         private set
 
@@ -284,6 +289,8 @@ class LiveBackend(
         vault.write(null)
         authenticated = false
         hasBusiness = false
+        featuresUnlocked = false
+        verificationStatus = "missing"
         workspaceLoaded = false
         store.clearLive()
     }
@@ -307,6 +314,8 @@ class LiveBackend(
         vault.writeDraft(null)
         authenticated = false
         hasBusiness = false
+        featuresUnlocked = false
+        verificationStatus = "missing"
         workspaceLoaded = false
         pending = null
         store.clearLive()
@@ -496,6 +505,8 @@ class LiveBackend(
     private fun accept(workspace: JSONObject?) {
         workspaceLoaded = true
         hasBusiness = workspace != null
+        featuresUnlocked = workspace?.optJSONObject("access")?.optBoolean("featuresUnlocked", false) == true
+        verificationStatus = workspace?.optJSONObject("access")?.optString("verificationStatus", "missing") ?: "missing"
         if (workspace == null) {
             store.clearLive()
             businessId = ""; role = ""; slug = ""; revision = 0

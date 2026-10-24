@@ -206,6 +206,7 @@ export function SelectField({
   defaultValue,
   value,
   onChange,
+  required,
 }: {
   label: string;
   name?: string;
@@ -213,6 +214,7 @@ export function SelectField({
   defaultValue?: string;
   value?: string;
   onChange?: (value: string) => void;
+  required?: boolean;
 }) {
   const id = useId();
   return (
@@ -225,6 +227,7 @@ export function SelectField({
           className="input"
           id={id}
           name={name}
+          required={required}
           defaultValue={defaultValue}
           value={value}
           onChange={(e) => onChange?.(e.target.value)}

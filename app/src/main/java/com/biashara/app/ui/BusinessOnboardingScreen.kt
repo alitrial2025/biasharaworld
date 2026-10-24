@@ -57,6 +57,7 @@ fun WelcomeOnboardingScreen(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
 @Composable
 fun BusinessOnboardingScreen(backend: LiveBackend, manage: Boolean = false, onStarted: () -> Unit = {}, onComplete: () -> Unit) {
     val context = LocalContext.current
+    val industries = remember { industryCatalog(context) }
     val draftVault = remember(backend.accountId, backend.businessId) { VerificationDraftVault(context, backend.accountId, backend.businessId) }
     var step by rememberSaveable(backend.accountId) { mutableIntStateOf(0) }
     var saved by rememberSaveable(backend.accountId) { mutableStateOf(emptyVerificationProfile(backend.accountName, backend.accountEmail).toString()) }
@@ -114,6 +115,7 @@ fun BusinessOnboardingScreen(backend: LiveBackend, manage: Boolean = false, onSt
                 val result = backend.saveVerification(profile, submit)
                 status = result.getJSONObject("verification").optString("status")
                 notice = result.optString("message")
+                backend.load()
                 if (submit) { step = 5; VerificationDraftVault(context, backend.accountId, backend.businessId).clear() }
             } catch (e: Exception) { error = e.message.orEmpty() }
             finally { busy = false }
@@ -135,7 +137,7 @@ fun BusinessOnboardingScreen(backend: LiveBackend, manage: Boolean = false, onSt
                 AppText("Use the name your customers know, and the legal name of your business or its owner.", color = Muted)
                 SetupField("Business or trading name", profile.optString("tradingName"), { update("tradingName", it) }, busy)
                 SetupField("Legal business or owner name", profile.optString("legalName"), { update("legalName", it) }, busy)
-                SheetChoice("Business type", profile.optString("businessType"), listOf("Retail shop", "Mini market", "Wholesale", "Service business", "Other").map { it to it }, { update("businessType", it) })
+                SheetChoice("Business sector", resolveIndustry(industries, profile.optString("businessType")).id, industries.map { it.id to it.label }, { selected -> update("businessType", industries.first { it.id == selected }.label) })
                 SetupField("Business address or trading location", profile.optString("businessAddress"), { update("businessAddress", it) }, busy)
                 SurfaceCard(color = Mint) { AppText("Kenya · launch market · KES", color = Green); AppText("We are starting in Kenya. Other African countries are coming soon.", color = Muted) }
                 TextButton(onClick = { expanding = true }) { AppText("View African expansion markets", color = Green) }
@@ -163,7 +165,7 @@ fun BusinessOnboardingScreen(backend: LiveBackend, manage: Boolean = false, onSt
                 SheetChoice("Business registration status", profile.optString("registrationStatus"), listOf("registered" to "Registered business", "unregistered" to "Not registered / sole trader", "in_progress" to "Registration in progress"), { update("registrationStatus", it) })
                 if (profile.optString("registrationStatus") == "registered") SetupField("Business registration number", profile.optString("registrationNumber"), { update("registrationNumber", it) }, busy)
                 SurfaceCard(color = Sand) { AppText("Do not provide a national ID, passport, tax PIN, bank password or biometric data. Only a business registration reference is requested here.", color = Ink) }
-                AppText("Your workspace can operate while verification providers are being prepared. No verified identity or funding eligibility is implied.", color = Muted)
+                AppText("Complete these mandatory business details to unlock workspace features. Identity verification and funding providers will be added later. No verified identity or funding eligibility is implied.", color = Muted)
             }
             4 -> {
                 SurfaceCard { AppText(profile.optString("tradingName"), fontWeight = FontWeight.Bold); AppText("${profile.optString("legalName")}\n${profile.optString("contactName")} · ${profile.optString("phone")}\n${profile.optString("businessAddress")}, Kenya\n${profile.optString("businessType")}", color = Muted) }
@@ -179,6 +181,21 @@ fun BusinessOnboardingScreen(backend: LiveBackend, manage: Boolean = false, onSt
         if (busy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Green)
         if (step < 5) {
             PrimaryButton(if (busy) "Saving…" else if (step == 4) "Finish setup" else "Continue", { val invalid = validateStep(); if (invalid.isNotBlank()) error = invalid else if (step < 4) { error = ""; step++ } else save(true) }, enabled = !busy, tone = Green)
+            TextButton(enabled = !busy, onClick = {
+                if (backend.hasBusiness) { onComplete() }
+                else if (profile.optString("tradingName").isBlank() || profile.optString("businessAddress").isBlank()) { error = "Enter your business name and trading location before opening the workspace."; step = 0 }
+                else {
+                    busy = true; error = ""
+                    scope.launch {
+                        try {
+                            backend.createBusiness(profile.optString("contactName").ifBlank { backend.accountName.ifBlank { "Business owner" } }, profile.optString("tradingName"), profile.optString("businessAddress"), profile.optString("businessType"))
+                            VerificationDraftVault(context, backend.accountId, backend.businessId).write(profile, step)
+                            draftVault.clear(); onComplete()
+                        } catch (e: Exception) { error = e.message.orEmpty() } finally { busy = false }
+                    }
+                }
+            }) { AppText("Verify later · open locked workspace", color = Green) }
+            AppText("Skipping keeps business features locked until the required readiness details are completed.", color = Muted)
             TextButton(enabled = !busy, onClick = { save(false) }) { AppText("Save draft and continue later", color = Green) }
             if (manage && status.isNotBlank()) TextButton(enabled = !busy, onClick = { clearing = true }) { AppText("Clear private readiness details", color = Coral) }
             if (step > 0) TextButton(enabled = !busy, onClick = { step--; error = "" }) { AppText("Back", color = Muted) }
@@ -186,7 +203,7 @@ fun BusinessOnboardingScreen(backend: LiveBackend, manage: Boolean = false, onSt
         if (!manage && !backend.hasBusiness) TextButton(enabled = !busy, onClick = { backend.action { backend.signOut() } }) { AppText("Sign out", color = Muted) }
     }
     if (expanding) ActionSheet(onDismissRequest = { expanding = false }, title = { AppText("Africa · coming soon", style = MaterialTheme.typography.headlineSmall) }, text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { AppText("Kenya launches first. Availability, verification and funding in other countries are not yet supported.", color = Muted); listOf("Uganda", "Tanzania", "Rwanda", "Ghana", "Nigeria", "South Africa", "Ethiopia", "Zambia", "Other African markets").forEach { AppText("$it · Coming soon") } } }, dismissButton = { TextButton(onClick = { expanding = false }) { AppText("Close") } })
-    if (clearing) ActionSheet(onDismissRequest = { clearing = false }, title = { AppText("Clear readiness details?", style = MaterialTheme.typography.headlineSmall) }, text = { AppText("Your business records and any funding request history remain saved.") }, confirmButton = { PrimaryButton("Clear readiness details", { busy = true; scope.launch { try { notice = backend.clearVerification().optString("message"); saved = emptyVerificationProfile(backend.accountName, backend.accountEmail).toString(); status = ""; step = 0; clearing = false } catch (e: Exception) { error = e.message.orEmpty() } finally { busy = false } } }, enabled = !busy, tone = Coral) }, dismissButton = { TextButton(onClick = { clearing = false }) { AppText("Keep details") } })
+    if (clearing) ActionSheet(onDismissRequest = { clearing = false }, title = { AppText("Clear readiness details?", style = MaterialTheme.typography.headlineSmall) }, text = { AppText("Your business records and any funding request history remain saved.") }, confirmButton = { PrimaryButton("Clear readiness details", { busy = true; scope.launch { try { notice = backend.clearVerification().optString("message"); backend.load(); saved = emptyVerificationProfile(backend.accountName, backend.accountEmail).toString(); status = ""; step = 0; clearing = false } catch (e: Exception) { error = e.message.orEmpty() } finally { busy = false } } }, enabled = !busy, tone = Coral) }, dismissButton = { TextButton(onClick = { clearing = false }) { AppText("Keep details") } })
 }
 
 @Composable

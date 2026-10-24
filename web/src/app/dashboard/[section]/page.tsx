@@ -1,3 +1,4 @@
+import { OperationsPage } from "@/components/workspace/operations";
 import { ToolPage } from "@/components/tools/tool-page";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -12,6 +13,7 @@ import {
   SettingsPage,
 } from "@/components/workspace/management";
 const titles: Record<string, string> = {
+  operations: "Business operations",
   sales: "Sales",
   inventory: "Inventory",
   customers: "Customers",
@@ -41,6 +43,8 @@ export default async function Page({
   const { section } = await params;
   const { q } = await searchParams;
   switch (section) {
+    case "operations":
+      return <OperationsPage />;
     case "sales":
       return <SalesPage />;
     case "inventory":

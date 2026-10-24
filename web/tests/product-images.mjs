@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { submitReadiness } from "./helpers/readiness.mjs";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -64,7 +65,8 @@ async function business(a) {
   });
   assert.equal(r.status, 200, JSON.stringify(r.data));
   businesses.push(r.data.workspace.businessId);
-  return r.data.workspace;
+  assert.equal(r.data.workspace.access.featuresUnlocked, false);
+  return submitReadiness(base, a.token, r.data.workspace.businessId);
 }
 async function command(a, w, cmd) {
   return req(a, {
@@ -152,13 +154,11 @@ try {
   check("Non-image MIME types are denied");
   assert.equal(
     (
-      await admin
-        .from("business_members")
-        .insert({
-          business_id: wa.businessId,
-          user_id: viewer.id,
-          role: "Viewer",
-        })
+      await admin.from("business_members").insert({
+        business_id: wa.businessId,
+        user_id: viewer.id,
+        role: "Viewer",
+      })
     ).error,
     null,
   );

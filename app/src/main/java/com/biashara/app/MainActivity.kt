@@ -97,9 +97,11 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
     BackHandler(screen != Screen.HOME, onBack = back)
     val focused = screen in listOf(Screen.NEW_SALE, Screen.ASSISTANT, Screen.SETUP)
     val openTool: (String) -> Unit = { target ->
+        val primary = mapOf("sales" to Screen.SALES, "inventory" to Screen.STOCK, "customers" to Screen.CUSTOMERS, "suppliers" to Screen.SUPPLIERS, "orders" to Screen.FEATURE, "reports" to Screen.REPORTS, "expenses" to Screen.EXPENSES, "team" to Screen.TEAM, "industry" to Screen.OPERATIONS)
         if (target == "checkout") navigate(Screen.NEW_SALE)
+        else if (target in primary && target != "orders") navigate(primary.getValue(target))
         else {
-            val route = "${Screen.FEATURE.name}:$target"
+            val route = "${Screen.FEATURE.name}:${if (target == "orders") "compare" else target}"
             if (routes.last() != route) routes = routes + route
         }
     }
@@ -109,7 +111,7 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
             containerColor = Canvas,
             contentWindowInsets =
                 WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-            bottomBar = { if (!focused) BottomBar(screen, navigate) },
+            bottomBar = { if (!focused) BottomBar(screen, navigate, store.real) },
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding)) {
                 val backend=model.backend
@@ -117,6 +119,12 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
                     Row(Modifier.fillMaxWidth().background(if(backend.error.isBlank())Mint else RoseMist).padding(8.dp),verticalAlignment=Alignment.CenterVertically){
                         AppText(if(backend.busy)"Working…" else backend.error.ifBlank{backend.notice.ifBlank{"Connected · ${backend.role}"}},modifier=Modifier.weight(1f),fontSize=11.sp,color=Ink)
                         TextButton(onClick={if(backend.hasPending)backend.retry()else backend.action{backend.load()}}){AppText(if(backend.hasPending)"Retry" else "Refresh",fontSize=11.sp)}
+                    }
+                }
+                if (backend != null && !backend.featuresUnlocked) {
+                    Row(Modifier.fillMaxWidth().background(Sand).padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        AppText("Business details required · features locked", modifier = Modifier.weight(1f), fontSize = 11.sp, color = Ink)
+                        if (backend.role == "Owner") TextButton(onClick = { navigate(Screen.VERIFICATION) }) { AppText("Complete details", fontSize = 11.sp, color = Green) }
                     }
                 }
                 val status = store.operations.state.objectAt("sync").optString("mode")
@@ -151,9 +159,12 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
                         animationSpec = tween(180),
                         label = "Screen transition",
                     ) { destination ->
-                        when (destination) {
+                        if (store.real && model.backend?.featuresUnlocked != true && destination !in setOf(Screen.VERIFICATION, Screen.PROFILE, Screen.PREFERENCES)) {
+                            LockedWorkspaceScreen(store, { navigate(Screen.VERIFICATION) }, { navigate(Screen.PROFILE) }, { navigate(Screen.PREFERENCES) })
+                        } else when (destination) {
                             Screen.HOME ->
                                 DashboardScreen(store, navigate, { openTool("branches") }, { id -> routes = routes + "${Screen.STOCK.name}:$id" }, { name -> routes = routes + "${Screen.SUPPLIERS.name}:${android.net.Uri.encode(name)}" })
+                            Screen.OPERATIONS -> IndustryScreen(store, back)
                             Screen.SALES -> SalesScreen(store, navigate)
                             Screen.NEW_SALE ->
                                 NewSaleScreen(store, back, { navigate(Screen.SALES) }, openTool)
@@ -213,12 +224,13 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
 }
 
 @Composable
-private fun BottomBar(screen: Screen, navigate: (Screen) -> Unit) {
+private fun BottomBar(screen: Screen, navigate: (Screen) -> Unit, real: Boolean = false) {
     val active =
         when (screen) {
             Screen.HOME -> Screen.HOME
             Screen.SALES -> Screen.SALES
             Screen.STOCK -> Screen.STOCK
+            Screen.OPERATIONS -> Screen.OPERATIONS
             else -> Screen.MORE
         }
     Column(Modifier.fillMaxWidth().background(Surface).navigationBarsPadding()) {
@@ -229,7 +241,7 @@ private fun BottomBar(screen: Screen, navigate: (Screen) -> Unit) {
                     Triple("Home", Icons.Outlined.Home, Screen.HOME),
                     Triple("Sales", Icons.Outlined.ShoppingBag, Screen.SALES),
                     Triple("New sale", Icons.Outlined.Add, Screen.NEW_SALE),
-                    Triple("Stock", Icons.Outlined.Inventory2, Screen.STOCK),
+                    if (real) Triple("Operations", Icons.Outlined.Workspaces, Screen.OPERATIONS) else Triple("Stock", Icons.Outlined.Inventory2, Screen.STOCK),
                     Triple("More", Icons.Outlined.MoreHoriz, Screen.MORE),
                 )
             tabs.forEach { (label, icon, target) ->

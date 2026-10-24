@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { createClient, type Session } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
+import { submitReadiness } from "../tests/helpers/readiness.mjs";
 import { barcode, eanBars } from "../src/lib/operations";
 const base = process.env.TEST_BASE_URL || "http://127.0.0.1:3002";
 const admin = createClient(
@@ -86,6 +87,8 @@ test.beforeAll(async () => {
   const d = await r.json();
   expect(r.status, JSON.stringify(d)).toBe(200);
   businessId = d.workspace.businessId;
+  expect(d.workspace.access.featuresUnlocked).toBe(false);
+  await submitReadiness(base, session.access_token, businessId);
 });
 test.afterAll(async () => {
   if (businessId) {

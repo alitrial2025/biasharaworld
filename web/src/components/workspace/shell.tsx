@@ -9,28 +9,17 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   ArrowRight,
-  BarChart3,
   Bell,
   ChevronDown,
   CircleHelp,
   Command,
-  LayoutDashboard,
   Menu,
-  Package,
   Search,
   Settings,
-  ShoppingBag,
-  ShoppingCart,
   Smartphone,
-  Sparkles,
-  Sprout,
   Store,
-  Truck,
-  Users,
-  UsersRound,
-  Wallet,
   X,
-  Grid2X2,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Avatar,
@@ -42,26 +31,19 @@ import {
 } from "@/components/ui";
 import { useDemo } from "@/lib/store";
 import { lowStock } from "@/lib/data";
-
-const mainLinks = [
-  ["Overview", "/dashboard", LayoutDashboard],
-  ["Sales", "/dashboard/sales", ShoppingBag],
-  ["Inventory", "/dashboard/inventory", Package],
-  ["Customers", "/dashboard/customers", Users],
-  ["Suppliers", "/dashboard/suppliers", Truck],
-] as const;
-const tools = [
-  ["All business tools", "/dashboard/tools", Grid2X2],
-  ["Purchase orders", "/dashboard/orders", ShoppingCart],
-  ["Expenses", "/dashboard/expenses", Wallet],
-  ["Reports", "/dashboard/reports", BarChart3],
-  ["BiasharaAI", "/dashboard/assistant", Sparkles],
-  ["Financing", "/dashboard/financing", Sprout],
-  ["Your team", "/dashboard/team", UsersRound],
-] as const;
+import { getIndustryNavigation } from "@/lib/industry-navigation";
 
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const { state, store } = useDemo();
+  const navigation = getIndustryNavigation(state.profile.type);
+  const mainLinks = navigation.mainLinks.map(
+    (link) => [link.label, link.href, link.icon] as const,
+  );
+  const tools = navigation.tools.map(
+    (link) => [link.label, link.href, link.icon] as const,
+  );
+  const unlocked = store.workspace?.access?.featuresUnlocked === true;
+  const owner = store.workspace?.role === "Owner";
   const pathname = usePathname();
   const router = useRouter();
   const [mobile, setMobile] = useState(false);
@@ -104,6 +86,11 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         )}
       </main>
     );
+  const essentialPage = [
+    "/dashboard/verification",
+    "/dashboard/settings",
+    "/dashboard/preferences",
+  ].includes(pathname);
   const active = (href: string) =>
     href === "/dashboard" ? pathname === href : pathname.startsWith(href);
   function go(href: string) {
@@ -158,7 +145,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
               <T>{state.profile.business}</T>
             </strong>
             <small>
-              <T>Business workspace</T>
+              <T>{navigation.industry.label}</T>
             </small>
           </div>
           <ChevronDown size={14} />
@@ -221,10 +208,10 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             <Smartphone size={20} />
             <div>
               <strong>
-                <T>Your shop, in your pocket.</T>
+                <T>Your business, in your pocket.</T>
               </strong>
               <span>
-                <T>Meet the Android preview</T>
+                <T>Get the Android app</T>
                 <ArrowRight size={11} />
               </span>
             </div>
@@ -287,6 +274,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             <LocalSelect
               className="branch-top-select"
               aria-label="Active branch"
+              disabled={!unlocked}
               value={state.operations.activeBranch}
               onChange={async (e) =>
                 await store.command({ type: "branch", id: e.target.value })
@@ -329,6 +317,25 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <ConnectionBanner />
+        {!unlocked && (
+          <div className="verification-reminder" role="status">
+            <div>
+              <strong>
+                Complete business verification details to unlock your tools.
+              </strong>
+              <span>
+                {owner
+                  ? "You can explore setup now. Sales, stock, operations and funding remain locked until your readiness details are complete. Identity verification is pending provider setup."
+                  : "Ask the business owner to complete verification details to unlock your team’s workspace."}
+              </span>
+            </div>
+            {owner && (
+              <Button href="/dashboard/verification" size="small">
+                Complete verification
+              </Button>
+            )}
+          </div>
+        )}
         {store.busy && (
           <div role="status" className="connection-banner">
             Saving to your business…
@@ -371,7 +378,37 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
         <main className="workspace-main" id="main-content">
-          <T>{children}</T>
+          {unlocked || essentialPage ? (
+            <T>{children}</T>
+          ) : (
+            <section className="panel verification-locked">
+              <ShieldCheck size={38} />
+              <h1>Your workspace is waiting for you.</h1>
+              <p>
+                Your business has been created. Complete the required business
+                details before using its working tools. You can return to this
+                step whenever you are ready.
+              </p>
+              <p>
+                Identity verification will be added when a provider is
+                connected. Completing readiness does not mean your identity has
+                been verified or funding approved.
+              </p>
+              <div className="button-row">
+                {owner && (
+                  <Button href="/dashboard/verification">
+                    Continue verification details
+                  </Button>
+                )}
+                <Button href="/dashboard/settings" variant="secondary">
+                  Business settings
+                </Button>
+                <Button href="/help" variant="ghost">
+                  Get help
+                </Button>
+              </div>
+            </section>
+          )}
         </main>
         <footer className="workspace-footer">
           <span>

@@ -52,6 +52,28 @@ export type VerificationRecord = {
   consented_at: string | null;
   updated_at: string;
 };
+export type BusinessAccess = {
+  featuresUnlocked: boolean;
+  verificationStatus: "not_started" | "draft" | "submitted";
+  identityStatus: "provider_pending";
+  reason: string;
+};
+/** Readiness is a current access prerequisite, never a claim of verified identity. */
+export function businessAccess(record: unknown): BusinessAccess {
+  const value = record as Partial<VerificationRecord> | null;
+  const verificationStatus = value?.status === "submitted" ? "submitted" : value?.status === "draft" ? "draft" : "not_started";
+  const parsed = verificationProfile.safeParse(value?.profile);
+  const featuresUnlocked = verificationStatus === "submitted" && parsed.success && verificationMissing(parsed.data).length === 0 &&
+    value?.consent_version === verificationVersion && typeof value.consented_at === "string" && Number.isFinite(Date.parse(value.consented_at));
+  return {
+    featuresUnlocked,
+    verificationStatus,
+    identityStatus: "provider_pending",
+    reason: featuresUnlocked
+      ? "Business details completed. Identity verification provider coming soon."
+      : "Complete your business-verification details to unlock business features. Identity verification provider coming soon.",
+  };
+}
 export const emptyVerification = (
   initial: Partial<VerificationProfile> = {},
 ): VerificationProfile => ({
