@@ -1,5 +1,6 @@
 import { ArrowDownToLine, Smartphone } from "lucide-react";
 import release from "@/lib/android-release.json";
+import preview from "@/lib/android-preview.json";
 import styles from "./app-download.module.css";
 
 function PlayIcon() {
@@ -52,6 +53,10 @@ export function AndroidDownload() {
     release.available &&
     /^\/downloads\/biasharaos-[\d.]+-release\.apk$/.test(release.href) &&
     /^[a-f0-9]{64}$/.test(release.sha256);
+  const previewAvailable =
+    preview.available &&
+    /^\/downloads\/biasharaos-[\d.]+-preview\.apk$/.test(preview.href) &&
+    /^[a-f0-9]{64}$/.test(preview.sha256);
   return (
     <div className={styles.download}>
       {available ? (
@@ -73,6 +78,33 @@ export function AndroidDownload() {
             </p>
             <p>SHA-256</p>
             <code className={styles.hash}>{release.sha256}</code>
+          </details>
+        </>
+      ) : previewAvailable ? (
+        <>
+          <a className="btn btn-dark" href={preview.href} download>
+            <ArrowDownToLine size={18} />
+            Download Android preview
+          </a>
+          <p>
+            Version {preview.version} · {(preview.bytes / 1048576).toFixed(1)}{" "}
+            MB · Android {preview.minimumAndroid}+ · Test build
+          </p>
+          <p>
+            This preview connects to your real business account. It uses a test
+            signing key and cannot update an existing release installation. If
+            Android reports a signing conflict, use the web workspace to keep
+            your current installation and local drafts.
+          </p>
+          <details>
+            <summary>Installation & download integrity</summary>
+            <p>
+              Open the downloaded APK on your Android phone and allow
+              installation from your browser when prompted. Sign in with the
+              same email you use on the web.
+            </p>
+            <p>SHA-256</p>
+            <code className={styles.hash}>{preview.sha256}</code>
           </details>
         </>
       ) : (

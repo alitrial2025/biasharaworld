@@ -2,7 +2,11 @@
 
 The previous version 0.2.0 (version code 2) was a non-debuggable Android release APK signed with a dedicated RSA 3072-bit key. The current source is version 0.5.0 (version code 5). Its public account project and application API point to the intended production services. See [the 0.5.0 audit](release-0.5.0-audit.md) for scope and provider/device boundaries.
 
-The restored workspace does not contain the pinned private release key or password. The 0.5.0 unsigned release output cannot be installed until signed; the debug test APK cannot update the older signed release in place. Restore the original private key before producing a compatible release; do not generate a replacement identity. The public website keeps Android downloads disabled until a verified signed release is staged.
+The restored workspace does not contain the pinned private release key or password. The 0.5.0 unsigned release output cannot be installed until signed; the debug test APK cannot update the older signed release in place. Restore the original private key before producing a compatible release; do not generate a replacement identity. The website offers the tested 0.5.0 APK as an explicitly labelled Android preview while the stable release remains unavailable.
+
+The previous chat “Set up biasharaworld” confirms that the backup was created at `/workspace/.config/biashara-cli/android-release/backups/biasharaos-release-key-2026-10-23.zip`, with a separate `biasharaos-release-key-password.txt`. Neither file is present in this restored workspace. Recover those private downloads from that chat to restore stable release signing.
+
+To stage a newly tested debug preview, run `python3 tools/publish-android-release.py --preview app/build/outputs/apk/debug/biasharaos-0.5.0-debug.apk` with the toolchain activated. This checks the APK signature, package, debug flag and production configuration, then copies it to the website and writes its checksum manifest. The stable release path continues to require the original pinned certificate.
 
 ## Build and verify
 

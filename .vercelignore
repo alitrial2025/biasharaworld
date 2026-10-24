@@ -16,6 +16,7 @@
 /third_party
 *.apk
 !web/public/downloads/biasharaos-*-release.apk
+!web/public/downloads/biasharaos-*-preview.apk
 
 /backend.properties
 **/.kotlin

@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { createHash } from "node:crypto";
 import release from "../src/lib/android-release.json";
+import preview from "../src/lib/android-preview.json";
 
 for (const width of [390, 1440]) {
   for (const theme of ["light", "dark"] as const) {
@@ -65,6 +66,18 @@ for (const width of [390, 1440]) {
           .getByText("Installation & download integrity", { exact: true })
           .click();
         await expect(page.locator("main code")).toHaveText(release.sha256);
+      } else if (preview.available) {
+        const download = page.getByRole("link", {
+          name: "Download Android preview",
+          exact: true,
+        });
+        await expect(download).toHaveAttribute("href", preview.href);
+        await expect(download).toHaveAttribute("download", "");
+        await expect(page.getByText(/uses a test signing key/)).toBeVisible();
+        await page
+          .getByText("Installation & download integrity", { exact: true })
+          .click();
+        await expect(page.locator("main code")).toHaveText(preview.sha256);
       } else {
         await expect(
           page.getByRole("button", {
@@ -93,21 +106,21 @@ for (const width of [390, 1440]) {
   }
 }
 
-test("published Android APK matches its release manifest", async ({
+test("published Android APK matches its download manifest", async ({
   request,
 }) => {
-  test.skip(
-    !release.available,
-    "Original release signing key must be restored before an APK can be published.",
+  const download = release.available ? release : preview;
+  test.skip(!download.available, "No verified APK has been staged.");
+  expect(download.href).toMatch(
+    /^\/downloads\/biasharaos-[\d.]+-(release|preview)\.apk$/,
   );
-  expect(release.href).toMatch(/^\/downloads\/biasharaos-[\d.]+-release\.apk$/);
-  expect(release.sha256).toMatch(/^[a-f0-9]{64}$/);
-  expect(release.bytes).toBeGreaterThan(0);
-  const response = await request.get(release.href);
+  expect(download.sha256).toMatch(/^[a-f0-9]{64}$/);
+  expect(download.bytes).toBeGreaterThan(0);
+  const response = await request.get(download.href);
   expect(response.status()).toBe(200);
   const apk = await response.body();
-  expect(apk.byteLength).toBe(release.bytes);
-  expect(createHash("sha256").update(apk).digest("hex")).toBe(release.sha256);
+  expect(apk.byteLength).toBe(download.bytes);
+  expect(createHash("sha256").update(apk).digest("hex")).toBe(download.sha256);
   // APKs are ZIP archives, so a fallback HTML page cannot pass the download check.
   expect(apk.subarray(0, 4).toString("hex")).toBe("504b0304");
 });

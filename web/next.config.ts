@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import androidRelease from "./src/lib/android-release.json";
+import androidPreview from "./src/lib/android-preview.json";
 
 if (androidRelease.available) {
   if (
@@ -19,6 +20,21 @@ if (androidRelease.available) {
       "Android release download does not match its verified manifest.",
     );
   }
+}
+
+if (androidPreview.available) {
+  if (
+    !/^\/downloads\/biasharaos-[\d.]+-preview\.apk$/.test(androidPreview.href)
+  )
+    throw new Error("Invalid Android preview download path.");
+  const apk = readFileSync(join(process.cwd(), "public", androidPreview.href));
+  if (
+    apk.byteLength !== androidPreview.bytes ||
+    createHash("sha256").update(apk).digest("hex") !== androidPreview.sha256
+  )
+    throw new Error(
+      "Android preview download does not match its verified manifest.",
+    );
 }
 
 const config: NextConfig = {

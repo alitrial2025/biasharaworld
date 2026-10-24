@@ -6,11 +6,11 @@ Operational records support typed fields, workflow statuses, manual payment/refu
 
 Owners may defer business readiness during onboarding. Working tools remain locked behind a persistent reminder until the mandatory details and declaration are submitted. API, database and private-photo access enforce the same prerequisite; clearing readiness relocks access. Essential setup, preferences, support and safe confirmation of previously committed requests remain available. Completing readiness is explicitly separate from identity verification. The identity, payment collection and lending providers remain unconfigured. Kenya is the launch market; other African markets are marked as coming soon.
 
-The public website includes a searchable sector directory, “Get app” navigation and Google Play/App Store icons marked as coming soon. Android downloads are controlled by a verified release manifest. The build rejects a missing or mismatched advertised APK; the staging helper verifies the original pinned signing certificate, release flags, alignment and production configuration before enabling the link.
+The public website includes a searchable sector directory, “Get app” navigation and Google Play/App Store icons marked as coming soon. Stable release and debug preview downloads have separate checksum manifests. The build rejects a missing or mismatched advertised APK. Stable releases require the original pinned certificate; an explicit preview option stages the tested debug APK with its test-build label and installation limitations.
 
 ## Android signing boundary
 
-The source version is 0.5.0, version code 5. The original release private key/password are absent from the restored workspace, including the documented `/workspace/.config/biashara-cli/android-release/` location. Searches found only debug keys. The pinned public certificate remains unchanged. An unsigned release package and a debug test package can be built, but neither is published as an installable signed release. Restore the original private key and password before enabling public APK downloads. Store listings also require their actual published listing URLs.
+The source version is 0.5.0, version code 5. The original release private key/password are absent from the restored workspace, including the documented `/workspace/.config/biashara-cli/android-release/` location. Searches found only debug keys. Reading the previous chat confirmed the exact backup filenames recorded in `android-release.md`, but those files are absent here. The pinned public certificate remains unchanged. The tested debug APK is available as an Android preview; the unsigned release is not published. Restore the original private key and password before publishing a compatible stable release. Store listings also require their actual published listing URLs.
 
 After restoration:
 
@@ -28,7 +28,7 @@ Sector support covers business administration. Clinical patient records, bank/mo
 
 ## Validation
 
-- Production Next.js build and full web lint pass. Across the full regression and focused rerun after fixes, 106 distinct browser/domain cases pass. Two email-delivery cases require a local SMTP fixture and remain skipped; the public APK integrity case remains skipped until the original signing key is restored.
+- Production Next.js build and full web lint passed for the business-workflow release. Across its full regression and focused rerun after fixes, 106 distinct browser/domain cases passed. Two email-delivery cases require a local SMTP fixture and remain skipped. The subsequent preview publication runs the five download cases, including APK bytes/checksum verification, without requiring the stable release key.
 - Real hosted Supabase with the local production API: 43 industry/access checks, 29 existing workspace checks, 23 product-photo checks and 31 funding checks pass. Disposable test accounts, businesses and photos are cleaned up.
 - Industry coverage validates all 60 workflow schemas and all 20 responsive workspaces, including dark mode, relevant tools, role restrictions, pagination, conflict review, safe retry after a committed response is lost, and verification skip/resume.
 - Android debug and release unit/Compose suites each run 65 cases: 64 pass, one hosted opt-in case is skipped by default, and none fail. The default skip is exercised separately against the deployed API before final delivery.
