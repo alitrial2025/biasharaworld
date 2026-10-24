@@ -54,6 +54,7 @@ private fun MenuRow(
 @Composable
 fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
     var dialog by remember { mutableStateOf<String?>(null) }
+    val websiteContext = androidx.compose.ui.platform.LocalContext.current
     Page {
         Column(
             Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 8.dp),
@@ -84,6 +85,9 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
         )
         Column {
             MenuRow(Icons.Outlined.PersonOutline, "Business Profile") { navigate(Screen.PROFILE) }
+            if (store.real && store.backend?.role == "Owner") {
+                MenuRow(Icons.Outlined.VerifiedUser, "Business verification", "Readiness and saved setup") { navigate(Screen.VERIFICATION) }
+            }
             MenuRow(
                 Icons.Outlined.AccountBalanceWallet,
                 "Payment Methods",
@@ -97,8 +101,11 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
             MenuRow(Icons.Outlined.NotificationsNone, "Notifications") { navigate(Screen.ALERTS) }
             MenuRow(Icons.Outlined.Settings, "App Settings") { navigate(Screen.PREFERENCES) }
             MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, "Help & Support") {
-                dialog = "Help & Support"
+                openServiceWebsite(websiteContext, "/help")
             }
+            MenuRow(Icons.Outlined.PrivacyTip, "Privacy policy") { openServiceWebsite(websiteContext, "/privacy") }
+            MenuRow(Icons.Outlined.Cookie, "Cookies & storage") { openServiceWebsite(websiteContext, "/cookies") }
+            MenuRow(Icons.Outlined.Description, "Terms of use") { openServiceWebsite(websiteContext, "/terms") }
             Row(
                 Modifier.fillMaxWidth()
                     .clickable {
@@ -165,9 +172,6 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
                 if (title == "Log Out" && store.real) {
                     BusinessFormStatus(store)
                     PrimaryButton("Sign out", { store.backend?.action { store.backend?.signOut() } }, enabled = store.canSave, tone = Coral)
-                } else if (title == "Help & Support") {
-                    val context = androidx.compose.ui.platform.LocalContext.current
-                    PrimaryButton("Open help center", { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(com.biashara.app.BuildConfig.API_URL + "/help"))) }, tone = Green)
                 }
                 TextButton(onClick = { dialog = null }) { AppText("Close") }
             },
@@ -191,7 +195,7 @@ fun ProfileScreen(store: DemoStore, onBack: () -> Unit) {
             Modifier.align(Alignment.CenterHorizontally)
                 .padding(top = 15.dp)
                 .size(90.dp)
-                .background(Color(0xFFEAE0C8), CircleShape),
+                .background(Sand, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             AppText(

@@ -1,6 +1,13 @@
 import type { DemoState, Product } from "./data";
 
 export type Payment = { method: string; amount: number };
+export const paymentMethods = [
+  "Cash",
+  "M-Pesa",
+  "Card",
+  "Bank transfer",
+  "Bank",
+] as const;
 export type SaleLine = {
   cost?: number;
   productId: number;
@@ -744,7 +751,8 @@ export function execute(
       payments.length > 0 &&
         payments.every(
           (p) =>
-            ["Cash", "M-Pesa", "Card"].includes(p.method) && integer(p.amount),
+            (paymentMethods as readonly string[]).includes(p.method) &&
+            integer(p.amount),
         ) &&
         payments.reduce((s, p) => s + p.amount, 0) === basket.total,
       "Payment portions must equal the exact amount due.",
@@ -1287,6 +1295,7 @@ export function execute(
       });
       op.stock[op.activeBranch][id] = 0;
       if (action.stock) stock(id, action.stock, "Opening variant", action.sku);
+      resultId = id;
       break;
     }
     case "bundle": {
@@ -1318,6 +1327,7 @@ export function execute(
         barcode: barcode(id),
         components: action.components,
       });
+      resultId = id;
       break;
     }
     case "barcode":

@@ -1,4 +1,5 @@
 "use client";
+import { ProductPhoto } from "@/components/product-photo";
 import { T, LocalButton, LocalInput } from "@/components/locale";
 import { useState } from "react";
 import {
@@ -18,7 +19,6 @@ import {
   EmptyState,
   Field,
   Modal,
-  ProductArt,
   SearchField,
   SelectField,
   Tabs,
@@ -124,7 +124,7 @@ export function StocktakesTool() {
                       )
                       .map((p) => (
                         <div key={p.id}>
-                          <ProductArt art={p.art} name={p.name} small />
+                          <ProductPhoto product={p} small />
                           <div>
                             <strong>
                               <T>{p.name}</T>
@@ -337,7 +337,7 @@ export function ExpiryTool() {
                   key={b.id}
                 >
                   <div>
-                    <ProductArt art={p?.art ?? 0} name={p?.name ?? "Product"} />
+                    <ProductPhoto product={p} />
                     <span>
                       <strong>
                         <T>{p?.name}</T>
@@ -549,7 +549,7 @@ export function VariantsTool() {
                         <tr key={p.id}>
                           <td>
                             <span className="table-product">
-                              <ProductArt art={p.art} name={p.name} />
+                              <ProductPhoto product={p} />
                               <span>
                                 <strong>
                                   <T>{p.name}</T>

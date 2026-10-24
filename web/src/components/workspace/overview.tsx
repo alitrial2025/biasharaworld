@@ -1,4 +1,5 @@
 "use client";
+import { ProductPhoto } from "@/components/product-photo";
 import { T, LocalButton } from "@/components/locale";
 
 import Link from "next/link";
@@ -24,7 +25,6 @@ import {
   Button,
   Field,
   Modal,
-  ProductArt,
   SalesChart,
   StatCard,
   Tabs,
@@ -369,7 +369,7 @@ export function Overview() {
                   href={`/dashboard/inventory?q=${encodeURIComponent(p.name)}`}
                   className="stock-alert-row"
                 >
-                  <ProductArt art={p.art} name={p.name} />
+                  <ProductPhoto product={p} />
                   <span>
                     <strong>
                       <T>{p.name}</T>

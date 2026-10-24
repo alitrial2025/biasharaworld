@@ -10262,3 +10262,52 @@ input[type="number"] {
   .auth-form-wrap h1 { font-size: 2.1rem; }
   .auth-bottom { margin-top: 10px; }
 }
+
+/* Business photos replace sample art without changing existing catalogue layouts. */
+.product-art.product-photo {
+  background-image: none;
+  background-color: var(--mint);
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+.product-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.product-photo > span { display: inline-flex; align-items: center; justify-content: center; }
+.product-form-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.product-photo-editor { display: flex; align-items: center; gap: 18px; margin-bottom: 24px; }
+.product-photo-editor > .product-photo { width: 110px; height: 110px; flex-shrink: 0; }
+.product-photo-editor > div { min-width: 0; flex: 1; }
+.product-photo-editor input[type="file"] { width: 100%; padding: 10px; }
+/* Keep focus trapping/Escape behavior while presenting actions as bottom sheets. */
+dialog.modal {
+  inset: auto 0 0;
+  margin: 0 auto;
+  border-radius: 22px 22px 0 0;
+  padding-bottom: max(28px, env(safe-area-inset-bottom));
+  max-height: 92dvh;
+  overscroll-behavior: contain;
+}
+.modal-heading { position: sticky; top: -28px; z-index: 2; background: var(--surface); padding-top: 8px; }
+.modal-actions { position: sticky; bottom: -1px; background: var(--surface); padding-bottom: 8px; z-index: 2; }
+@media (max-width: 600px) {
+  dialog.modal { width: 100%; max-width: 100%; padding-inline: 18px; }
+  .product-photo-editor { align-items: flex-start; gap: 12px; }
+  .product-photo-editor > .product-photo { width: 80px; height: 80px; }
+}
+.sheet-fields { border: 0; margin: 0; padding: 0; min-width: 0; }
+.product-photo-editor .field { margin-bottom: 8px; }
+.barcode-camera { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 16px; margin-bottom: 18px; }
+.barcode-camera video { width: 100%; max-height: 300px; border-radius: 10px; object-fit: cover; background: #102720; }
+.barcode-camera p { font-size: .85rem; color: var(--muted); }
+/* Six onboarding steps must fit the phone before the form starts. */
+.onboarding-layout > * { min-width: 0; }
+.onboarding-card { min-width: 0; }
+@media (max-width: 760px) {
+  .onboarding-layout ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .onboarding-layout li { min-width: 0; }
+  .onboarding-layout li strong { max-width: none; overflow-wrap: anywhere; }
+  .onboarding-card .badge { white-space: normal; }
+}

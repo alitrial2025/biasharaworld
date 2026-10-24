@@ -41,7 +41,7 @@ fun ReportsScreen(store: DemoStore, onBack: () -> Unit) {
         PageTitle("Business Reports", onBack = onBack)
         Row(
             Modifier.fillMaxWidth()
-                .background(Color.White, RoundedCornerShape(16.dp))
+                .background(Surface, RoundedCornerShape(16.dp))
                 .padding(15.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -127,7 +127,7 @@ fun ReportsScreen(store: DemoStore, onBack: () -> Unit) {
             SurfaceCard(Modifier.weight(1f)) {
                 IconTile(
                     Icons.AutoMirrored.Outlined.TrendingUp,
-                    background = Color(0xFFF5EEDC),
+                    background = Sand,
                     color = Amber,
                     size = 36,
                 )
@@ -274,8 +274,8 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
                             Spacer(Modifier.height(15.dp))
                             listOf(
                                     Triple("Total sales", "KES 12,450", Mint),
-                                    Triple("Profit", "KES 3,890", Color(0xFFECF5FF)),
-                                    Triple("Expenses", "KES 2,300", Color(0xFFFFF3DF)),
+                                    Triple("Profit", "KES 3,890", BlueMist),
+                                    Triple("Expenses", "KES 2,300", Sand),
                                 )
                                 .forEachIndexed { i, (label, value, bg) ->
                                     Row(
@@ -423,23 +423,12 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
 }
 
 @Composable
-fun FinanceScreen(onBack: () -> Unit, store: DemoStore? = null, onReports: () -> Unit = {}) {
-    var about by remember { mutableStateOf(false) }
-    Page {
-        PageTitle("Business Financing", onBack = onBack)
-        androidx.compose.foundation.Image(
-            painter = androidx.compose.ui.res.painterResource(com.biashara.app.R.drawable.finance_growth),
-            contentDescription = null, modifier = Modifier.fillMaxWidth().height(180.dp),
-        )
-        AppText("Prepare for your next step", style = MaterialTheme.typography.headlineMedium)
-        AppText("Keep accurate business records for future funding discussions. Loan applications, offers and eligibility checks are not connected.", color = Muted)
-        if (store?.real == true) {
-            val report = store.report(30)
-            SurfaceCard(color = Mint) { Eyebrow("Recorded over the last 30 days"); AppText("Net sales: ${minorMoney(report.sales)}"); AppText("Expenses: ${minorMoney(report.expenses)}"); AppText("Operating profit: ${minorMoney(report.profit)}") }
-            PrimaryButton("Review business reports", onReports, tone = Green)
-        }
-        SurfaceCard { AppText("Keep your records ready", style = MaterialTheme.typography.titleMedium); AppText("Record sales and expenses, reconcile cash registers, keep stock counts current, and review customer balances.", color = Muted) }
-        TextButton(onClick = { about = true }) { AppText("About financing availability", color = Green) }
+fun FinanceScreen(onBack: () -> Unit, store: DemoStore? = null, onReports: () -> Unit = {}, onVerification: () -> Unit = {}) {
+    if (store?.real == true) ConnectedFundingScreen(store,onBack,onReports,onVerification)
+    else Page {
+        PageTitle("Business funding", onBack = onBack)
+        SurfaceCard(color = Mint) { AppText("Prepare for your next chapter", style = MaterialTheme.typography.headlineSmall); AppText("Sign in to your business account to prepare funding requests, save drafts and compare provider-quoted terms. Kenya is the launch market; other African markets are coming soon.", color = Muted) }
+        AppText("Lending-provider setup is pending. No loan offers, approvals or disbursements are available.", color = Muted)
+        PrimaryButton("Review business reports", onReports, tone = Green)
     }
-    if (about) ActionSheet(onDismissRequest = { about = false }, title = { AppText("Financing availability", style = MaterialTheme.typography.headlineSmall) }, text = { AppText("No lender is connected and no loan application or credit check is submitted. Your reports show recorded business activity; they are not a financing eligibility decision.") }, dismissButton = { TextButton(onClick = { about = false }) { AppText("Close") } })
 }

@@ -329,6 +329,8 @@ export function TeamPage() {
   const [open, setOpen] = useState(false);
   const [remove, setRemove] = useState<number | null>(null);
   const toast = useToast();
+  const canManage =
+    store.workspace?.role === "Owner" && !store.busy && !store.hasPending;
   async function invite(e: FormEvent<HTMLFormElement>) {
     try {
       e.preventDefault();
@@ -360,7 +362,7 @@ export function TeamPage() {
         title="Your team, together."
         description="Give everyone a clear place in your business."
       >
-        <Button icon={Plus} onClick={() => setOpen(true)}>
+        <Button icon={Plus} disabled={!canManage} onClick={() => setOpen(true)}>
           <T>Invite teammate</T>
         </Button>
       </PageHeading>
@@ -453,6 +455,7 @@ export function TeamPage() {
                         ) : (
                           <LocalSelect
                             className="table-select"
+                            disabled={!canManage}
                             aria-label={`Role for ${m.name}`}
                             value={m.role}
                             onChange={async (e) => {
@@ -486,6 +489,7 @@ export function TeamPage() {
                           <LocalButton
                             className="icon-button text-red"
                             aria-label={`Remove ${m.name}`}
+                            disabled={!canManage}
                             onClick={() => setRemove(m.id)}
                           >
                             <Trash2 size={16} />
@@ -530,8 +534,8 @@ export function TeamPage() {
       </div>
       <p className="quiet-note">
         <T>
-          Role descriptions show the intended product experience. This preview
-          does not enforce permissions.
+          Permissions are enforced by the business service. Only the owner can
+          invite teammates or change their roles.
         </T>
       </p>
       <Modal

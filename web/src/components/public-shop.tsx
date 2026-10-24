@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Brand, Button, Field, ProductArt } from "./ui";
+import { Brand, Button, Field } from "./ui";
+import { PhotoFrame } from "./product-photo";
 import { supabase } from "@/lib/supabase";
 import { cash } from "@/lib/operations";
 type Shop = {
@@ -15,6 +16,7 @@ type Shop = {
     price: number;
     art: number;
     stock: number;
+    imageUrl?: string | null;
   }[];
 };
 export function PublicShop({ slug }: { slug: string }) {
@@ -150,7 +152,7 @@ export function PublicShop({ slug }: { slug: string }) {
           <div className="stats-grid">
             {shop.products.map((p) => (
               <article className="panel" key={p.id}>
-                <ProductArt art={p.art} name={p.name} />
+                <PhotoFrame src={p.imageUrl || undefined} name={p.name} />
                 <h2>{p.name}</h2>
                 <p>
                   {p.size} · {cash(Math.round(p.price * 100))}

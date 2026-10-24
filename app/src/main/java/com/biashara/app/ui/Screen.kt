@@ -18,6 +18,7 @@ enum class Screen {
     ASSISTANT,
     FINANCE,
     PROFILE,
+    VERIFICATION,
     SETUP,
     TOOLS,
     FEATURE,

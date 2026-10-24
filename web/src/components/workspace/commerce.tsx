@@ -1,8 +1,10 @@
 "use client";
+import { ProductPhoto } from "@/components/product-photo";
 import { T, LocalButton } from "@/components/locale";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { uploadProductPhoto } from "@/lib/product-images";
 import {
   ArrowDownToLine,
   ArrowLeft,
@@ -23,7 +25,6 @@ import {
   Field,
   Modal,
   PageHeading,
-  ProductArt,
   SearchField,
   SelectField,
   StatCard,
@@ -383,7 +384,7 @@ export function NewSalePage() {
                   aria-label={`Add ${p.name} to sale`}
                 >
                   <div className="product-image">
-                    <ProductArt art={p.art} name={p.name} />
+                    <ProductPhoto product={p} />
 
                     <T>
                       {cart[p.id] > 0 && (
@@ -477,7 +478,7 @@ export function NewSalePage() {
               ) : (
                 lines.map((p) => (
                   <div key={p.id} className="cart-line">
-                    <ProductArt art={p.art} name={p.name} small />
+                    <ProductPhoto product={p} small />
                     <div>
                       <strong>
                         <T>{p.name}</T>
@@ -592,10 +593,30 @@ export function InventoryPage({
   const [filter, setFilter] = useState("All stock");
   const [editing, setEditing] = useState<Product | null>(null);
   const [open, setOpen] = useState(false);
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const submitting = useRef(false);
+  const submittedAfter = useRef<string | null>(null);
+  const canManage = ["Owner", "Manager"].includes(store.workspace?.role || "");
+  const disabled =
+    photoBusy || saving || store.busy || store.hasPending || !canManage;
+  useEffect(() => {
+    if (
+      submittedAfter.current !== null &&
+      store.confirmedRequestId !== submittedAfter.current
+    ) {
+      submittedAfter.current = null;
+      setOpen(false);
+    }
+  }, [store.confirmedRequestId]);
   const toast = useToast();
   const rows = state.products.filter(
     (p) =>
-      (p.name + " " + p.sku).toLowerCase().includes(query.toLowerCase()) &&
+      (p.name + " " + p.sku + " " + (p.barcode || ""))
+        .toLowerCase()
+        .includes(query.toLowerCase()) &&
       (filter === "All stock" ||
         (filter === "Low stock"
           ? p.stock > 0 && p.stock <= p.reorder
@@ -603,8 +624,12 @@ export function InventoryPage({
   );
   const value = state.products.reduce((sum, p) => sum + p.cost * p.stock, 0);
   async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (submitting.current || disabled) return;
+    submitting.current = true;
+    setSaving(true);
+    setFormError("");
     try {
-      e.preventDefault();
       const f = new FormData(e.currentTarget);
       const product = {
         name: String(f.get("name")).trim(),
@@ -613,9 +638,10 @@ export function InventoryPage({
         category: String(f.get("category")),
         price: Number(f.get("price")),
         cost: Number(f.get("cost")),
-        stock: Number(f.get("stock")),
+        stock: editing?.stock ?? Number(f.get("stock")),
         reorder: Number(f.get("reorder")),
         art: editing?.art ?? 0,
+        imagePath: photoPath,
       };
       if (
         state.products.some(
@@ -624,9 +650,10 @@ export function InventoryPage({
             p.sku.toLowerCase() === product.sku.toLowerCase(),
         )
       ) {
-        toast("That SKU already belongs to another product.", "info");
+        setFormError("That SKU already belongs to another product.");
         return;
       }
+      submittedAfter.current = store.confirmedRequestId;
       if (editing) await store.updateProduct(editing.id, product);
       else await store.addProduct(product);
       setOpen(false);
@@ -635,8 +662,18 @@ export function InventoryPage({
           ? "Product and stock updated."
           : "A new product, ready for your shelves.",
       );
-    } catch {
-      /* The shared connection banner retains the server error and retry action. */
+    } catch (e) {
+      setFormError(
+        store.error
+          ? ""
+          : e instanceof Error
+            ? e.message
+            : "Could not save this product. Try again.",
+      );
+      if (!store.hasPending) submittedAfter.current = null;
+    } finally {
+      submitting.current = false;
+      setSaving(false);
     }
   }
   return (
@@ -679,8 +716,12 @@ export function InventoryPage({
         </Button>
         <Button
           icon={Plus}
+          disabled={!canManage || store.busy || store.hasPending}
           onClick={() => {
             setEditing(null);
+            setPhotoPath(null);
+            setFormError("");
+            submittedAfter.current = null;
             setOpen(true);
           }}
         >
@@ -714,7 +755,7 @@ export function InventoryPage({
           <SearchField
             value={query}
             onChange={setQuery}
-            placeholder="Search products or SKU…"
+            placeholder="Search products, SKU or barcode…"
           />
           <Tabs
             items={["All stock", "Low stock", "Out of stock"]}
@@ -753,7 +794,7 @@ export function InventoryPage({
                   <tr key={p.id}>
                     <td>
                       <span className="table-product">
-                        <ProductArt art={p.art} name={p.name} />
+                        <ProductPhoto product={p} />
                         <span>
                           <strong>
                             <T>{p.name}</T>
@@ -801,12 +842,16 @@ export function InventoryPage({
                     <td>
                       <LocalButton
                         className="text-button"
+                        disabled={!canManage || store.busy || store.hasPending}
                         onClick={() => {
                           setEditing(p);
+                          setPhotoPath(p.imagePath || null);
+                          setFormError("");
+                          submittedAfter.current = null;
                           setOpen(true);
                         }}
                       >
-                        <T>Edit / restock</T>
+                        <T>Edit product</T>
                       </LocalButton>
                     </td>
                   </tr>
@@ -833,7 +878,9 @@ export function InventoryPage({
       </section>
       <Modal
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={() => {
+          if (!saving && !photoBusy && !store.busy) setOpen(false);
+        }}
         title={
           editing
             ? "Keep your shelves in good shape."
@@ -841,96 +888,167 @@ export function InventoryPage({
         }
         description={
           editing
-            ? "Update product details or set the new stock quantity."
+            ? "Update product details and photo. Use Stocktakes or Expiry & batches to adjust stock."
             : "Add a product to your business."
         }
         wide
       >
         <form onSubmit={submit}>
-          <div className="form-grid">
-            <Field
-              label="Product name"
-              name="name"
-              required
-              maxLength={80}
-              defaultValue={editing?.name}
-            />
-            <Field
-              label="Pack size"
-              name="size"
-              placeholder="e.g. 500 g"
-              required
-              defaultValue={editing?.size}
-            />
-            <Field
-              label="SKU"
-              name="sku"
-              required
-              defaultValue={
-                editing?.sku ??
-                `BW-${String(state.products.length + 1).padStart(3, "0")}`
-              }
-            />
-            <SelectField
-              label="Category"
-              name="category"
-              defaultValue={editing?.category ?? "Food"}
-            >
-              <T>
-                {["Food", "Drinks", "Household", "Services", "Other"].map(
-                  (c) => (
-                    <option key={c}>
-                      <T>{c}</T>
-                    </option>
-                  ),
+          <fieldset disabled={disabled} className="product-form-fields">
+            <div className="product-photo-editor">
+              <ProductPhoto
+                product={{
+                  name: editing?.name || "New product",
+                  imagePath: photoPath,
+                }}
+              />
+              <div>
+                <Field
+                  label={
+                    photoPath ? "Change product photo" : "Add product photo"
+                  }
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  hint="JPEG, PNG or WebP. Photos are resized and saved privately for this business."
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    const businessId = store.workspace?.businessId;
+                    if (!file || !businessId) return;
+                    setPhotoBusy(true);
+                    setFormError("");
+                    try {
+                      const path = await uploadProductPhoto(businessId, file);
+                      if (store.workspace?.businessId === businessId)
+                        setPhotoPath(path);
+                    } catch (e) {
+                      setFormError(
+                        e instanceof Error
+                          ? e.message
+                          : "Could not upload this photo.",
+                      );
+                    } finally {
+                      setPhotoBusy(false);
+                    }
+                  }}
+                />
+                {photoPath && (
+                  <Button variant="ghost" onClick={() => setPhotoPath(null)}>
+                    Remove photo
+                  </Button>
                 )}
-              </T>
-            </SelectField>
-            <Field
-              label="Selling price (KES)"
-              name="price"
-              type="number"
-              step="0.01"
-              min={0.01}
-              max={10000000}
-              required
-              defaultValue={editing?.price}
-            />
-            <Field
-              label="Cost price (KES)"
-              name="cost"
-              type="number"
-              step="0.01"
-              min={0}
-              max={10000000}
-              required
-              defaultValue={editing?.cost}
-            />
-            <Field
-              label="Stock quantity"
-              name="stock"
-              type="number"
-              min={0}
-              max={1000000}
-              required
-              defaultValue={editing?.stock ?? 0}
-            />
-            <Field
-              label="Reorder point"
-              name="reorder"
-              type="number"
-              min={0}
-              max={1000000}
-              required
-              defaultValue={editing?.reorder ?? 10}
-            />
-          </div>
+              </div>
+            </div>
+            <div className="form-grid">
+              <Field
+                label="Product name"
+                name="name"
+                required
+                maxLength={80}
+                defaultValue={editing?.name}
+              />
+              <Field
+                label="Pack size"
+                name="size"
+                placeholder="e.g. 500 g"
+                required
+                defaultValue={editing?.size}
+              />
+              <Field
+                label="SKU"
+                name="sku"
+                required
+                defaultValue={
+                  editing?.sku ??
+                  `BW-${String(state.products.length + 1).padStart(3, "0")}`
+                }
+              />
+              <SelectField
+                label="Category"
+                name="category"
+                defaultValue={editing?.category ?? "Food"}
+              >
+                <T>
+                  {["Food", "Drinks", "Household", "Services", "Other"].map(
+                    (c) => (
+                      <option key={c}>
+                        <T>{c}</T>
+                      </option>
+                    ),
+                  )}
+                </T>
+              </SelectField>
+              <Field
+                label="Selling price (KES)"
+                name="price"
+                type="number"
+                step="0.01"
+                min={0.01}
+                max={10000000}
+                required
+                defaultValue={editing?.price}
+              />
+              <Field
+                label="Cost price (KES)"
+                name="cost"
+                type="number"
+                step="0.01"
+                min={0}
+                max={10000000}
+                required
+                defaultValue={editing?.cost}
+              />
+              {!editing && (
+                <Field
+                  label="Stock quantity"
+                  name="stock"
+                  type="number"
+                  min={0}
+                  max={1000000}
+                  required
+                  defaultValue={0}
+                />
+              )}
+              <Field
+                label="Reorder point"
+                name="reorder"
+                type="number"
+                min={0}
+                max={1000000}
+                required
+                defaultValue={editing?.reorder ?? 10}
+              />
+            </div>
+          </fieldset>
+          {editing && (
+            <p className="quiet-note">
+              Record stock changes in{" "}
+              <Link href="/dashboard/stocktakes">Stocktakes</Link> or{" "}
+              <Link href="/dashboard/expiry">Expiry & batches</Link>.
+            </p>
+          )}
+          {formError && (
+            <p role="alert" className="operation-error">
+              {formError}
+            </p>
+          )}
+          {photoBusy && <p role="status">Uploading photo…</p>}
           <div className="modal-actions">
-            <Button variant="secondary" onClick={() => setOpen(false)}>
+            <Button
+              variant="secondary"
+              disabled={saving || photoBusy || store.busy}
+              onClick={() => setOpen(false)}
+            >
               <T>Cancel</T>
             </Button>
-            <Button type="submit">
-              <T>{editing ? "Save product" : "Add product"}</T>
+            <Button type="submit" disabled={disabled}>
+              <T>
+                {saving || store.busy
+                  ? "Saving…"
+                  : editing
+                    ? "Save product"
+                    : "Add product"}
+              </T>
             </Button>
           </div>
         </form>

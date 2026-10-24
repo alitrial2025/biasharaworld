@@ -1,4 +1,5 @@
 "use client";
+import { ProductPhoto } from "@/components/product-photo";
 import { T, LocalButton } from "@/components/locale";
 import Link from "next/link";
 import Image from "next/image";
@@ -7,12 +8,10 @@ import {
   ArrowDownToLine,
   ArrowLeft,
   CheckCircle2,
-  MapPin,
   Minus,
   Package,
   Plus,
   ShoppingCart,
-  Star,
   Truck,
 } from "lucide-react";
 import {
@@ -24,7 +23,6 @@ import {
   Field,
   Modal,
   PageHeading,
-  ProductArt,
   SearchField,
   StatCard,
   Tabs,
@@ -169,23 +167,19 @@ export function SuppliersPage() {
                 <T>{s.name}</T>
               </h2>
               <span className="supplier-location">
-                <MapPin size={13} />
-                <T>Nairobi ·</T> <T>{s.distance}</T>
-                <Star size={13} className="star" />
-                <T>{s.rating}</T>
+                <T>{s.category}</T>
               </span>
               <p>
                 <T>{s.description}</T>
               </p>
               <div className="supplier-products">
                 <T>
-                  {[0, 1, 2, 4].map((art) => (
-                    <ProductArt
-                      key={art}
-                      art={art}
-                      name="Retail product illustration"
-                    />
-                  ))}
+                  {state.products
+                    .filter((p) => s.quotes?.[p.id] !== undefined)
+                    .slice(0, 4)
+                    .map((p) => (
+                      <ProductPhoto key={p.id} product={p} />
+                    ))}
                 </T>
               </div>
               <div className="supplier-meta">
@@ -238,9 +232,9 @@ export function SupplierDetailPage({ id }: { id: string }) {
   const [created, setCreated] = useState<Order | null>(null);
   const toast = useToast();
   const products = state.products.filter(
-    (p) => filter === "All" || p.category === filter,
+    (p) => !p.components?.length && (filter === "All" || p.category === filter),
   );
-  const lines = state.products.filter((p) => quantities[p.id] > 0);
+  const lines = state.products.filter((p) => !p.components?.length && quantities[p.id] > 0);
   const subtotal = lines.reduce(
     (sum, p) => sum + (supplier?.quotes?.[p.id] ?? p.cost) * quantities[p.id],
     0,
@@ -310,8 +304,8 @@ export function SupplierDetailPage({ id }: { id: string }) {
         >
           <label>
             Product
-            <select name="product">
-              {state.products.map((p) => (
+            <select name="product" required>
+              {state.products.filter(p => !p.components?.length).map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
@@ -345,13 +339,7 @@ export function SupplierDetailPage({ id }: { id: string }) {
             <T>{supplier.name}</T>
           </h1>
           <p>
-            <MapPin size={15} />
-            <T>Nairobi ·</T> <T>{supplier.distance}</T>
-            <Star size={15} />
-            <T>{supplier.rating}</T> <T> </T>
-            <span>
-              <T>(recorded rating)</T>
-            </span>
+            <T>{supplier.category}</T>
           </p>
         </div>
         <Button
@@ -382,7 +370,7 @@ export function SupplierDetailPage({ id }: { id: string }) {
             <T>
               {products.map((p) => (
                 <div className="supplier-product-row" key={p.id}>
-                  <ProductArt art={p.art} name={p.name} />
+                  <ProductPhoto product={p} />
                   <div>
                     <strong>
                       <T>{p.name}</T>
@@ -502,7 +490,7 @@ export function SupplierDetailPage({ id }: { id: string }) {
                 <T>
                   {lines.map((p) => (
                     <div key={p.id}>
-                      <ProductArt art={p.art} name={p.name} small />
+                      <ProductPhoto product={p} small />
                       <span>
                         <T>{p.name}</T>
                         <small>
@@ -741,11 +729,7 @@ export function OrdersPage() {
                     const p = state.products.find((p) => p.id === i.productId);
                     return (
                       <div key={i.productId}>
-                        <ProductArt
-                          art={p?.art ?? 0}
-                          name={p?.name ?? "Product"}
-                          small
-                        />
+                        <ProductPhoto product={p} small />
                         <span>
                           <T>{p?.name ?? "Product"}</T>
                           <small>

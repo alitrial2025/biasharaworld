@@ -51,11 +51,20 @@ class MainActivity : ComponentActivity() {
         ViewModelProvider(this)[ShopViewModel::class.java].backend?.handleLink(intent?.data)
         setContent {
             val model: ShopViewModel = viewModel()
+            val entryPrefs = remember { getSharedPreferences("biashara_entry", MODE_PRIVATE) }
+            var introComplete by rememberSaveable { mutableStateOf(entryPrefs.getBoolean("welcome_complete", false)) }
+            var entryMode by rememberSaveable { mutableStateOf("login") }
+            var setupInProgress by rememberSaveable(model.backend?.accountId) { mutableStateOf(false) }
             BiasharaTheme(model.store.operations.state.objectAt("preferences")) {
                 val backend=model.backend
                 when {
                     backend!=null&&!backend.ready->Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){CircularProgressIndicator(color=Green)}
-                    backend!=null&&(!backend.authenticated||!backend.hasBusiness||backend.recovery)->AccountScreen(backend)
+                    backend!=null&&!backend.authenticated&&!backend.recovery&&!introComplete->WelcomeOnboardingScreen(
+                        onCreateAccount = { entryMode = "signup"; introComplete = true; entryPrefs.edit().putBoolean("welcome_complete", true).apply() },
+                        onSignIn = { entryMode = "login"; introComplete = true; entryPrefs.edit().putBoolean("welcome_complete", true).apply() },
+                    )
+                    backend!=null&&backend.authenticated&&!backend.recovery&&(setupInProgress||(backend.workspaceLoaded&&!backend.hasBusiness))->BusinessOnboardingScreen(backend, onStarted = { setupInProgress = true }, onComplete = { setupInProgress = false })
+                    backend!=null&&(!backend.authenticated||!backend.hasBusiness||backend.recovery)->AccountScreen(backend, initialMode = entryMode)
                     else->BiasharaApp(model)
                 }
             }
@@ -187,8 +196,9 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
                             Screen.PREFERENCES -> FeatureScreen(store, "preferences", back, openTool)
                             Screen.REPORTS -> if(store.real)LiveReportsScreen(store,back)else ReportsScreen(store, back)
                             Screen.ASSISTANT -> AssistantScreen(store, back)
-                            Screen.FINANCE -> FinanceScreen(back, store) { navigate(Screen.REPORTS) }
+                            Screen.FINANCE -> FinanceScreen(back, store, onReports = { navigate(Screen.REPORTS) }, onVerification = { navigate(Screen.VERIFICATION) })
                             Screen.PROFILE -> ProfileScreen(store, back)
+                            Screen.VERIFICATION -> if (store.backend != null) BusinessOnboardingScreen(store.backend!!, manage = true, onComplete = back) else Box(Modifier.padding(22.dp)) { AppText("Business verification is available with a signed-in owner account.") }
                             Screen.SETUP -> SetupScreen(store) { navigate(Screen.HOME) }
                             Screen.TOOLS -> ToolsHubScreen(store, back, openTool)
                             Screen.FEATURE ->

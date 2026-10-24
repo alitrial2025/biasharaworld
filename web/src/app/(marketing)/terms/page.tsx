@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { LegalPage } from "@/components/marketing/pages";
+import { TermsNotice } from "@/components/marketing/policy-pages";
 export const metadata: Metadata = { title: "Terms" };
 export default function Page() {
-  return <LegalPage type="terms" />;
+  return <TermsNotice />;
 }

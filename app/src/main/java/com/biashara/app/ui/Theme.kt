@@ -1,6 +1,7 @@
 package com.biashara.app.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
@@ -11,6 +12,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.ExperimentalTextApi
@@ -24,41 +26,43 @@ import androidx.compose.ui.unit.sp
 import com.biashara.app.R
 import org.json.JSONObject
 
-internal var AppDark by mutableStateOf(false)
+private val LocalAppDark = staticCompositionLocalOf { false }
+internal val AppDark: Boolean
+    @Composable get() = LocalAppDark.current
 internal var AppLanguage by mutableStateOf("en")
 val Surface: Color
-    get() = if (AppDark) Color(0xFF1B3025) else Color.White
+    @Composable get() = if (AppDark) Color(0xFF1B3025) else Color.White
 
 val Ink: Color
-    get() = Color(if (AppDark) 0xFFEDF4EE else 0xFF17242F)
+    @Composable get() = Color(if (AppDark) 0xFFEDF4EE else 0xFF17242F)
 val Forest: Color
-    get() = Color(if (AppDark) 0xFF111F1D else 0xFF111F1D)
+    @Composable get() = Color(if (AppDark) 0xFF111F1D else 0xFF111F1D)
 val Green: Color
-    get() = Color(if (AppDark) 0xFF78D8AE else 0xFF00815D)
+    @Composable get() = Color(if (AppDark) 0xFF78D8AE else 0xFF007A57)
 val Lime: Color
-    get() = Color(if (AppDark) 0xFF214C38 else 0xFFE4F7ED)
+    @Composable get() = Color(if (AppDark) 0xFF214C38 else 0xFFE4F7ED)
 val Canvas: Color
-    get() = Color(if (AppDark) 0xFF14251D else 0xFFF8FAFC)
+    @Composable get() = Color(if (AppDark) 0xFF14251D else 0xFFF8FAFC)
 val Muted: Color
-    get() = Color(if (AppDark) 0xFFAFC0B5 else 0xFF5F6C7B)
+    @Composable get() = Color(if (AppDark) 0xFFAFC0B5 else 0xFF5F6C7B)
 val Line: Color
-    get() = Color(if (AppDark) 0xFF34483E else 0xFFE9EEF2)
+    @Composable get() = Color(if (AppDark) 0xFF34483E else 0xFFE9EEF2)
 val Mint: Color
-    get() = Color(if (AppDark) 0xFF214C38 else 0xFFEAF7F0)
+    @Composable get() = Color(if (AppDark) 0xFF214C38 else 0xFFEAF7F0)
 val Amber: Color
-    get() = Color(if (AppDark) 0xFFE3CC9A else 0xFF986B2B)
+    @Composable get() = Color(if (AppDark) 0xFFE3CC9A else 0xFF8E6123)
 val Coral: Color
-    get() = Color(if (AppDark) 0xFFF0ACB1 else 0xFFBF5154)
+    @Composable get() = Color(if (AppDark) 0xFFF0ACB1 else 0xFFB7474B)
 val Lavender: Color
-    get() = Color(if (AppDark) 0xFF383148 else 0xFFF0EEF9)
+    @Composable get() = Color(if (AppDark) 0xFF383148 else 0xFFF0EEF9)
 val Indigo: Color
-    get() = Color(if (AppDark) 0xFFB6C6F0 else 0xFF5464AD)
+    @Composable get() = Color(if (AppDark) 0xFFB6C6F0 else 0xFF5464AD)
 val BlueMist: Color
-    get() = Color(if (AppDark) 0xFF29394F else 0xFFEEF1FA)
+    @Composable get() = Color(if (AppDark) 0xFF29394F else 0xFFEEF1FA)
 val RoseMist: Color
-    get() = Color(if (AppDark) 0xFF4A3034 else 0xFFFCF0EF)
+    @Composable get() = Color(if (AppDark) 0xFF4A3034 else 0xFFFCF0EF)
 val Sand: Color
-    get() = Color(if (AppDark) 0xFF443D2B else 0xFFFBF4E7)
+    @Composable get() = Color(if (AppDark) 0xFF443D2B else 0xFFFBF4E7)
 
 @OptIn(ExperimentalTextApi::class)
 private fun variableFont(resource: Int, weight: Int) =
@@ -107,11 +111,11 @@ fun BiasharaTheme(preferences: JSONObject = JSONObject(), content: @Composable (
             else -> false
         }
     SideEffect {
-        AppDark = dark
         AppLanguage = preferences.optString("language", "en")
     }
     val density = LocalDensity.current
     CompositionLocalProvider(
+        LocalAppDark provides dark,
         LocalDensity provides
             Density(density.density, density.fontScale * preferences.optInt("textSize", 100) / 100f)
     ) {
@@ -119,7 +123,29 @@ fun BiasharaTheme(preferences: JSONObject = JSONObject(), content: @Composable (
             colorScheme =
                 if (dark)
                     darkColorScheme(
-                        primary = Color(0xFF78D8AE),
+                        primary = Green,
+                        onPrimary = Canvas,
+                        primaryContainer = Mint,
+                        onPrimaryContainer = Ink,
+                        secondary = Green,
+                        onSecondary = Canvas,
+                        secondaryContainer = Mint,
+                        onSecondaryContainer = Ink,
+                        tertiary = Indigo,
+                        onTertiary = Canvas,
+                        tertiaryContainer = Lavender,
+                        onTertiaryContainer = Ink,
+                        surfaceVariant = Color(0xFF243B2E),
+                        onSurfaceVariant = Muted,
+                        surfaceTint = Surface,
+                        surfaceContainerLowest = Canvas,
+                        surfaceContainerLow = Surface,
+                        surfaceContainer = Surface,
+                        surfaceContainerHigh = Color(0xFF243B2E),
+                        surfaceContainerHighest = Color(0xFF2B4435),
+                        outlineVariant = Line,
+                        errorContainer = RoseMist,
+                        onErrorContainer = Ink,
                         background = Color(0xFF14251D),
                         surface = Color(0xFF1B3025),
                         onSurface = Color(0xFFEDF4EE),
@@ -132,7 +158,23 @@ fun BiasharaTheme(preferences: JSONObject = JSONObject(), content: @Composable (
                         primary = Green,
                         onPrimary = Color.White,
                         primaryContainer = Lime,
+                        onPrimaryContainer = Ink,
                         secondary = Green,
+                        secondaryContainer = Mint,
+                        onSecondaryContainer = Ink,
+                        tertiary = Indigo,
+                        tertiaryContainer = Lavender,
+                        onTertiaryContainer = Ink,
+                        surfaceTint = Color.White,
+                        surfaceContainerLowest = Canvas,
+                        surfaceContainerLow = Color.White,
+                        surfaceContainer = Color.White,
+                        surfaceContainerHigh = Canvas,
+                        surfaceContainerHighest = Mint,
+                        onSurfaceVariant = Muted,
+                        outlineVariant = Line,
+                        errorContainer = RoseMist,
+                        onErrorContainer = Ink,
                         background = Canvas,
                         onBackground = Ink,
                         surface = Color.White,
@@ -158,7 +200,7 @@ fun BiasharaTheme(preferences: JSONObject = JSONObject(), content: @Composable (
                     labelMedium = type(12, FontWeight.SemiBold),
                     labelSmall = type(10, FontWeight.SemiBold, 15),
                 ),
-            content = content,
+            content = { CompositionLocalProvider(LocalContentColor provides Ink, content = content) },
         )
     }
 }

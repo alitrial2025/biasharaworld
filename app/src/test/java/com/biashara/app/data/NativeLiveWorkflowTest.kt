@@ -120,5 +120,31 @@ class NativeLiveWorkflowTest {
         backend.signOut(); assertFalse(backend.authenticated); assertTrue(store.products.isEmpty())
         backend.signIn(email, password); assertEquals(businessId, backend.businessId); assertEquals(imagePath, store.products.first { it.id == product.id }.imagePath)
         assertEquals("dark", store.operations.state.objectAt("preferences").getString("theme"))
+        val readiness = emptyVerificationProfile("Native owner", email).apply {
+            put("legalName", "Native owner"); put("tradingName", "Temporary Android verification")
+            put("phone", "+254700123456"); put("businessAddress", "Nairobi"); put("declaration", true)
+        }
+        assertTrue(verificationMissing(readiness).isEmpty())
+        assertEquals("submitted", backend.saveVerification(readiness, true).getJSONObject("verification").getString("status"))
+        assertEquals("submitted", backend.getVerification().getJSONObject("verification").getString("status"))
+        val funding = FundingRepository(context, backend, MemoryFundingPendingStore())
+        assertFalse(funding.load().getBoolean("providerConfigured"))
+        val fundingId = UUID.randomUUID().toString()
+        val plan = emptyFundingDraft(email, "+254700123456").apply {
+            put("amount", "10000.25"); put("months", "6"); put("monthlyRevenue", "30000")
+            put("monthlyCosts", "20000"); put("monthlyDebtPayments", "0"); put("tradingYears", "2")
+            put("plan", "Restock the shop with everyday customer essentials and repay from regular sales.")
+            put("consent", true)
+        }
+        val draft = funding.save(fundingId, 0, "save", plan).getJSONObject("application")
+        assertEquals("draft", draft.getString("status"))
+        val recorded = funding.save(fundingId, draft.getLong("revision"), "submit", plan).getJSONObject("application")
+        assertEquals("submitted", recorded.getString("status"))
+        val reloaded = funding.load().records("applications").single { it.getString("id") == fundingId }
+        assertEquals("10000.25", reloaded.getJSONObject("payload").getString("amount"))
+        val withdrawn = funding.save(fundingId, recorded.getLong("revision"), "withdraw", plan).getJSONObject("application")
+        assertEquals("withdrawn", withdrawn.getString("status")); assertNull(funding.pending())
+        backend.clearVerification()
+        assertTrue(backend.getVerification().isNull("verification"))
     }
 }

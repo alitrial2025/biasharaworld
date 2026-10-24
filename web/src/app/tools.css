@@ -3161,3 +3161,169 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Match Android's semantic palette, including compact controls and legacy sections. */
+:root {
+  --on-accent: #ffffff;
+}
+:root:not([data-theme="dark"]) {
+  --green: #007a57;
+}
+[data-theme="light"] {
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  --on-accent: #14251d;
+}
+[data-theme="dark"]
+  :is(.tools-category-tabs button.active, .selected .goal-check) {
+  color: var(--on-accent);
+}
+[data-theme="dark"]
+  :is(
+    .tools-category-tabs button,
+    .return-lines > button,
+    .document-list > button,
+    .count-list > button,
+    .search-results > button,
+    .alert-list > button,
+    .plan-picker > button,
+    .goal-options > button,
+    .billing-toggle > button,
+    .settings-nav > button,
+    .store-product,
+    .modal .icon-button
+  ) {
+  color: var(--ink);
+}
+[data-theme="dark"]
+  :is(
+    .billing-toggle,
+    .plan-picker > button,
+    .goal-options > button,
+    .modal-heading .icon-button,
+    .bento-sales .icon-box,
+    .bento-stock .icon-box,
+    .solution-card .icon-box,
+    .feature-stamp,
+    .sidebar-app-link,
+    .onboarding-currency
+  ) {
+  background: var(--surface);
+  border-color: var(--line);
+}
+[data-theme="dark"]
+  :is(
+    .billing-toggle > button.active,
+    .goal-options > button.selected,
+    .plan-picker > button:hover,
+    .search-results > button:hover,
+    .dropdown-panel > a:hover,
+    .workspace-sidebar nav > a:hover,
+    .icon-button:hover
+  ) {
+  background: var(--mint);
+  color: var(--green);
+}
+[data-theme="dark"] .supplier-intro {
+  background: linear-gradient(115deg, var(--mint), var(--canvas));
+}
+[data-theme="dark"] .supplier-intro .badge {
+  background: var(--surface);
+  color: var(--green);
+}
+[data-theme="dark"] :is(.avatar-mint, .mini-avatar) {
+  background: var(--mint);
+  color: #b0e5c9;
+}
+[data-theme="dark"] .avatar-sand {
+  background: var(--sand);
+  color: #e7d3a7;
+}
+[data-theme="dark"] .avatar-lavender {
+  background: var(--lavender);
+  color: #d8c1ee;
+}
+[data-theme="dark"] .avatar-rose {
+  background: var(--rose);
+  color: #f0b4b7;
+}
+[data-theme="dark"] .avatar-blue {
+  background: var(--blue);
+  color: #bacbf0;
+}
+[data-theme="dark"]
+  :is(
+    .table-product small,
+    .stacked-cell small,
+    .order-lines small,
+    .search-results small,
+    .alert-list div > span,
+    .report-value > span:first-child,
+    .ranking-row > div > span,
+    .payment-breakdown > div:first-child,
+    .assistant-banner p,
+    .assistant-banner > span:last-child,
+    .assistant-top div > span,
+    .chat-message small,
+    .plan-picker div > span,
+    .notification-setting p,
+    .supplier-location,
+    .supplier-product-row small,
+    .onboarding-progress,
+    .comparison-table td,
+    .resource-card > p,
+    .solution-card > p
+  ) {
+  color: var(--muted);
+}
+[data-theme="dark"] .btn-danger {
+  color: #f0b4b7;
+  background: var(--rose);
+  border-color: #6b4147;
+}
+[data-theme="dark"] .btn-secondary:hover {
+  background: var(--mint);
+}
+[data-theme="dark"] .product-art.product-photo {
+  background: var(--mint);
+  color: var(--muted);
+}
+[data-theme="dark"] :is(.ranking-bar, .breakdown-track) {
+  background: var(--canvas);
+}
+[data-theme="dark"] .toggle {
+  background: #52675a;
+}
+[data-theme="dark"] .toggle.on {
+  background: #087b56;
+}
+[data-theme="dark"] .input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+[data-theme="dark"]
+  :is(
+    .input,
+    .table-select,
+    .count-worksheet input,
+    .bundle-picker input
+  ):disabled {
+  color: var(--muted);
+  -webkit-text-fill-color: var(--muted);
+}
+[data-theme="dark"] .loading-shimmer {
+  background: linear-gradient(90deg, var(--surface), #294333, var(--surface));
+  background-size: 200%;
+}
+[data-theme="dark"] .movement-marker.negative {
+  color: #f0b4b7;
+}
+[data-theme="dark"]
+  :is(a, button, input, select, textarea, summary):focus-visible {
+  outline-color: #8fe0bc;
+}
+
+[data-theme="dark"] .tools-category-tabs button.active {
+  color: var(--on-accent);
+}

@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
-import { LegalPage } from "@/components/marketing/pages";
-export const metadata: Metadata = { title: "Privacy" };
+import { PrivacyNotice } from "@/components/marketing/policy-pages";
+export const metadata: Metadata = {
+  title: "Privacy notice",
+  description:
+    "How BiasharaOS handles account, business, product-photo, verification-readiness and funding information.",
+};
 export default function Page() {
-  return <LegalPage type="privacy" />;
+  return <PrivacyNotice />;
 }

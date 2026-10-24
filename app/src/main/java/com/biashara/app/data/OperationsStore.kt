@@ -501,7 +501,7 @@ class OperationsStore(private val store: DemoStore) {
             require(
                 payments.isNotEmpty() &&
                     payments.all {
-                        it.optString("method") in listOf("Cash", "M-Pesa", "Card") &&
+                        it.optString("method") in listOf("Cash", "M-Pesa", "Card", "Bank transfer", "Bank") &&
                             it.optLong("amount") >= 0
                     } &&
                     payments.sumOf { it.optLong("amount") } == total

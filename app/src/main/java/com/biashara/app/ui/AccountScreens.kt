@@ -30,8 +30,8 @@ import com.biashara.app.R
 import com.biashara.app.data.LiveBackend
 
 @Composable
-fun AccountScreen(backend: LiveBackend) {
-    var mode by rememberSaveable { mutableStateOf("login") }
+fun AccountScreen(backend: LiveBackend, initialMode: String = "login") {
+    var mode by rememberSaveable(initialMode) { mutableStateOf(initialMode) }
     var name by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

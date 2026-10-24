@@ -7,6 +7,7 @@ import {
 import { applyCommand, parseCommand } from "../src/lib/backend/commands";
 import { businessReport } from "../src/lib/backend/reports";
 import { accountReturn } from "../src/lib/account-return";
+import { barcode } from "../src/lib/operations";
 const product = {
   name: "Coffee",
   size: "250 g",
@@ -50,6 +51,100 @@ test("authoritative money validation preserves cents and rejects fractional mino
   expect(() =>
     parseCommand({ type: "updateProfile", profile: { plan: "Business" } }),
   ).toThrow();
+});
+test("every accepted manual payment method settles the same exact minor-unit total", () => {
+  for (const method of ["Cash", "M-Pesa", "Card", "Bank transfer", "Bank"]) {
+    const d = business();
+    const created = d.save({ type: "addProduct", product });
+    d.save({ type: "cart", id: created.id, quantity: 1 });
+    d.save({ type: "checkout", payments: [{ method, amount: 1025 }] });
+    expect(d.state.operations.receipts[0].payments).toEqual([
+      { method, amount: 1025 },
+    ]);
+    expect(d.state.operations.receipts[0].total).toBe(1025);
+    expect(d.state.products[0].stock).toBe(4);
+  }
+});
+test("product SKUs remain unique across case-insensitive client searches", () => {
+  const d = business();
+  d.save({ type: "addProduct", product });
+  expect(() =>
+    d.save({ type: "addProduct", product: { ...product, sku: "coffee" } }),
+  ).toThrow(/SKU/);
+  const second = d.save({
+    type: "addProduct",
+    product: { ...product, sku: "TEA" },
+  });
+  expect(() =>
+    d.save({
+      type: "updateProduct",
+      id: second.id,
+      changes: { sku: "Coffee" },
+    }),
+  ).toThrow(/SKU/);
+  expect(d.state.products).toHaveLength(2);
+});
+test("product forms cannot bypass barcode uniqueness or check digits", () => {
+  const d = business();
+  const first = d.save({ type: "addProduct", product });
+  const code = barcode(first.id!);
+  expect(() =>
+    d.save({
+      type: "addProduct",
+      product: { ...product, sku: "TEA", barcode: code },
+    }),
+  ).toThrow(/Barcode/);
+  expect(() =>
+    d.save({
+      type: "addProduct",
+      product: { ...product, sku: "TEA", barcode: "6160000000010" },
+    }),
+  ).toThrow();
+  const second = d.save({
+    type: "addProduct",
+    product: { ...product, sku: "TEA" },
+  });
+  expect(() =>
+    d.save({
+      type: "updateProduct",
+      id: second.id,
+      changes: { barcode: code },
+    }),
+  ).toThrow(/Barcode/);
+  expect(() =>
+    d.save({
+      type: "updateProduct",
+      id: second.id,
+      changes: { barcode: "6160000000010" },
+    }),
+  ).toThrow();
+  expect(d.state.products).toHaveLength(2);
+});
+test("a bundle cannot become a purchase order that can never be received", () => {
+  const d = business();
+  const first = d.save({ type: "addProduct", product });
+  const second = d.save({
+    type: "addProduct",
+    product: { ...product, sku: "TEA" },
+  });
+  const bundle = d.save({
+    type: "bundle",
+    name: "Breakfast",
+    price: 1500,
+    components: [
+      { productId: first.id, quantity: 1 },
+      { productId: second.id, quantity: 1 },
+    ],
+  });
+  expect(() =>
+    d.save({
+      type: "createOrder",
+      supplier: "Supplier",
+      items: [{ productId: bundle.id, quantity: 1, cost: 10 }],
+      deliveryFee: 0,
+    }),
+  ).toThrow(/individual/);
+  expect(d.state.orders).toEqual([]);
 });
 test("roles enforce financial and staff boundaries before mutation", () => {
   const d = business();

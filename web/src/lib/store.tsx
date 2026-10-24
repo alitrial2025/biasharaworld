@@ -33,6 +33,7 @@ class BusinessStore {
   ready = false;
   authenticated = false;
   workspace: LiveWorkspace | null = null;
+  confirmedRequestId = "";
   private state = emptyBusiness();
   private serverState = this.state;
   private listeners = new Set<() => void>();
@@ -94,7 +95,9 @@ class BusinessStore {
     this.userId = id;
     this.authenticated = !!id;
     this.workspace = null;
+    this.busy = false;
     this.pending = null;
+    this.confirmedRequestId = "";
     this.error = "";
     this.state = emptyBusiness();
     this.ready = !id;
@@ -165,7 +168,17 @@ class BusinessStore {
   private run = (
     command: unknown,
   ): Promise<{ message: string; id?: number }> => {
+    if (this.busy || this.pending)
+      return Promise.reject(
+        new Error(
+          this.pending
+            ? "A previous request is unconfirmed. Use Retry saved request before making another change."
+            : "Wait for the current save to finish.",
+        ),
+      );
     const generation = this.generation;
+    this.busy = true;
+    this.emit();
     const task = async () => {
       if (generation !== this.generation)
         throw new Error("Account changed. Please retry.");
@@ -190,7 +203,12 @@ class BusinessStore {
       }
       return this.sendPending();
     };
-    const result = this.queue.then(task);
+    const result = this.queue.then(task).finally(() => {
+      if (generation === this.generation) {
+        this.busy = false;
+        this.emit();
+      }
+    });
     this.queue = result.catch(() => {});
     return result;
   };
@@ -201,9 +219,11 @@ class BusinessStore {
     this.error = "";
     this.emit();
     try {
+      const requestId = this.pending.requestId;
       const data = await this.request(this.pending);
       if (generation !== this.generation) throw new Error("Account changed.");
       this.pending = null;
+      this.confirmedRequestId = requestId;
       this.savePending();
       this.accept(data.workspace);
       return data.result as { message: string; id?: number };
@@ -226,7 +246,10 @@ class BusinessStore {
       }
     }
   };
-  retry = () => this.sendPending();
+  retry = () =>
+    this.busy
+      ? Promise.reject(new Error("Wait for the current save to finish."))
+      : this.sendPending();
   get hasPending() {
     return !!this.pending;
   }
@@ -340,12 +363,18 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   );
 }
 export function useDemo() {
+  const result = useOptionalDemo();
+  if (!result) throw new Error("Business provider required.");
+  return result;
+}
+const noSubscribe = () => () => {};
+const noSnapshot = () => null;
+export function useOptionalDemo() {
   const store = useContext(StoreContext);
-  if (!store) throw new Error("Business provider required.");
   const state = useSyncExternalStore(
-    store.subscribe,
-    store.getSnapshot,
-    store.getServerSnapshot,
+    store?.subscribe ?? noSubscribe,
+    store?.getSnapshot ?? noSnapshot,
+    store?.getServerSnapshot ?? noSnapshot,
   );
-  return { state, store };
+  return store && state ? { state, store } : null;
 }

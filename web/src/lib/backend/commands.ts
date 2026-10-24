@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { execute, type Action } from "../operations";
+import {
+  barcode,
+  execute,
+  paymentMethods,
+  validBarcode,
+  type Action,
+} from "../operations";
 import { today, type DemoState } from "../data";
 const text = z.string().trim().min(1).max(200);
 const note = z.string().trim().max(2000);
@@ -25,10 +31,15 @@ const product = z
     stock: qty,
     reorder: qty,
     art: z.number().int().min(0).max(7),
-    imagePath: z.string().regex(/^[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/).nullable().optional(),
+    imagePath: z
+      .string()
+      .regex(/^[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/)
+      .nullable()
+      .optional(),
     barcode: z
       .string()
       .regex(/^\d{13}$/)
+      .refine(validBarcode, "Enter an EAN-13 barcode with a valid check digit.")
       .optional(),
   })
   .strict();
@@ -44,7 +55,7 @@ const customer = z
   .strict();
 const payment = z
   .object({
-    method: z.enum(["Cash", "M-Pesa", "Card", "Bank transfer", "Bank"]),
+    method: z.enum(paymentMethods),
     amount: int,
   })
   .strict();
@@ -360,9 +371,16 @@ export function applyCommand(
       state.target = v.target;
       break;
     case "addProduct": {
-      if (state.products.some((p) => p.sku === v.product.sku))
+      if (
+        state.products.some(
+          (p) => p.sku.toLowerCase() === v.product.sku.toLowerCase(),
+        )
+      )
         throw new Error("SKU already exists.");
       resultId = next(state.products);
+      const code = v.product.barcode ?? barcode(resultId);
+      if (state.products.some((p) => (p.barcode ?? barcode(p.id)) === code))
+        throw new Error("Barcode already exists. Choose a unique barcode.");
       state.products.push({ ...v.product, id: resultId, stock: 0 });
       for (const b of state.operations.branches)
         state.operations.stock[b.id][resultId] = 0;
@@ -381,13 +399,25 @@ export function applyCommand(
       if (!p) throw new Error("Product not found.");
       if (
         v.changes.sku &&
-        state.products.some((q) => q.id !== p.id && q.sku === v.changes.sku)
+        state.products.some(
+          (q) =>
+            q.id !== p.id &&
+            q.sku.toLowerCase() === v.changes.sku!.toLowerCase(),
+        )
       )
         throw new Error("SKU already exists.");
       if (v.changes.stock !== undefined && v.changes.stock !== p.stock)
         throw new Error(
           "Use Stocktake or Receive batch to adjust stock with an audit trail.",
         );
+      if (
+        v.changes.barcode &&
+        state.products.some(
+          (q) =>
+            q.id !== p.id && (q.barcode ?? barcode(q.id)) === v.changes.barcode,
+        )
+      )
+        throw new Error("Barcode already exists. Choose a unique barcode.");
       Object.assign(p, v.changes);
       break;
     }
@@ -427,6 +457,16 @@ export function applyCommand(
         v.items.some((i) => !state.products.some((p) => p.id === i.productId))
       )
         throw new Error("An order product no longer exists.");
+      if (
+        v.items.some(
+          (item) =>
+            state.products.find((p) => p.id === item.productId)?.components
+              ?.length,
+        )
+      )
+        throw new Error(
+          "Purchase individual products for a bundle, then assemble them from stock.",
+        );
       resultId = next(state.orders);
       state.orders.unshift({
         id: resultId,

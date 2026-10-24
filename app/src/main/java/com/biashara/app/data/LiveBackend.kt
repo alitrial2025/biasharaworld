@@ -256,6 +256,7 @@ class LiveBackend(
     }
 
     val accountEmail: String get() = session?.optJSONObject("user")?.optString("email").orEmpty()
+    internal val accountId: String get() = userId()
     val accountName: String get() = session?.optJSONObject("user")?.optJSONObject("user_metadata")?.optString("name")?.takeIf { it.isNotBlank() } ?: accountEmail.substringBefore('@')
     suspend fun changePassword(currentPassword: String, newPassword: String) {
         require(newPassword.length >= 8) { "Use at least 8 characters for your password." }

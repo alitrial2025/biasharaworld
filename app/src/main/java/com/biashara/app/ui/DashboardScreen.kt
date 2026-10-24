@@ -134,8 +134,8 @@ fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -
                         Triple("Expenses", Icons.Outlined.Receipt, if(store.real) Screen.EXPENSES else Screen.REPORTS),
                         Triple("Customers", Icons.Outlined.PeopleOutline, Screen.CUSTOMERS),
                     )
-                val colors = listOf(Green, Color(0xFFEB5E52), Color(0xFF6557DF), Color(0xFF225CB5))
-                val backgrounds = listOf(Mint, Color(0xFFFFEEEB), Lavender, Color(0xFFEBF3FF))
+                val colors = listOf(Green, Coral, Indigo, Indigo)
+                val backgrounds = listOf(Mint, RoseMist, Lavender, BlueMist)
                 actions.forEachIndexed { i, (label, icon, route) ->
                     Column(
                         Modifier.weight(1f)
@@ -271,7 +271,7 @@ fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -
                     Icons.Outlined.AutoAwesome,
                     null,
                     Modifier.size(24.dp),
-                    tint = Color(0xFF6557DF),
+                    tint = Indigo,
                 )
                 Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
                     AppText("BiasharaAI", fontSize = 13.sp, fontWeight = FontWeight.Bold)
@@ -302,7 +302,7 @@ private fun SummaryCard(
             .clip(RoundedCornerShape(16.dp))
             .background(
                 Brush.verticalGradient(
-                    listOf(bg, androidx.compose.ui.graphics.lerp(bg, Color.White, .20f))
+                    listOf(bg, androidx.compose.ui.graphics.lerp(bg, Surface, .20f))
                 )
             )
             .padding(14.dp),

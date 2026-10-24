@@ -1,0 +1,30 @@
+# BiasharaOS 0.4.0 completion audit — 24 October 2026
+
+This release builds on the restored Android source at `42dbc28`. It preserves the previous demo fixes, authentication design and working business backend. The website and Android app use the same production account project, business commands and private product-photo bucket.
+
+## Delivered behavior
+
+- **Product photos:** web owners/managers can add, replace and detach photos. Browser and Android preparation resize images and strip metadata. Private thumbnails appear throughout inventory, checkout, search, reports and purchasing. A published shop serves only the current image of a visible product through a checked route. Hiding/unpublishing/detaching blocks new public requests. The bucket remains private and tenant-scoped; removing a reference does not automatically delete an old private object.
+- **Onboarding:** first-time Android visitors see a welcome journey before account creation. New owners complete six business/contact/operations/registration/declaration steps, with recoverable drafts. Kenya is the launch market; other African countries are marked coming soon. Existing businesses remain accessible.
+- **Verification readiness:** owner-only records hold business/contact details and a declaration. No government-ID images, bank credentials or biometric information are collected. Submitted means readiness recorded; identity verification is pending provider setup. API-only writes enforce required fields, contact validation and consent. Owners can clear readiness. Whole-profile readiness edits currently use last-write-wins across devices.
+- **Funding preparation:** owner-only saved drafts, request recording, history, withdrawal, revision conflicts and durable idempotent retries work through dedicated services. Actual 30-day business totals include all branches and deduct expenses once. A comparison calculator uses the user's entered terms. Requests remain provider-pending; no lender offer, credit check, approval, application delivery or disbursement is implied.
+- **Policies/help:** `/privacy`, `/cookies`, `/terms` and searchable `/help` describe actual behavior. Android opens these HTTPS pages directly. Contact topics support privacy, deletion and security requests. Essential storage and real appearance controls are explained without inventing advertising/analytics consent. The operating legal entity, dedicated contact email/address and fixed retention schedule remain unconfirmed and are stated as such.
+- **Themes and sheets:** Android palette values are composition-scoped, with a default foreground for dark screens and readable semantic containers. Web controls, documents, inputs, tool cards and public pages have dark overrides. Web actions retain focus trapping and Escape support while appearing as bottom sheets. Validation errors and retry controls remain reachable inside sheets.
+- **Connected workflows:** bank payment labels now match across schema and execution; SKU uniqueness is case-insensitive; add/edit barcode validation matches scanners; bundles cannot create unreceivable purchase orders; variants/bundles return their created IDs. Inventory stock changes direct users to audited stocktake/batch flows. Duplicate writes, stale funding edits and interrupted saves have explicit recovery behavior.
+
+## Verification completed before deployment
+
+- **69 distinct web browser/domain cases passed** across the combined and targeted runs: mobile/desktop themes, actual connected products/photos, sales/refunds, customer repayment, expenses, stocktaking, purchasing, orders, onboarding recovery, policy/help pages and the funding wizard. The browser scanner decoded a generated camera stream, stopped it, and preserved manual fallback after permission denial.
+- **2 email-capture cases skipped** because they require an isolated local SMTP capture service. These do not establish hosted email delivery.
+- **23 connected photo-isolation/publication checks passed** against the updated local API and production Supabase Storage.
+- **30 connected funding/verification checks passed**, including owner/staff/tenant isolation, API-only readiness writes, required consent/contact data, concurrent duplicate request replay, revision conflicts, provider-pending status, withdrawal and direct-RPC denial. Disposable records/accounts were cleaned up.
+- **56 Android tests passed; 1 hosted test skipped by default.** Includes connected sheets, recovery, stable account/business draft keys, a paused account-switch privacy regression, dark contrast/foreground, welcome onboarding and trusted policy URLs. Lint has no errors (22 warnings, one informational suggestion); debug assembly and APK v2 signature verification passed.
+- Production web build, TypeScript and ESLint passed. The final native hosted lifecycle is opt-in through `tools/test-android-live.mjs` after deployment and now covers verification and funding in addition to the existing business tools. Its result is recorded with the delivery verification artifacts.
+
+All additive migrations, including private-photo policies, owner readiness, API-only readiness writes and funding records/RPC were applied using the hash-checked migration runner. Applied SQL was not edited in place.
+
+## Delivery and remaining boundaries
+
+Android version is **0.4.0 (code 4)**. The installable test file is `app/build/outputs/apk/debug/biasharaos-0.4.0-debug.apk`, with SHA-256 and verification sidecars. The original pinned release signing key is absent; no replacement release identity was generated. This debug build cannot update the older signed release in place.
+
+Physical-device camera/gallery permissions, printing, OEM lifecycle behavior and production Keystore operation still require device testing. Actual identity verification, lenders, payment collection, automated notifications and external generative AI remain unconfigured. The UI describes the available manual/recorded-data workflows and coming-soon services accurately; a numeric completion percentage is not a substitute for these explicit boundaries.

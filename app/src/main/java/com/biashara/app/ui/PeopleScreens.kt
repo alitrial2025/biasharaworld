@@ -151,7 +151,7 @@ fun SuppliersScreen(store: DemoStore, onBack: () -> Unit, openSupplier: (Int) ->
                         Box(
                             Modifier.size(49.dp)
                                 .background(
-                                    listOf(Color(0xFFF0E0BE), Mint, Lavender)[i],
+                                    listOf(Sand, Mint, Lavender)[i],
                                     RoundedCornerShape(15.dp),
                                 ),
                             contentAlignment = Alignment.Center,

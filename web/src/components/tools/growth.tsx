@@ -1,4 +1,5 @@
 "use client";
+import { ProductPhoto } from "@/components/product-photo";
 import { T, LocalInput, LocalButton } from "@/components/locale";
 import Link from "next/link";
 import Image from "next/image";
@@ -10,7 +11,6 @@ import {
   Globe,
   MapPin,
   Plus,
-  RefreshCw,
   ShoppingBag,
   Truck,
   Wifi,
@@ -22,7 +22,6 @@ import {
   EmptyState,
   Field,
   Modal,
-  ProductArt,
   SelectField,
   Tabs,
 } from "@/components/ui";
@@ -499,8 +498,8 @@ export function DeliveriesTool() {
               </div>
               <p className="quiet-note">
                 <T>
-                  Local fulfilment preview. No driver, customer or payment
-                  service is contacted.
+                  Order status is saved to your business. Contact the customer
+                  or driver separately; no payment is collected here.
                 </T>
               </p>
             </>
@@ -855,8 +854,8 @@ export function OnlineShopTool() {
           </form>
           <p className="quiet-note">
             <T>
-              Publishing makes your selected products, prices and availability
-              public. Customer orders are saved to your business.
+              Publishing makes your selected products, photos, prices and
+              availability public. Customer orders are saved to your business.
             </T>
           </p>
           <Button
@@ -872,7 +871,7 @@ export function OnlineShopTool() {
             <T>
               {state.products.map((p) => (
                 <label key={p.id}>
-                  <ProductArt art={p.art} name={p.name} small />
+                  <ProductPhoto product={p} small />
                   <span>
                     <strong>
                       <T>{p.name}</T>
@@ -1001,130 +1000,93 @@ export function PortalTool() {
   );
 }
 export function SyncTool() {
-  const { op, store, act, error } = useOperations();
+  const { store } = useOperations();
   const [online, setOnline] = useState<boolean | null>(null);
+  const [checking, setChecking] = useState(false);
   return (
-    <>
-      <OperationError message={error} />
-
-      <T>
-        {store.storageWarning && (
-          <div className="operation-error">
-            <T>{store.storageWarning}</T>
-          </div>
-        )}
-      </T>
-
-      <div className="tool-two-columns">
-        <ToolPanel title="Your work has a home on this device.">
-          <div className="connection-card">
-            <span className="icon-box tone-green">
-              <Wifi size={28} />
-            </span>
-            <h2>
-              <T>Saved locally.</T>
-            </h2>
-            <p>
-              <T>
-                Products, sales, records and preferences persist in this
-                browser. They are not synced to another device or the Android
-                app.
-              </T>
-            </p>
-            <Button
-              variant="secondary"
-              onClick={() => setOnline(navigator.onLine)}
-            >
-              <T>Check browser connection</T>
-            </Button>
-
-            <T>
-              {online !== null && (
-                <Badge tone={online ? "green" : "amber"}>
-                  <T>
-                    {online
-                      ? "Browser reports online"
-                      : "Browser reports offline"}
-                  </T>
-                </Badge>
-              )}
-            </T>
-          </div>
-          <SelectField
-            label="Explore a sync scenario"
-            value={op.sync.mode}
-            onChange={async (mode) =>
-              await act({ type: "syncMode", mode: mode as typeof op.sync.mode })
-            }
-          >
-            <option>
-              <T>Local only</T>
-            </option>
-            <option>
-              <T>Offline preview</T>
-            </option>
-            <option>
-              <T>Conflict preview</T>
-            </option>
-          </SelectField>
-          <p className="quiet-note">
-            <T>
-              Scenarios are simulated. This web preview does not cache a full
-              offline cold start and has no sync server.
-            </T>
+    <div className="tool-two-columns">
+      <ToolPanel title="Your business, connected.">
+        <div className="connection-card">
+          <span className="icon-box tone-green">
+            <Wifi size={28} />
+          </span>
+          <h2>
+            {store.hasPending
+              ? "A save needs confirmation."
+              : "Connected to your business."}
+          </h2>
+          <p>
+            Confirmed products, sales, stock and preferences are stored in your
+            business account and shared with the Android app. An internet
+            connection is required to save changes.
           </p>
-        </ToolPanel>
-        <ToolPanel title="A little record of your progress.">
-          <T>
-            {op.sync.entries.length ? (
-              op.sync.entries.map((e) => (
-                <div className="sync-entry" key={e.id}>
-                  <span
-                    className={`icon-box tone-${e.status === "Saved on device" ? "green" : "amber"}`}
-                  >
-                    <T>
-                      {e.status === "Saved on device" ? (
-                        <CheckCircle2 size={18} />
-                      ) : (
-                        <RefreshCw size={18} />
-                      )}
-                    </T>
-                  </span>
-                  <div>
-                    <strong>
-                      <T>{e.label}</T>
-                    </strong>
-                    <small>
-                      <T>{e.status}</T>
-                    </small>
-                  </div>
-
-                  <T>
-                    {e.status !== "Saved on device" && (
-                      <Button
-                        size="small"
-                        variant="secondary"
-                        onClick={async () =>
-                          await act({ type: "retrySync", id: e.id })
-                        }
-                      >
-                        <T>Review / retry</T>
-                      </Button>
-                    )}
-                  </T>
-                </div>
-              ))
-            ) : (
-              <EmptyState
-                icon={RefreshCw}
-                title="A little activity, still to come."
-                description="Your saved activity will appear here."
-              />
-            )}
-          </T>
-        </ToolPanel>
-      </div>
-    </>
+          <Button
+            disabled={checking || store.busy}
+            onClick={async () => {
+              setChecking(true);
+              setOnline(navigator.onLine);
+              try {
+                if (store.hasPending) await store.retry();
+                else await store.hydrate();
+              } catch {
+                /* Retained by the store for a safe retry. */
+              } finally {
+                setChecking(false);
+              }
+            }}
+          >
+            {checking
+              ? "Checking…"
+              : store.hasPending
+                ? "Retry saved request"
+                : "Refresh business records"}
+          </Button>
+          {online !== null && (
+            <Badge tone={online ? "green" : "amber"}>
+              {online ? "Browser reports online" : "Browser reports offline"}
+            </Badge>
+          )}
+          <OperationError message={store.error} />
+        </div>
+      </ToolPanel>
+      <ToolPanel title="Your latest confirmed records.">
+        <dl className="detail-list">
+          <div>
+            <dt>Business</dt>
+            <dd>{store.workspace?.state.profile.business}</dd>
+          </div>
+          <div>
+            <dt>Revision</dt>
+            <dd>{store.workspace?.revision ?? "—"}</dd>
+          </div>
+          <div>
+            <dt>Updated</dt>
+            <dd>
+              {store.workspace?.updatedAt
+                ? new Date(store.workspace.updatedAt).toLocaleString("en-KE", {
+                    timeZone: "Africa/Nairobi",
+                  })
+                : "No confirmed update"}
+            </dd>
+          </div>
+          <div>
+            <dt>Save status</dt>
+            <dd>
+              {store.busy
+                ? "Saving…"
+                : store.hasPending
+                  ? "Unconfirmed — retry the saved request"
+                  : "Confirmed"}
+            </dd>
+          </div>
+        </dl>
+        <p className="quiet-note">
+          Unconfirmed requests retain their request ID so retries do not create
+          duplicate records. Review stock or records again if another team
+          member changed them.
+        </p>
+      </ToolPanel>
+    </div>
   );
 }
 export function PreferencesTool() {
@@ -1341,7 +1303,7 @@ export function Shopfront() {
                           className="store-product-detail"
                           onClick={() => setDetail(p.id)}
                         >
-                          <ProductArt art={p.art} name={p.name} />
+                          <ProductPhoto product={p} />
                           <h2>
                             <T>{p.name}</T>
                           </h2>
@@ -1552,7 +1514,7 @@ export function Shopfront() {
               const p = state.products.find((p) => p.id === detail)!;
               return (
                 <div className="store-detail">
-                  <ProductArt art={p.art} name={p.name} />
+                  <ProductPhoto product={p} />
                   <h3>
                     <T>{p.name}</T>
                   </h3>

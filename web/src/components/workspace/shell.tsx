@@ -1,4 +1,5 @@
 "use client";
+import { ProductPhoto } from "@/components/product-photo";
 import { T, LocalButton, LocalSelect } from "@/components/locale";
 
 import Link from "next/link";
@@ -37,7 +38,6 @@ import {
   Brand,
   Button,
   Modal,
-  ProductArt,
   SearchField,
 } from "@/components/ui";
 import { useDemo } from "@/lib/store";
@@ -427,7 +427,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                   go(`/dashboard/inventory?q=${encodeURIComponent(p.name)}`)
                 }
               >
-                <ProductArt art={p.art} name={p.name} small />
+                <ProductPhoto product={p} small />
                 <span>
                   <strong>
                     <T>{p.name}</T>
@@ -480,7 +480,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                   go(`/dashboard/inventory?q=${encodeURIComponent(p.name)}`)
                 }
               >
-                <ProductArt art={p.art} name={p.name} />
+                <ProductPhoto product={p} />
                 <div>
                   <strong>
                     <T>{p.name}</T>

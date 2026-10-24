@@ -1,8 +1,8 @@
 # Android signed test release
 
-The previous version 0.2.0 (version code 2) was a non-debuggable Android release APK signed with a dedicated RSA 3072-bit key. The current source is version 0.3.0 (version code 3). Its public account project and application API point to the intended production services; the supporting API is deployed and hosted native workflows have passed.
+The previous version 0.2.0 (version code 2) was a non-debuggable Android release APK signed with a dedicated RSA 3072-bit key. The current source is version 0.4.0 (version code 4). Its public account project and application API point to the intended production services. See [the 0.4.0 audit](release-0.4.0-audit.md) for completed checks and provider/device boundaries.
 
-The restored workspace does not contain the pinned private release key or password. Version 0.3.0 is therefore delivered as a **debug test APK**, `app/build/outputs/apk/debug/biasharaos-0.3.0-debug.apk`, with a SHA-256 sidecar. It cannot update the older signed release in place. Restore the original private key before producing a compatible release; do not generate a replacement identity. See [the completion audit](android-completion-audit.md) for validation and remaining device checks.
+The restored workspace does not contain the pinned private release key or password. Version 0.4.0 is therefore delivered as a **debug test APK**, `app/build/outputs/apk/debug/biasharaos-0.4.0-debug.apk`, with a SHA-256 sidecar. It cannot update the older signed release in place. Restore the original private key before producing a compatible release; do not generate a replacement identity.
 
 ## Build and verify
 

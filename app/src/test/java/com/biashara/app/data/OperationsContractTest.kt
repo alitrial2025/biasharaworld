@@ -32,6 +32,23 @@ class OperationsContractTest {
     }
 
     @Test
+    fun manualBankMethodsUseTheSameCheckoutAmountsAsCash() {
+        listOf("Bank transfer", "Bank").forEach { method ->
+            val store = DemoStore()
+            val before = store.products.first { it.id == 1 }
+            store.act("cart", "product" to "1", "quantity" to "1")
+            val due = store.operations.price().getLong("total")
+            val native = nativeCommand("checkout", mapOf("method" to method), store)
+            assertEquals(due, native.getJSONArray("payments").getJSONObject(0).getLong("amount"))
+            store.act("checkout", "method" to method)
+            val receipt = store.operations.state.records("receipts").first()
+            assertEquals(due, receipt.getLong("total"))
+            assertEquals(method, receipt.records("payments").single().getString("method"))
+            assertEquals(before.stock - 1, store.products.first { it.id == 1 }.stock)
+        }
+    }
+
+    @Test
     fun splitCheckoutAndPartialRefundsConserveMoneyAndPoints() {
         val s = DemoStore()
         val f = fixture.getJSONObject("checkout")

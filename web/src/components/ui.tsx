@@ -24,6 +24,7 @@ import {
   type ReactNode,
 } from "react";
 import { initials, money } from "@/lib/data";
+import { useOptionalDemo } from "@/lib/store";
 
 export function Brand({
   light = false,
@@ -304,6 +305,11 @@ export function Modal({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const business = useOptionalDemo();
+  const store = business?.store;
+  const close = () => {
+    if (!store?.busy) onClose();
+  };
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -322,7 +328,7 @@ export function Modal({
       aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault();
-        onClose();
+        close();
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
@@ -333,7 +339,7 @@ export function Modal({
             e.clientY < r.top ||
             e.clientY > r.bottom
           )
-            onClose();
+            close();
         }
       }}
     >
@@ -353,13 +359,38 @@ export function Modal({
         </div>
         <LocalButton
           className="icon-button"
-          onClick={onClose}
-          aria-label="Close dialog"
+          onClick={close}
+          disabled={store?.busy}
+          aria-label="Close sheet"
         >
           <X size={19} />
         </LocalButton>
       </div>
-      <T>{children}</T>
+      {store?.error && (
+        <p role="alert" className="operation-error">
+          {store.error}
+        </p>
+      )}
+      {store?.busy && <p role="status">Saving…</p>}
+      <fieldset
+        className="sheet-fields"
+        disabled={store?.busy || store?.hasPending}
+      >
+        <T>{children}</T>
+      </fieldset>
+      {store?.hasPending && !store.busy && (
+        <Button
+          variant="secondary"
+          onClick={() => {
+            void store
+              .retry()
+              .then(() => onClose())
+              .catch(() => {});
+          }}
+        >
+          Retry saved request
+        </Button>
+      )}
     </dialog>
   );
 }

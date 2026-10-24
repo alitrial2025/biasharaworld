@@ -1,7 +1,8 @@
 "use client";
+import { FundingPageContent } from "./funding";
+import { ProductPhoto } from "@/components/product-photo";
 import { T, LocalButton, LocalInput } from "@/components/locale";
 import Link from "next/link";
-import Image from "next/image";
 import { useState, type FormEvent } from "react";
 import {
   ArrowDownToLine,
@@ -10,11 +11,9 @@ import {
   CheckCircle2,
   CreditCard,
   FileText,
-  Leaf,
   LockKeyhole,
   Plus,
   Sparkles,
-  Sprout,
   Trash2,
   Wallet,
 } from "lucide-react";
@@ -22,13 +21,11 @@ import {
   Avatar,
   Badge,
   Button,
-  CheckList,
   EmptyState,
   Field,
   IconBox,
   Modal,
   PageHeading,
-  ProductArt,
   SalesChart,
   SearchField,
   SelectField,
@@ -450,7 +447,7 @@ export function ReportsPage() {
                   <span className="ranking-number">
                     <T>0</T> <T>{i + 1}</T>
                   </span>
-                  <ProductArt art={p!.art} name={p!.name} small />
+                  <ProductPhoto product={p!} small />
                   <div>
                     <strong>
                       <T>{p!.name}</T>
@@ -689,109 +686,7 @@ export function AssistantPage() {
 }
 
 export function FinancingPage() {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <PageHeading
-        eyebrow="MAKE ROOM FOR YOUR NEXT BIG THING"
-        title="Small steps. Bigger possibilities."
-        description="Explore what business funding could look like, when the time is right."
-      />
-      <section className="financing-panel panel">
-        <div className="financing-art">
-          <Image
-            src="/images/financing.webp"
-            alt="A green plant growing from a stack of gold coins"
-            width={1024}
-            height={1024}
-          />
-        </div>
-        <div>
-          <Badge tone="amber">
-            <T>PLANNED FEATURE</T>
-          </Badge>
-          <h2>
-            <T>A little support for</T>
-            <br />
-            <T>your next chapter.</T>
-          </h2>
-          <p>
-            <T>
-              More stock. A fresh sign. Your next branch. We’re exploring a
-              simpler way for businesses to discover funding options based on
-              their trading history.
-            </T>
-          </p>
-          <CheckList
-            items={[
-              "A clear application experience",
-              "Transparent terms before any commitment",
-              "Options that fit the way you do business",
-            ]}
-          />
-          <Button variant="dark" onClick={() => setOpen(true)} arrow>
-            <T>Explore the funding preview</T>
-          </Button>
-          <p className="quiet-note">
-            <T>
-              No lending partner, eligibility decision or application is active
-              in this preview.
-            </T>
-          </p>
-        </div>
-      </section>
-      <div className="role-cards">
-        <T>
-          {[
-            [
-              "Build your picture",
-              "Keep sales and expense records together to better understand what your business needs.",
-            ],
-            [
-              "Understand the cost",
-              "Compare repayment totals, fees and timing before you consider any borrowing.",
-            ],
-            [
-              "Choose your next step",
-              "Funding is one option. Start with a plan for how it would help your business grow.",
-            ],
-          ].map(([h, p]) => (
-            <article className="panel" key={h}>
-              <Sprout size={23} />
-              <h3>
-                <T>{h}</T>
-              </h3>
-              <p>
-                <T>{p}</T>
-              </p>
-            </article>
-          ))}
-        </T>
-      </div>
-      <Modal
-        open={open}
-        onClose={() => setOpen(false)}
-        title="A possibility we’re still growing."
-        description="Funding is a planned feature. This preview does not assess eligibility, collect financial documents, or submit a loan application."
-      >
-        <div className="success-state">
-          <Leaf size={38} />
-          <h3>
-            <T>Start with a clearer picture.</T>
-          </h3>
-          <p>
-            <T>
-              Your reports are a useful place to review sales, expenses and
-              stock before planning your next step.
-            </T>
-          </p>
-          <Button href="/dashboard/reports" arrow>
-            <T>Explore your reports</T>
-          </Button>
-        </div>
-      </Modal>
-    </>
-  );
+  return <FundingPageContent />;
 }
 
 export function SettingsPage() {

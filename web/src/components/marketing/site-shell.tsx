@@ -291,6 +291,9 @@ export function SiteFooter() {
             <Link href="/privacy">
               <T>Privacy</T>
             </Link>
+            <Link href="/cookies">
+              <T>Cookies & storage</T>
+            </Link>
             <Link href="/terms">
               <T>Terms</T>
             </Link>
@@ -299,6 +302,11 @@ export function SiteFooter() {
             </span>
           </div>
         </div>
+        <p className="quiet-note">
+          Essential account and browser storage keeps sign-in, baskets and safe
+          retries working. Optional advertising and analytics tracking is not
+          enabled. <Link href="/cookies">Storage details and choices</Link>.
+        </p>
       </div>
     </footer>
   );

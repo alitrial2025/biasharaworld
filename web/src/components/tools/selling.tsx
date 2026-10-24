@@ -1,4 +1,6 @@
 "use client";
+import { ProductPhoto } from "@/components/product-photo";
+import { BarcodeCamera } from "@/components/barcode-camera";
 import { T, LocalButton, LocalInput } from "@/components/locale";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
@@ -21,7 +23,6 @@ import {
   EmptyState,
   Field,
   Modal,
-  ProductArt,
   SearchField,
   SelectField,
   Tabs,
@@ -141,7 +142,7 @@ export function DetailedReceiptView({ receipt }: { receipt: DetailedReceipt }) {
         <T>redeemed</T>
       </p>
       <p className="quiet-note">
-        <T>UI preview. Payment was recorded manually.</T>
+        <T>Payment was recorded manually.</T>
       </p>
       <Button variant="secondary" icon={Printer} onClick={() => window.print()}>
         <T>Print / save PDF</T>
@@ -154,7 +155,7 @@ export function AdvancedCheckout({
 }: {
   splitByDefault?: boolean;
 }) {
-  const { state, op, act, error } = useOperations();
+  const { state, op, store, act, error } = useOperations();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [method, setMethod] = useState("M-Pesa");
@@ -165,6 +166,10 @@ export function AdvancedCheckout({
   const [scanOpen, setScanOpen] = useState(false);
   const [receipt, setReceipt] = useState<number | null>(null);
   const [scanCode, setScanCode] = useState("");
+  const [paymentError, setPaymentError] = useState("");
+  const canSell = ["Owner", "Manager", "Cashier"].includes(
+    store.workspace?.role || "",
+  );
   let price: {
     lines: DetailedReceipt["lines"];
     total: number;
@@ -192,9 +197,10 @@ export function AdvancedCheckout({
   const payValue = (m: string) =>
     portions[m] ?? (m === method ? String(price.total / 100) : "0");
   async function pay() {
+    setPaymentError("");
     try {
       const payments: Payment[] = split
-        ? ["M-Pesa", "Cash", "Card"].map((m) => ({
+        ? ["M-Pesa", "Cash", "Card", "Bank transfer"].map((m) => ({
             method: m,
             amount: minor(payValue(m)),
           }))
@@ -204,8 +210,12 @@ export function AdvancedCheckout({
         setReceipt(result.id!);
         setPortions({});
       }
-    } catch {
-      await act({ type: "checkout", payments: [{ method, amount: -1 }] });
+    } catch (e) {
+      setPaymentError(
+        e instanceof Error
+          ? e.message
+          : "Check the payment amounts and try again.",
+      );
     }
   }
   async function scan(e?: FormEvent) {
@@ -228,7 +238,7 @@ export function AdvancedCheckout({
   }
   return (
     <>
-      <OperationError message={error} />
+      <OperationError message={paymentError || error} />
       <div className="checkout-tools">
         <Button
           variant="secondary"
@@ -291,7 +301,7 @@ export function AdvancedCheckout({
                     aria-label={`Add ${p.name} to sale`}
                   >
                     <div className="product-image">
-                      <ProductArt art={p.art} name={p.name} />
+                      <ProductPhoto product={p} />
 
                       <T>
                         {op.cart[p.id] > 0 && (
@@ -380,11 +390,8 @@ export function AdvancedCheckout({
               ) : (
                 price.lines.map((l) => (
                   <div className="cart-line" key={l.productId}>
-                    <ProductArt
-                      art={
-                        state.products.find((p) => p.id === l.productId)?.art ??
-                        0
-                      }
+                    <ProductPhoto
+                      product={state.products.find((p) => p.id === l.productId)}
                       name={l.name}
                       small
                     />
@@ -459,7 +466,7 @@ export function AdvancedCheckout({
           </div>
           <div className="payment-methods">
             <T>
-              {["M-Pesa", "Cash", "Card"].map((m) => (
+              {["M-Pesa", "Cash", "Card", "Bank transfer"].map((m) => (
                 <LocalButton
                   aria-pressed={method === m && !split}
                   className={method === m && !split ? "active" : ""}
@@ -501,7 +508,7 @@ export function AdvancedCheckout({
             {split && (
               <div className="split-payments">
                 <T>
-                  {["M-Pesa", "Cash", "Card"].map((m) => (
+                  {["M-Pesa", "Cash", "Card", "Bank transfer"].map((m) => (
                     <Field
                       key={m}
                       label={`${m} portion (KES)`}
@@ -524,7 +531,13 @@ export function AdvancedCheckout({
             )}
           </T>
 
-          <Button disabled={!price.lines.length} onClick={pay} arrow>
+          <Button
+            disabled={
+              !price.lines.length || !canSell || store.busy || store.hasPending
+            }
+            onClick={pay}
+            arrow
+          >
             <T>Record received payment</T>
           </Button>
           <div className="document-shortcuts">
@@ -675,17 +688,9 @@ export function AdvancedCheckout({
         open={scanOpen}
         onClose={() => setScanOpen(false)}
         title="Find it in a little flash."
-        description="Enter a barcode or use a keyboard scanner. Camera scanning is not available yet."
+        description="Scan with your camera, enter a barcode, or use a keyboard scanner."
       >
-        <div className="scanner-window">
-          <ScanLine size={56} />
-          <span>
-            <T>Place a barcode inside the frame</T>
-          </span>
-          <Badge tone="white">
-            <T>Camera preview</T>
-          </Badge>
-        </div>
+        <BarcodeCamera onDetected={(code) => setScanCode(code)} />
         <form onSubmit={scan}>
           <Field
             label="Barcode or SKU"
@@ -750,15 +755,18 @@ export function ScannerTool() {
           title="Find a familiar product"
           description="Enter a barcode or use a keyboard scanner to find your product."
         >
-          <div className="scanner-window">
-            <ScanLine size={64} />
-            <strong>
-              <T>Ready for your next product.</T>
-            </strong>
-            <span>
-              <T>Camera decoding is a planned integration.</T>
-            </span>
-          </div>
+          <BarcodeCamera
+            onDetected={(value) => {
+              setCode(value);
+              const product = state.products.find(
+                (p) =>
+                  (p.barcode ?? barcode(p.id)) === value ||
+                  p.sku.toLowerCase() === value.toLowerCase(),
+              );
+              setFound(product?.id ?? null);
+              setMissing(!product);
+            }}
+          />
           <form onSubmit={find}>
             <Field
               label="Barcode or SKU"
@@ -789,7 +797,7 @@ export function ScannerTool() {
                 const p = state.products.find((p) => p.id === found)!;
                 return (
                   <div className="scan-result">
-                    <ProductArt art={p.art} name={p.name} />
+                    <ProductPhoto product={p} />
                     <div>
                       <h3>
                         <T>{p.name}</T>
@@ -1396,7 +1404,7 @@ function InvoicePreview({ doc }: { doc: ShopDocument }) {
           <T>OS</T>
         </span>
         <Badge tone="amber">
-          <T>UI preview</T>
+          <T>Business record</T>
         </Badge>
       </div>
       <h2>

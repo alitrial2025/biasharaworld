@@ -828,6 +828,9 @@ export function ContactPage() {
                     <option>
                       <T>Product feedback</T>
                     </option>
+                    <option>Privacy & data request</option>
+                    <option>Account deletion</option>
+                    <option>Report a security issue</option>
                     <option>
                       <T>Partnerships</T>
                     </option>

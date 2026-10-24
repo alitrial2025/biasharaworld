@@ -71,7 +71,7 @@ fun PageTitle(
                 modifier =
                     Modifier.padding(end = 10.dp)
                         .size(36.dp)
-                        .background(Color(0xFFF3F5F7), CircleShape)
+                        .background(Canvas, CircleShape)
                         .clickable(onClick = onBack),
                 contentAlignment = Alignment.Center,
             ) {
@@ -213,8 +213,8 @@ fun FilterPills(items: List<String>, selected: String, onSelect: (String) -> Uni
             val active = item == selected
             Box(
                 Modifier.clip(RoundedCornerShape(50))
-                    .background(if (active) Green else Color(0xFFF3F5F8))
-                    .border(1.dp, if (active) Green else Color(0xFFF3F5F8), RoundedCornerShape(50))
+                    .background(if (active) Green else Surface)
+                    .border(1.dp, if (active) Green else Surface, RoundedCornerShape(50))
                     .clickable { onSelect(item) }
                     .padding(horizontal = 13.dp, vertical = 8.dp)
             ) {
@@ -222,7 +222,7 @@ fun FilterPills(items: List<String>, selected: String, onSelect: (String) -> Uni
                     item,
                     fontSize = 12.sp,
                     fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
-                    color = if (active) Color.White else Muted,
+                    color = if (active) MaterialTheme.colorScheme.onPrimary else Muted,
                 )
             }
         }
@@ -230,7 +230,7 @@ fun FilterPills(items: List<String>, selected: String, onSelect: (String) -> Uni
 }
 
 @Composable
-fun IconTile(icon: ImageVector, color: Color = Forest, background: Color = Mint, size: Int = 44) {
+fun IconTile(icon: ImageVector, color: Color = Green, background: Color = Mint, size: Int = 44) {
     Box(
         Modifier.size(size.dp).background(background, RoundedCornerShape(14.dp)),
         contentAlignment = Alignment.Center,
@@ -320,6 +320,10 @@ fun ProductArt(kind: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun SalesChart(modifier: Modifier = Modifier, bars: Boolean = true,series:List<Float>?=null) {
+    val chartLine = Line
+    val chartGreen = Green
+    val chartPoint = Ink
+    val chartBar = if (AppDark) chartGreen.copy(alpha = .65f) else Color(0xFFA6DCC7)
     val values = if(series!=null)series.map{it.coerceAtLeast(0f)/maxOf(1f,series.maxOrNull()?:1f)*.9f} else
         listOf(
             .18f,
@@ -348,14 +352,14 @@ fun SalesChart(modifier: Modifier = Modifier, bars: Boolean = true,series:List<F
             val w = size.width
             val h = size.height - 6.dp.toPx()
             (0..3).forEach { n ->
-                drawLine(Line, Offset(0f, h * n / 3), Offset(w, h * n / 3), 1.dp.toPx())
+                drawLine(chartLine, Offset(0f, h * n / 3), Offset(w, h * n / 3), 1.dp.toPx())
             }
             if (bars) {
                 val gap = w / values.size.coerceAtLeast(1)
                 values.forEachIndexed { i, v ->
                     val height = h * v
                     drawRoundRect(
-                        if (i == 7 || i == 14) Color(0xFF0C9D72) else Color(0xFFA6DCC7),
+                        if (i == 7 || i == 14) chartGreen else chartBar,
                         Offset(i * gap + gap * .2f, h - height),
                         Size(gap * .6f, height),
                         CornerRadius(4.dp.toPx(), 4.dp.toPx()),
@@ -380,10 +384,10 @@ fun SalesChart(modifier: Modifier = Modifier, bars: Boolean = true,series:List<F
                 fill.close()
                 drawPath(
                     fill,
-                    Brush.verticalGradient(listOf(Green.copy(alpha = .20f), Green.copy(alpha = 0f))),
+                    Brush.verticalGradient(listOf(chartGreen.copy(alpha = .20f), chartGreen.copy(alpha = 0f))),
                 )
-                drawPath(p, Green, style = Stroke(2.5.dp.toPx(), cap = StrokeCap.Round))
-                drawCircle(Forest, 4.dp.toPx(), Offset(w, h * (1 - values.last())))
+                drawPath(p, chartGreen, style = Stroke(2.5.dp.toPx(), cap = StrokeCap.Round))
+                drawCircle(chartPoint, 4.dp.toPx(), Offset(w, h * (1 - values.last())))
             }
         }
         Row(
@@ -407,6 +411,7 @@ fun SalesChart(modifier: Modifier = Modifier, bars: Boolean = true,series:List<F
 
 @Composable
 fun ShopIllustration(modifier: Modifier = Modifier) {
+    val lime = Lime
     DrawingCanvas(
         modifier.semantics { contentDescription = "Illustration of a neighbourhood shop" }
     ) {
@@ -419,13 +424,13 @@ fun ShopIllustration(modifier: Modifier = Modifier) {
                 Size(w * sx, h * sy),
                 CornerRadius(rad * sx, rad * sy),
             )
-        drawCircle(Lime.copy(alpha = .12f), 72 * sx, Offset(100 * sx, 70 * sy))
+        drawCircle(lime.copy(alpha = .12f), 72 * sx, Offset(100 * sx, 70 * sy))
         r(Color(0xFFE8DAB8), 25f, 43f, 130f, 84f, 4f)
         r(Color(0xFF324C3C), 38f, 72f, 45f, 55f, 2f)
         r(Color(0xFF54846B), 93f, 72f, 49f, 40f, 2f)
         r(Color(0xFFABC0A0), 97f, 77f, 19f, 28f, 1f)
         r(Color(0xFFABC0A0), 120f, 77f, 17f, 28f, 1f)
-        r(Lime, 22f, 35f, 136f, 19f, 3f)
+        r(lime, 22f, 35f, 136f, 19f, 3f)
         (0..6).forEach { i ->
             r(
                 if (i % 2 == 0) Color(0xFFB9C987) else Color(0xFFF3EACC),
