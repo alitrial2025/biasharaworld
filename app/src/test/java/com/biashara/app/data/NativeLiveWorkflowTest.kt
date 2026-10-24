@@ -156,6 +156,8 @@ class NativeLiveWorkflowTest {
         assertEquals(1025L, operation.getLong("paid_minor"))
         operation = operations.save("refund", operationId, operation.getLong("revision"), payment = json("amountMinor" to 25, "method" to "Cash", "reference" to "NATIVE-REFUND")).getJSONObject("record")
         assertEquals(1000L, operation.getLong("paid_minor"))
+        operation = operations.save("payment", operationId, operation.getLong("revision"), payment = json("amountMinor" to 25, "method" to "Cash", "reference" to "NATIVE-SETTLED")).getJSONObject("record")
+        assertEquals(1025L, operation.getLong("paid_minor"))
         operation = operations.save("status", operationId, operation.getLong("revision"), status = "Completed").getJSONObject("record")
         assertEquals("Completed", operation.getString("status"))
         assertTrue(operations.load().records("records").any { it.getString("id") == operationId })
