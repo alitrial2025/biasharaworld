@@ -1,6 +1,11 @@
 package com.biashara.app.ui
 
 import android.content.Context
+import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Workspaces
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,10 +28,14 @@ fun IndustryShortcut(store: DemoStore, onOpen: () -> Unit) {
     val catalog = remember { industryCatalog(context) }
     val industry = resolveIndustry(catalog, store.liveState.objectAt("profile").optString("type"))
     SurfaceCard(Modifier.fillMaxWidth().clickable(onClick = onOpen), color = Mint) {
-        Eyebrow("YOUR BUSINESS WORKSPACE", Green)
-        AppText(industry.label, style = MaterialTheme.typography.titleLarge)
-        AppText(industry.workflows.joinToString(" · ") { it.label }, color = Muted)
-        TextButton(onClick = onOpen) { AppText("Open ${industry.operationsLabel.lowercase()}", color = Green) }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            IconTile(Icons.Outlined.Workspaces, Green, Surface, 40)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                AppText(industry.operationsLabel, style = MaterialTheme.typography.titleMedium)
+                AppText(industry.workflows.take(3).joinToString(" · ") { it.label }, color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            AppIcon(Icons.Outlined.ChevronRight, "Open business operations")
+        }
     }
 }
 

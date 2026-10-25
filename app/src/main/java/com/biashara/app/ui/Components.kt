@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -30,20 +32,23 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun Page(content: @Composable ColumnScope.() -> Unit) {
     Column(
         Modifier.fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 18.dp)
-            .padding(top = 12.dp, bottom = 22.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(horizontal = 20.dp)
+            .padding(top = 20.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
         content = content,
     )
 }
@@ -67,15 +72,12 @@ fun PageTitle(
 ) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         if (onBack != null) {
-            Box(
-                modifier =
-                    Modifier.padding(end = 10.dp)
-                        .size(36.dp)
-                        .background(Canvas, CircleShape)
-                        .clickable(onClick = onBack),
-                contentAlignment = Alignment.Center,
+            FilledTonalIconButton(
+                onClick = onBack,
+                modifier = Modifier.padding(end = 8.dp).size(48.dp),
+                colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Surface, contentColor = Ink),
             ) {
-                AppIcon(Icons.AutoMirrored.Outlined.ArrowBack, "Go back", Modifier.size(20.dp))
+                AppIcon(Icons.AutoMirrored.Outlined.ArrowBack, "Go back", Modifier.size(22.dp))
             }
         }
         Column(Modifier.weight(1f)) {
@@ -83,9 +85,9 @@ fun PageTitle(
             if (subtitle != null)
                 AppText(
                     subtitle,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = Muted,
-                    modifier = Modifier.padding(top = 3.dp),
+                    modifier = Modifier.padding(top = 6.dp),
                 )
         }
         action?.invoke()
@@ -96,6 +98,7 @@ fun PageTitle(
 fun SurfaceCard(
     modifier: Modifier = Modifier,
     color: Color = Surface,
+    contentSpacing: Dp = 8.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
@@ -105,6 +108,7 @@ fun SurfaceCard(
             .background(color)
             .border(1.dp, Line.copy(alpha = 0.65f), RoundedCornerShape(16.dp))
             .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(contentSpacing),
         content = content,
     )
 }
@@ -116,10 +120,10 @@ fun SectionTitle(title: String, link: String? = null, onClick: () -> Unit = {}) 
         if (link != null)
             TextButton(
                 onClick = onClick,
-                contentPadding = PaddingValues(0.dp),
-                modifier = Modifier.height(32.dp),
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                modifier = Modifier.heightIn(min = 48.dp),
             ) {
-                AppText(link, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                AppText(link, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 AppIcon(
                     Icons.Outlined.ArrowOutward,
                     null,
@@ -143,7 +147,7 @@ fun PrimaryButton(
         modifier =
             modifier
                 .fillMaxWidth()
-                .heightIn(min = 48.dp)
+                .heightIn(min = 52.dp)
                 .background(
                     if (enabled)
                         Brush.horizontalGradient(
@@ -157,6 +161,7 @@ fun PrimaryButton(
                 ),
         enabled = enabled,
         shape = RoundedCornerShape(14.dp),
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
         colors =
             ButtonDefaults.buttonColors(
                 containerColor = Color.Transparent,
@@ -165,7 +170,7 @@ fun PrimaryButton(
             ),
     ) {
         if (icon != null) AppIcon(icon, null, Modifier.padding(end = 10.dp).size(20.dp))
-        AppText(text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        AppText(text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
     }
 }
 
@@ -178,23 +183,23 @@ fun SearchBox(
 ) {
     Row(
         Modifier.fillMaxWidth()
-            .height(44.dp)
+            .heightIn(min = 52.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(Surface)
             .border(1.dp, Line, RoundedCornerShape(16.dp))
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AppIcon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = Muted)
         BasicTextField(
             value,
             onChange,
-            modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
+            modifier = Modifier.weight(1f).padding(horizontal = 10.dp).semantics { contentDescription = tr(placeholder) },
             singleLine = true,
-            textStyle = TextStyle(color = Ink, fontFamily = AppFont, fontSize = 13.sp),
+            textStyle = TextStyle(color = Ink, fontFamily = AppFont, fontSize = 14.sp),
             decorationBox = { inner ->
                 Box {
-                    if (value.isEmpty()) AppText(placeholder, fontSize = 12.sp, color = Muted)
+                    if (value.isEmpty()) AppText(placeholder, fontSize = 13.sp, color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     inner()
                 }
             },
@@ -206,21 +211,22 @@ fun SearchBox(
 @Composable
 fun FilterPills(items: List<String>, selected: String, onSelect: (String) -> Unit) {
     Row(
-        Modifier.horizontalScroll(rememberScrollState()),
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items.forEach { item ->
             val active = item == selected
             Box(
-                Modifier.clip(RoundedCornerShape(50))
+                Modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(50))
                     .background(if (active) Green else Surface)
-                    .border(1.dp, if (active) Green else Surface, RoundedCornerShape(50))
-                    .clickable { onSelect(item) }
-                    .padding(horizontal = 13.dp, vertical = 8.dp)
+                    .border(1.dp, if (active) Green else Line, RoundedCornerShape(50))
+                    .selectable(selected = active, role = Role.Tab, onClick = { onSelect(item) })
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 AppText(
                     item,
-                    fontSize = 12.sp,
+                    fontSize = 13.sp,
                     fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
                     color = if (active) MaterialTheme.colorScheme.onPrimary else Muted,
                 )

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" role="img" aria-labelledby="title">
+  <title id="title">BiasharaOS — a world of business</title>
+  <style>
+    .plate{animation:lift .9s cubic-bezier(.4,0,.2,1) infinite alternate}
+    .seed{transform-origin:85px 82px;animation:grow .9s cubic-bezier(.4,0,.2,1) infinite alternate}
+    @keyframes lift{from{transform:translateY(0)}to{transform:translateY(-1.5px)}}
+    @keyframes grow{from{transform:scale(1)}to{transform:scale(1.08)}}
+    @media(prefers-reduced-motion:reduce){.plate,.seed{animation:none}}
+  </style>
+  <g class="plate">
+    <rect x="22" y="22" width="64" height="64" rx="18" fill="#00815D"/>
+    <path d="M20 14h13c10 0 15 5 15 11 0 4-2 7-6 9 5 1 8 5 8 9 0 8-6 12-17 12H20V14zm10 9v8h4c4 0 6-1 6-4s-2-4-6-4h-4zm0 16v8h5c5 0 7-1 7-4s-2-4-7-4h-5z" fill="#fff" transform="translate(20 19)"/>
+  </g>
+  <g class="seed" fill="#E89A42">
+    <circle cx="85" cy="83" r="4"/>
+    <path d="M85 79C82 73 85 66 92 64C94 71 91 77 85 79Z" opacity=".9"/>
+  </g>
+</svg>

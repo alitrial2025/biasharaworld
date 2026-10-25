@@ -15,6 +15,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import androidx.core.view.WindowCompat
+import android.graphics.drawable.ColorDrawable
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -110,7 +116,19 @@ fun BiasharaTheme(preferences: JSONObject = JSONObject(), content: @Composable (
             "system" -> isSystemInDarkTheme()
             else -> false
         }
+    val view = LocalView.current
     SideEffect {
+        if (!view.isInEditMode) {
+            var context: Context = view.context
+            while (context is ContextWrapper && context !is Activity) context = context.baseContext
+            (context as? Activity)?.let { activity ->
+                activity.window.setBackgroundDrawable(ColorDrawable(if (dark) 0xFF14251D.toInt() else 0xFFF8FAFC.toInt()))
+                WindowCompat.getInsetsController(activity.window, view).apply {
+                    isAppearanceLightStatusBars = !dark
+                    isAppearanceLightNavigationBars = !dark
+                }
+            }
+        }
         AppLanguage = preferences.optString("language", "en")
     }
     val density = LocalDensity.current

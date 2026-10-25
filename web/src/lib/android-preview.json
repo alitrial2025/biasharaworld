@@ -1,9 +1,9 @@
 {
   "available": true,
-  "version": "0.5.1",
-  "href": "/downloads/biasharaos-0.5.1-preview.apk",
-  "sha256": "da132866d2d9040975ca46d231c6b0e9e24d294251ddaaaa16929c2f4dd1fc6f",
-  "bytes": 53948948,
+  "version": "0.6.0",
+  "href": "/downloads/biasharaos-0.6.0-preview.apk",
+  "sha256": "75d3373358dea2014db6b586390840c27afa7aff360d54774dde855c8e9e04f0",
+  "bytes": 53119233,
   "minimumAndroid": "8.0",
   "buildType": "debug-preview"
 }

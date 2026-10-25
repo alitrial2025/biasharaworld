@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Biashara" parent="Theme.Biashara.Base">
+        <item name="android:windowLightNavigationBar">@bool/biashara_startup_light_bars</item>
+        <item name="android:windowSplashScreenBackground">@color/biashara_startup_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/biashara_startup_animated</item>
+        <!-- Animation metadata only: there is no minimum splash visibility or artificial delay. -->
+        <item name="android:windowSplashScreenAnimationDuration">1800</item>
+    </style>
+</resources>

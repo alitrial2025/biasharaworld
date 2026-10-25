@@ -19,88 +19,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import com.biashara.app.data.objectAt
+import java.time.LocalTime
 import com.biashara.app.data.DemoStore
 import com.biashara.app.data.minorMoney
 import com.biashara.app.data.money
 import com.biashara.app.data.report
+import com.biashara.app.data.canPerform
 
 @Composable
 fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -> Unit = {}, onProduct: (Int) -> Unit = { navigate(Screen.STOCK) }, onSupplier: (String) -> Unit = { navigate(Screen.SUPPLIERS) }) {
     var search by remember { mutableStateOf("") }
     var period by remember { mutableStateOf("Day") }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Box(
-            Modifier.fillMaxWidth()
-                .height(196.dp)
-                .clip(RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp))
-        ) {
-            ShopPhoto(Modifier.fillMaxSize(), Alignment.Center)
-            Box(
-                Modifier.fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color.Black.copy(alpha = .66f), Color.Black.copy(alpha = .22f))
-                        )
-                    )
-            )
-            Column(
-                Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 18.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                    Column(Modifier.weight(1f)) {
-                        AppText(
-                            "Good morning",
-                            fontSize = 13.sp,
-                            color = Color.White.copy(alpha = .9f),
-                        )
-                        AppText(
-                            "${store.ownerName} 👋",
-                            fontSize = 25.sp,
-                            fontFamily = HeadingFont,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                        Row(
-                            Modifier.padding(top = 5.dp).clickable { onBranch() },
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            AppText(
-                                "${store.businessName} · ${store.operations.branchName}",
-                                fontSize = 11.sp,
-                                color = Color.White,
-                            )
-                            AppIcon(
-                                Icons.Outlined.KeyboardArrowDown,
-                                null,
-                                Modifier.size(15.dp),
-                                tint = Color.White,
-                            )
-                        }
-                    }
-                    Box(
-                        Modifier.size(39.dp).clip(CircleShape).background(Surface).clickable {
-                            navigate(Screen.PROFILE)
-                        }
-                    ) {
-                        if (store.real) Box(Modifier.fillMaxSize().background(Mint), contentAlignment = Alignment.Center) { AppText(store.ownerName.take(1).uppercase(), color = Green, fontWeight = FontWeight.Bold) }
-                        else ProfilePhoto(Modifier.fillMaxSize())
-                        Box(
-                            Modifier.align(Alignment.TopEnd)
-                                .size(8.dp)
-                                .background(Coral, CircleShape)
-                        )
-                    }
-                }
-                SearchBox(search, { search = it }, "Search products, suppliers…")
-            }
-        }
+        HomeHero(store, search, { search = it }, onBranch) { navigate(Screen.PROFILE) }
         Column(
-            Modifier.padding(horizontal = 18.dp).padding(top = 18.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+            Modifier.padding(horizontal = 20.dp).padding(top = 20.dp, bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            if (store.real) IndustryShortcut(store, { navigate(Screen.OPERATIONS) })
             if (search.isNotBlank()) {
                 val results = store.products.filter { it.name.contains(search, true) || it.sku.contains(search, true) || it.barcode.contains(search) }
                 val suppliers = store.suppliers.filter { it.name.contains(search, true) || it.category.contains(search, true) }
@@ -127,69 +66,10 @@ fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -
             if (search.isNotBlank()) store.suppliers.filter { it.name.contains(search, true) || it.category.contains(search, true) }.take(3).forEach { supplier ->
                 SurfaceCard(Modifier.clickable { onSupplier(supplier.name) }) { AppText(supplier.name, fontWeight = FontWeight.Bold); AppText(supplier.category, color = Muted) }
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                val actions =
-                    listOf(
-                        Triple("New Sale", Icons.Outlined.PointOfSale, Screen.NEW_SALE),
-                        Triple("Add Stock", Icons.Outlined.Inventory2, Screen.STOCK),
-                        Triple("Expenses", Icons.Outlined.Receipt, if(store.real) Screen.EXPENSES else Screen.REPORTS),
-                        Triple("Customers", Icons.Outlined.PeopleOutline, Screen.CUSTOMERS),
-                    )
-                val colors = listOf(Green, Coral, Indigo, Indigo)
-                val backgrounds = listOf(Mint, RoseMist, Lavender, BlueMist)
-                actions.forEachIndexed { i, (label, icon, route) ->
-                    Column(
-                        Modifier.weight(1f)
-                            .clip(RoundedCornerShape(15.dp))
-                            .background(Surface)
-                            .clickable { navigate(route) }
-                            .padding(vertical = 12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(9.dp),
-                    ) {
-                        IconTile(icon, colors[i], backgrounds[i], 36)
-                        AppText(label, fontSize = 10.sp, color = Ink)
-                    }
-                }
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SummaryCard(
-                        "Total Sales",
-                        com.biashara.app.data.minorMoney(store.branchSalesMinor),
-                        if (store.real) "Recorded today" else "↑ 12%",
-                        Mint,
-                        Green,
-                        Modifier.weight(1f),
-                    )
-                    SummaryCard(
-                        "Profit",
-                        if (store.real) minorMoney(store.report().profit) else "KES 3,890",
-                        if (store.real) "Recorded today" else "↑ 8%",
-                        BlueMist,
-                        Indigo,
-                        Modifier.weight(1f),
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SummaryCard(
-                        "Expenses",
-                        if (store.real) minorMoney(store.report().expenses) else "KES 2,300",
-                        if (store.real) "Recorded today" else "↑ 5%",
-                        RoseMist,
-                        Coral,
-                        Modifier.weight(1f),
-                    )
-                    SummaryCard(
-                        "Pending Debts",
-                        minorMoney(store.customers.sumOf { it.balanceMinor }),
-                        "${store.customers.count{it.balanceMinor>0}} customers",
-                        Sand,
-                        Amber,
-                        Modifier.weight(1f),
-                    )
-                }
-            }
+            HomeQuickActions(store, navigate)
+            SectionTitle("Today at a glance", "Reports", { navigate(Screen.REPORTS) })
+            HomeMetrics(store)
+            if (store.real) IndustryShortcut(store, { navigate(Screen.OPERATIONS) })
             Column(verticalArrangement = Arrangement.spacedBy(13.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     AppText(
@@ -214,7 +94,7 @@ fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -
                         if (store.real) store.report(if (period == "Day") 1 else 7).series else null,
                 )
             }
-            Row(
+            if (!store.real || store.lowStock.isNotEmpty()) Row(
                 Modifier.fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(Sand)
@@ -240,6 +120,10 @@ fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -
             }
             Column(verticalArrangement = Arrangement.spacedBy(13.dp)) {
                 SectionTitle("Recent Sales", "View all", { navigate(Screen.SALES) })
+                if (store.sales.none { it.branch == store.operations.branch }) SurfaceCard {
+                    AppText("Your next sale starts here", style = MaterialTheme.typography.titleMedium)
+                    AppText("Recorded receipts will appear here after your first sale.", color = Muted)
+                }
                 store.sales.filter { it.branch == store.operations.branch }.take(3).forEach { s ->
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         IconTile(Icons.Outlined.ShoppingBag, Green, Mint, 35)
@@ -306,15 +190,99 @@ private fun SummaryCard(
                     listOf(bg, androidx.compose.ui.graphics.lerp(bg, Surface, .20f))
                 )
             )
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(7.dp),
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         AppText(
             title,
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             color = if (title == "Total Sales" || title == "Profit") Muted else accent,
         )
-        AppText(value, fontSize = 19.sp, fontWeight = FontWeight.Bold, letterSpacing = (-.5).sp)
-        AppText(detail, fontSize = 11.sp, color = if (title == "Pending Debts") Muted else accent)
+        AppText(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, letterSpacing = (-.5).sp)
+        AppText(detail, fontSize = 12.sp, color = if (title == "Pending Debts") Muted else accent)
+    }
+}
+
+@Composable
+private fun HomeHero(store: DemoStore, query: String, onQuery: (String) -> Unit, onBranch: () -> Unit, onProfile: () -> Unit) {
+    val hour = LocalTime.now().hour
+    val greeting = when (hour) { in 0..11 -> "Good morning"; in 12..17 -> "Good afternoon"; else -> "Good evening" }
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)).background(Brush.verticalGradient(listOf(Color(0xFF194B3A), Color(0xFF103629))))) {
+        BrandDoodleBackdrop(Modifier.matchParentSize(), tint = Color.White, opacity = .055f)
+        Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    AppText(greeting, fontSize = 13.sp, color = Color.White.copy(alpha = .8f))
+                    AppText(store.ownerName.trim().substringBefore(' ').ifBlank { "Welcome" }, fontSize = 28.sp, fontFamily = HeadingFont, fontWeight = FontWeight.Bold, color = Color.White)
+                }
+                if (store.backend != null) IconButton(onClick = { store.backend?.action { store.backend?.load() } }, enabled = store.backend?.busy != true, modifier = Modifier.size(48.dp)) {
+                    AppIcon(Icons.Outlined.Refresh, "Refresh workspace", tint = Color.White)
+                }
+                IconButton(onClick = onProfile, modifier = Modifier.size(48.dp).background(Color.White.copy(alpha = .12f), CircleShape)) {
+                    AppIcon(Icons.Outlined.PersonOutline, "Business profile", tint = Color.White)
+                }
+            }
+            Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = .08f)).clickable(onClick = onBranch).padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                AppIcon(Icons.Outlined.Storefront, null, Modifier.size(22.dp), Color.White)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    AppText(store.businessName, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    AppText(store.operations.branchName, fontSize = 12.sp, color = Color.White.copy(alpha = .8f))
+                }
+                AppIcon(Icons.Outlined.ExpandMore, "Choose branch", Modifier.size(20.dp), Color.White)
+            }
+            SearchBox(query, onQuery, "Search products, suppliers…")
+        }
+    }
+}
+
+@Composable
+private fun HomeQuickActions(store: DemoStore, navigate: (Screen) -> Unit) {
+    val catalog = com.biashara.app.data.industryCatalog(androidx.compose.ui.platform.LocalContext.current)
+    val industry = com.biashara.app.data.resolveIndustry(catalog, store.liveState.objectAt("profile").optString("type"))
+    val trade = !store.real || "inventory" in industry.recommendedTools
+    val actions = listOf(
+        Triple("New Sale", Icons.Outlined.PointOfSale, Screen.NEW_SALE),
+        if (trade) Triple("Add Stock", Icons.Outlined.Inventory2, Screen.STOCK) else Triple(industry.operationsLabel, Icons.Outlined.Workspaces, Screen.OPERATIONS),
+        Triple("Expenses", Icons.Outlined.Receipt, if (store.real) Screen.EXPENSES else Screen.REPORTS),
+        Triple("Customers", Icons.Outlined.PeopleOutline, Screen.CUSTOMERS),
+    )
+    BoxWithConstraints {
+        val columns = if (maxWidth < 340.dp || LocalDensity.current.fontScale >= 1.4f) 2 else 4
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            actions.chunked(columns).forEach { row ->
+                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    row.forEach { (label, icon, route) ->
+                        val enabled = route != Screen.NEW_SALE || store.canPerform("checkout")
+                        Column(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(16.dp)).background(Surface).clickable(enabled = enabled) { navigate(route) }.padding(horizontal = 6.dp, vertical = 14.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            IconTile(icon, if (enabled) Green else Muted, if (enabled) Mint else Canvas, 40)
+                            AppText(label, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = if (enabled) Ink else Muted, textAlign = TextAlign.Center)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeMetrics(store: DemoStore) {
+    val today = if (store.real) store.report() else null
+    val metrics = listOf(
+        Triple("Total Sales", minorMoney(store.branchSalesMinor), if (store.real) "Recorded today" else "↑ 12%"),
+        Triple("Profit", if (store.real) minorMoney(today!!.profit) else "KES 3,890", if (store.real) "Recorded today" else "↑ 8%"),
+        Triple("Expenses", if (store.real) minorMoney(today!!.expenses) else "KES 2,300", if (store.real) "Recorded today" else "↑ 5%"),
+        Triple("Pending Debts", minorMoney(store.customers.sumOf { it.balanceMinor }), "${store.customers.count { it.balanceMinor > 0 }} customers"),
+    )
+    val backgrounds = listOf(Mint, BlueMist, RoseMist, Sand)
+    val accents = listOf(Green, Indigo, Coral, Amber)
+    BoxWithConstraints {
+        val columns = if (maxWidth < 320.dp || LocalDensity.current.fontScale >= 1.4f) 1 else 2
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            metrics.withIndex().toList().chunked(columns).forEach { row ->
+                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    row.forEach { (index, metric) -> SummaryCard(metric.first, metric.second, metric.third, backgrounds[index], accents[index], Modifier.weight(1f).fillMaxHeight()) }
+                }
+            }
+        }
     }
 }

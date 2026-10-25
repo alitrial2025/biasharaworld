@@ -35,7 +35,7 @@ class UiRenderTest {
     @Test
     fun renderMainScreens() {
         capture("01-home")
-        compose.onNodeWithContentDescription("New sale").performClick()
+        compose.onNodeWithText("New sale", substring = false).performClick()
         compose.onNodeWithContentDescription("Add Soko maize flour").performClick()
         compose.onNodeWithContentDescription("Add Blue Band").performClick()
         capture("02-new-sale")
@@ -79,7 +79,7 @@ class UiRenderTest {
 
     @Test
     fun checkoutUpdatesTheRenderedHistory() {
-        compose.onNodeWithContentDescription("New sale").performClick()
+        compose.onNodeWithText("New sale", substring = false).performClick()
         compose.onNodeWithContentDescription("Add Soko maize flour").performClick()
         compose.onNodeWithText("Review sale").performClick()
         compose.onNodeWithText("Record received payment").performClick()

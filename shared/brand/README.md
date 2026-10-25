@@ -7,3 +7,5 @@ Use it sparingly on welcome/landing surfaces, brand callouts and the assistant c
 Web uses 560–640px tiles at low opacity. Android repeats the same art with a theme tint. Preserve the pattern's proportions, transparent background and visual spacing when adding another use.
 
 The reusable original is also served at `/brand/biashara-doodle-v1.png` for downloading and future brand work.
+
+`biashara-startup.svg` contains the animated B and growth seed used for Android startup. The native vector and Compose paths share its geometry; reduced-motion preferences stop the SVG animation.

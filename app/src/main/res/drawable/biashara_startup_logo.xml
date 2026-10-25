@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Website SVG B geometry; keep shared/brand/biashara-startup.svg in sync. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp" android:height="288dp" android:viewportWidth="108" android:viewportHeight="108">
+    <group android:name="logoPlate">
+        <path android:fillColor="#00815D" android:pathData="M40,22H68A18,18 0,0 1,86 40V68A18,18 0,0 1,68 86H40A18,18 0,0 1,22 68V40A18,18 0,0 1,40 22Z" />
+        <group android:translateX="20" android:translateY="19">
+            <path android:fillColor="#FFFFFF" android:pathData="M20,14h13c10,0 15,5 15,11c0,4 -2,7 -6,9c5,1 8,5 8,9c0,8 -6,12 -17,12H20V14zM30,23v8h4c4,0 6,-1 6,-4s-2,-4 -6,-4h-4zM30,39v8h5c5,0 7,-1 7,-4s-2,-4 -7,-4h-5z" />
+        </group>
+    </group>
+    <group android:name="growthSeed" android:pivotX="85" android:pivotY="82">
+        <path android:fillColor="#E89A42" android:pathData="M89,83A4,4 0,1 1,81 83A4,4 0,1 1,89 83Z" />
+        <path android:fillColor="#E89A42" android:fillAlpha="0.9" android:pathData="M85,79C82,73 85,66 92,64C94,71 91,77 85,79Z" />
+    </group>
+</vector>

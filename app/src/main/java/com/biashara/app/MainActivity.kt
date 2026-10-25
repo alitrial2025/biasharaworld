@@ -13,6 +13,13 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
+import com.biashara.app.data.canPerform
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -23,6 +30,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -58,7 +66,11 @@ class MainActivity : ComponentActivity() {
             BiasharaTheme(model.store.operations.state.objectAt("preferences")) {
                 val backend=model.backend
                 when {
-                    backend!=null&&!backend.ready->Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){CircularProgressIndicator(color=Green)}
+                    backend!=null&&!backend.ready->StartupScreen()
+                    backend!=null&&backend.authenticated&&!backend.recovery&&!backend.workspaceLoaded->StartupScreen(
+                        loading=backend.busy, error=backend.error,
+                        onRetry={backend.action{backend.load()}}, onSignOut={backend.action{backend.signOut()}}
+                    )
                     backend!=null&&!backend.authenticated&&!backend.recovery&&!introComplete->WelcomeOnboardingScreen(
                         onCreateAccount = { entryMode = "signup"; introComplete = true; entryPrefs.edit().putBoolean("welcome_complete", true).apply() },
                         onSignIn = { entryMode = "login"; introComplete = true; entryPrefs.edit().putBoolean("welcome_complete", true).apply() },
@@ -84,7 +96,7 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
     val navigate: (Screen) -> Unit = { target ->
         routes =
             when {
-                target in listOf(Screen.HOME, Screen.SALES, Screen.STOCK, Screen.MORE) ->
+                target in listOf(Screen.HOME, Screen.SALES, Screen.STOCK, Screen.OPERATIONS, Screen.MORE) ->
                     arrayListOf(target.name)
                 target.name in routes -> ArrayList(routes.take(routes.indexOf(target.name) + 1))
                 else -> ArrayList(routes + target.name)
@@ -111,11 +123,11 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
             containerColor = Canvas,
             contentWindowInsets =
                 WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-            bottomBar = { if (!focused) BottomBar(screen, navigate, store.real) },
+            bottomBar = { if (!focused) BottomBar(screen, navigate, store) },
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding)) {
                 val backend=model.backend
-                if(backend!=null){
+                if(backend!=null&&(backend.busy||backend.error.isNotBlank()||backend.notice.isNotBlank()||backend.hasPending)){
                     Row(Modifier.fillMaxWidth().background(if(backend.error.isBlank())Mint else RoseMist).padding(8.dp),verticalAlignment=Alignment.CenterVertically){
                         AppText(if(backend.busy)"Working…" else backend.error.ifBlank{backend.notice.ifBlank{"Connected · ${backend.role}"}},modifier=Modifier.weight(1f),fontSize=11.sp,color=Ink)
                         TextButton(onClick={if(backend.hasPending)backend.retry()else backend.action{backend.load()}}){AppText(if(backend.hasPending)"Retry" else "Refresh",fontSize=11.sp)}
@@ -224,54 +236,40 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
 }
 
 @Composable
-private fun BottomBar(screen: Screen, navigate: (Screen) -> Unit, real: Boolean = false) {
-    val active =
-        when (screen) {
-            Screen.HOME -> Screen.HOME
-            Screen.SALES -> Screen.SALES
-            Screen.STOCK -> Screen.STOCK
-            Screen.OPERATIONS -> Screen.OPERATIONS
-            else -> Screen.MORE
-        }
+internal fun BottomBar(screen: Screen, navigate: (Screen) -> Unit, store: DemoStore) {
+    val active = when (screen) {
+        Screen.HOME -> Screen.HOME
+        Screen.SALES -> Screen.SALES
+        Screen.STOCK -> if (store.real) Screen.MORE else Screen.STOCK
+        Screen.OPERATIONS -> Screen.OPERATIONS
+        else -> Screen.MORE
+    }
     Column(Modifier.fillMaxWidth().background(Surface).navigationBarsPadding()) {
         HorizontalDivider(color = Line)
-        Row(Modifier.fillMaxWidth().height(62.dp), verticalAlignment = Alignment.CenterVertically) {
-            val tabs =
-                listOf(
-                    Triple("Home", Icons.Outlined.Home, Screen.HOME),
-                    Triple("Sales", Icons.Outlined.ShoppingBag, Screen.SALES),
-                    Triple("New sale", Icons.Outlined.Add, Screen.NEW_SALE),
-                    if (real) Triple("Operations", Icons.Outlined.Workspaces, Screen.OPERATIONS) else Triple("Stock", Icons.Outlined.Inventory2, Screen.STOCK),
-                    Triple("More", Icons.Outlined.MoreHoriz, Screen.MORE),
-                )
+        Row(Modifier.fillMaxWidth().selectableGroup().height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
+            val tabs = listOf(
+                Triple("Home", Icons.Outlined.Home, Screen.HOME),
+                Triple("Sales", Icons.Outlined.ShoppingBag, Screen.SALES),
+                Triple("New sale", Icons.Outlined.Add, Screen.NEW_SALE),
+                if (store.real) Triple("Work", Icons.Outlined.Workspaces, Screen.OPERATIONS) else Triple("Stock", Icons.Outlined.Inventory2, Screen.STOCK),
+                Triple("More", Icons.Outlined.MoreHoriz, Screen.MORE),
+            )
             tabs.forEach { (label, icon, target) ->
+                val enabled = target != Screen.NEW_SALE || store.canPerform("checkout")
+                val selected = target == active
                 Column(
-                    Modifier.weight(1f).clickable { navigate(target) }.padding(vertical = 5.dp),
+                    Modifier.weight(1f).fillMaxHeight().heightIn(min = 80.dp)
+                        .selectable(selected = selected, enabled = enabled, role = Role.Tab) { navigate(target) }
+                        .padding(horizontal = 2.dp, vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
                 ) {
-                    if (target == Screen.NEW_SALE)
-                        Box(
-                            Modifier.size(43.dp).background(Forest, CircleShape),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            AppIcon(icon, label, Modifier.size(23.dp), tint = Color.White)
-                        }
-                    else {
-                        AppIcon(
-                            icon,
-                            null,
-                            Modifier.size(20.dp),
-                            tint = if (target == active) Green else Muted,
-                        )
-                        AppText(
-                            label,
-                            fontSize = 9.sp,
-                            color = if (target == active) Green else Muted,
-                            fontWeight =
-                                if (target == active) FontWeight.SemiBold else FontWeight.Normal,
-                        )
+                    Box(Modifier.size(48.dp, 36.dp).clip(RoundedCornerShape(14.dp))
+                        .background(if (target == Screen.NEW_SALE) Forest else if (selected) Mint else Color.Transparent), contentAlignment = Alignment.Center) {
+                        AppIcon(icon, null, Modifier.size(23.dp), tint = if (!enabled) Muted else if (target == Screen.NEW_SALE) Color.White else if (selected) Green else Muted)
                     }
+                    AppText(label, fontSize = if (LocalDensity.current.fontScale >= 1.6f) 10.sp else 11.sp, color = if (selected) Green else Muted, textAlign = TextAlign.Center,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
                 }
             }
         }
