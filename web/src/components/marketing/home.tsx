@@ -29,6 +29,9 @@ import {
   SalesChart,
 } from "@/components/ui";
 import { CTABanner } from "./site-shell";
+import { BrandDoodle } from "@/components/brand-doodle";
+import { LandingGrowthArt, LandingMotion } from "./landing-motion";
+import styles from "./landing-polish.module.css";
 import { faqs } from "@/lib/data";
 
 export function MiniDashboard({ large = false }: { large?: boolean }) {
@@ -139,13 +142,15 @@ export function FAQList({ items = faqs.slice(0, 5) }: { items?: string[][] }) {
 
 export function HomePage() {
   return (
-    <>
-      <section className="hero-section">
+    <div className={styles.home} data-landing-home>
+      <LandingMotion />
+      <section className={`hero-section brand-doodle-surface ${styles.hero}`}>
+        <BrandDoodle />
         <div className="container hero-grid">
           <div className="hero-copy">
             <div className="hero-eyebrow">
               <span className="status-dot" />
-              <T>BIG TOOLS. EVERYDAY BUSINESS.</T>
+              <T>A WORLD OF BUSINESS.</T>
             </div>
             <h1>
               <T>Your business.</T>
@@ -156,8 +161,9 @@ export function HomePage() {
             </h1>
             <p>
               <T>
-                From your first sale to your next big step. Sell, manage stock,
-                track money and see what’s possible—all in one simple workspace.
+                From your first customer to your next big step. Keep sales,
+                stock, service work and business records together in one simple
+                workspace.
               </T>
             </p>
             <div className="button-row">
@@ -184,11 +190,15 @@ export function HomePage() {
                 <Store size={17} />
               </span>
               <span>
-                <T>Built for small businesses.</T>
+                <T>Built for 20 business sectors.</T>
                 <br />
-                <strong>
-                  <T>And the big ambitions behind them.</T>
-                </strong>
+                <Link
+                  href="/solutions#business-types"
+                  className={styles.sectorLink}
+                >
+                  <T>Find your kind of business</T>
+                  <ArrowUpRight size={13} />
+                </Link>
               </span>
             </div>
           </div>
@@ -227,8 +237,8 @@ export function HomePage() {
               </div>
               <Sparkles size={16} />
             </div>
-            <div className="hero-spark spark-one">
-              <T>✳</T>
+            <div className={styles.growthAccent}>
+              <LandingGrowthArt />
             </div>
           </div>
         </div>
@@ -265,7 +275,7 @@ export function HomePage() {
       </section>
 
       <section className="section container" id="features">
-        <div className="section-heading split-heading">
+        <div className="section-heading split-heading" data-reveal>
           <div>
             <span className="eyebrow">
               <T>LESS JUGGLING. MORE GROWING.</T>
@@ -287,7 +297,11 @@ export function HomePage() {
           </p>
         </div>
         <div className="feature-bento">
-          <Link href="/features#sales" className="bento-card bento-sales">
+          <Link
+            href="/features#sales"
+            className="bento-card bento-sales"
+            data-reveal
+          >
             <IconBox icon={ShoppingBag} />
             <h3>
               <T>Every sale,</T>
@@ -345,7 +359,11 @@ export function HomePage() {
               <ArrowUpRight size={16} />
             </span>
           </Link>
-          <Link href="/features#stock" className="bento-card bento-stock">
+          <Link
+            href="/features#stock"
+            className="bento-card bento-stock"
+            data-reveal
+          >
             <IconBox icon={Package} tone="blue" />
             <h3>
               <T>Know your shelves.</T>
@@ -385,7 +403,11 @@ export function HomePage() {
               </T>
             </div>
           </Link>
-          <Link href="/features#money" className="bento-card bento-money">
+          <Link
+            href="/features#money"
+            className="bento-card bento-money"
+            data-reveal
+          >
             <IconBox icon={Wallet} tone="amber" />
             <h3>
               <T>A clearer picture</T>
@@ -417,7 +439,11 @@ export function HomePage() {
               <ArrowUpRight size={16} />
             </span>
           </Link>
-          <Link href="/features#insights" className="bento-card bento-ai">
+          <Link
+            href="/features#insights"
+            className="bento-card bento-ai"
+            data-reveal
+          >
             <span className="ai-orb">
               <Sparkles size={23} />
             </span>
@@ -446,7 +472,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="connected-section">
+      <section className="connected-section" data-reveal>
         <div className="container connected-grid">
           <div>
             <span className="eyebrow">
@@ -508,7 +534,7 @@ export function HomePage() {
       </section>
 
       <section className="section container">
-        <div className="section-heading centered">
+        <div className="section-heading centered" data-reveal>
           <span className="eyebrow">
             <T>A SIMPLE START</T>
           </span>
@@ -543,7 +569,7 @@ export function HomePage() {
             ].map(([number, Icon, title, text]) => {
               const I = Icon as typeof Store;
               return (
-                <div className="step-card" key={number as string}>
+                <div className="step-card" key={number as string} data-reveal>
                   <span className="step-number">
                     <T>{number as string}</T>
                   </span>
@@ -561,7 +587,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="story-section container">
+      <section className="story-section container" data-reveal>
         <div className="story-image">
           <Image
             src="/images/shop.webp"
@@ -607,7 +633,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="section container faq-section">
+      <section className="section container faq-section" data-reveal>
         <div>
           <span className="eyebrow">
             <T>A FEW GOOD QUESTIONS</T>
@@ -627,7 +653,9 @@ export function HomePage() {
         </div>
         <FAQList />
       </section>
-      <CTABanner />
-    </>
+      <div data-reveal>
+        <CTABanner />
+      </div>
+    </div>
   );
 }

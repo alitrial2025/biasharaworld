@@ -23,6 +23,7 @@ import {
 import { Brand, Button } from "@/components/ui";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { StoreBadges } from "./app-download";
+import { BrandDoodle } from "@/components/brand-doodle";
 
 const menus = {
   Product: [
@@ -254,7 +255,13 @@ export function SiteFooter() {
               <span className="status-dot" />
               <T>Made for everyday entrepreneurs.</T>
             </span>
-            <Link href="/download" className="text-link" style={{ marginTop: 18 }}><Smartphone size={16} /> Get app <ArrowRight size={14} /></Link>
+            <Link
+              href="/download"
+              className="text-link"
+              style={{ marginTop: 18 }}
+            >
+              <Smartphone size={16} /> Get app <ArrowRight size={14} />
+            </Link>
             <StoreBadges />
           </div>
 
@@ -337,7 +344,8 @@ export function CTABanner({
 }) {
   return (
     <section className="cta-section container">
-      <div className="cta-banner">
+      <div className="cta-banner brand-doodle-surface">
+        <BrandDoodle />
         <div>
           <span className="eyebrow">
             <T>YOUR BUSINESS, GROWING</T>

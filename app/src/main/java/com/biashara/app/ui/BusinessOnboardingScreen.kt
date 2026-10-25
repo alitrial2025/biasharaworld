@@ -1,6 +1,5 @@
 package com.biashara.app.ui
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -16,14 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.biashara.app.R
 import com.biashara.app.data.*
 import kotlinx.coroutines.launch
 import org.json.JSONArray
@@ -36,8 +32,10 @@ fun WelcomeOnboardingScreen(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
     val messages = listOf("Sales, stock, customers and your business records, together on your phone and the web.", "We will help you set up your shop, owner contact, everyday tools and business registration readiness.", "Kenya is our launch market. Other African countries are coming soon. Identity verification and lending partners are being prepared.")
     Column(Modifier.fillMaxSize().background(Canvas).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState())) {
         Box(Modifier.fillMaxWidth().height(280.dp)) {
-            Image(painterResource(R.drawable.shop_photo), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xDD102B23)))))
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF173D30), Color(0xFF102B23)))))
+            BrandDoodleBackdrop(Modifier.fillMaxSize(), tint = Color(0xFF9BE5BE), opacity = .28f, tileWidth = 380.dp)
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0x22102B23), Color.Transparent, Color(0xDD102B23)))))
+            AppText("A WORLD OF BUSINESS", color = Color.White.copy(alpha = .9f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.TopStart).padding(24.dp))
             AppText("BiasharaOS", color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.align(Alignment.BottomStart).padding(24.dp))
         }
         Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {

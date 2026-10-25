@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.gradle.api.tasks.Sync
 
 plugins {
     id("com.android.application")
@@ -12,6 +13,11 @@ val backendConfig = Properties().apply {
 }
 fun publicConfig(key: String): String = "\"" + (System.getenv(key) ?: backendConfig.getProperty(key, "")).replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
+val prepareBusinessAssets by tasks.registering(Sync::class) {
+    from(rootProject.file("shared")) { include("industry-catalog.json") }
+    into(layout.buildDirectory.dir("generated/businessAssets"))
+}
+
 android {
     namespace = "com.biashara.app"
     compileSdk = 35
@@ -23,12 +29,12 @@ android {
         applicationId = "com.biashara.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.5.0"
+        versionCode = 6
+        versionName = "0.5.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true; buildConfig = true }
-    sourceSets.getByName("main").assets.srcDir(rootProject.file("shared"))
+    sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/businessAssets"))
     buildTypes {
         getByName("release") {
             isDebuggable = false
@@ -54,6 +60,8 @@ android {
         }
     }
 }
+
+tasks.named("preBuild").configure { dependsOn(prepareBusinessAssets) }
 
 dependencies {
     implementation("androidx.camera:camera-camera2:1.4.2")

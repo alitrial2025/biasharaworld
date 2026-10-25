@@ -1,0 +1,129 @@
+.growthArt {
+  display: block;
+  width: min(260px, 100%);
+  height: auto;
+  overflow: visible;
+  pointer-events: none;
+  color: var(--green, #00815d);
+}
+
+.ground {
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-linecap: round;
+  opacity: 0.17;
+}
+
+.growthLine {
+  stroke: currentColor;
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  opacity: 0.2;
+}
+
+.travellingLine {
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-dasharray: 0.16 0.84;
+  animation: growthJourney 12s linear infinite;
+  opacity: 0.75;
+}
+
+.sprout {
+  transform-box: fill-box;
+  transform-origin: 48% 100%;
+  animation: sproutBreathe 16s ease-in-out infinite;
+}
+
+.stem,
+.leaf,
+.leafVein {
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stem {
+  stroke-width: 1.6;
+}
+.leaf {
+  stroke-width: 1.35;
+  fill: color-mix(in srgb, currentColor 5%, transparent);
+}
+.leafVein {
+  stroke-width: 1;
+  opacity: 0.55;
+}
+.seed {
+  fill: #e87c55;
+}
+.node {
+  fill: currentColor;
+  opacity: 0.4;
+}
+.endNode {
+  fill: #e87c55;
+  opacity: 0.85;
+}
+.spark {
+  stroke: #e87c55;
+  stroke-width: 1;
+  stroke-linecap: round;
+  opacity: 0.5;
+}
+
+@keyframes growthJourney {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes sproutBreathe {
+  0%,
+  100% {
+    transform: rotate(-1deg);
+  }
+  50% {
+    transform: rotate(1.5deg);
+  }
+}
+
+/* Only the initializer opts offscreen elements into animation after hydration. */
+.motionReady :global([data-reveal-state="pending"]) {
+  opacity: 0;
+  transform: translateY(22px);
+}
+
+.motionReady :global([data-reveal-state="visible"]) {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.72s ease,
+    transform 0.72s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.motionReady :global([data-reveal]:focus-within) {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .travellingLine,
+  .sprout {
+    animation: none;
+  }
+  .travellingLine {
+    stroke-dasharray: none;
+    opacity: 0.32;
+  }
+  .motionReady :global([data-reveal-state]) {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

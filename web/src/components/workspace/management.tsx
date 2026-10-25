@@ -1,6 +1,7 @@
 "use client";
 import { industries, resolveIndustry } from "@/lib/industries";
 import { FundingPageContent } from "./funding";
+import { BrandDoodle } from "@/components/brand-doodle";
 import { ProductPhoto } from "@/components/product-photo";
 import { T, LocalButton, LocalInput } from "@/components/locale";
 import Link from "next/link";
@@ -591,66 +592,69 @@ export function AssistantPage() {
             <T>New conversation</T>
           </LocalButton>
         </div>
-        <div className="chat-messages" aria-live="polite">
-          <T>
-            {!messages.length ? (
-              <div className="assistant-empty">
-                <span className="ai-orb large-orb">
-                  <Sparkles size={32} />
-                </span>
-                <h2>
-                  <T>What’s on your mind,</T>{" "}
-                  <T>{state.profile.name.split(" ")[0]}</T> <T>?</T>
-                </h2>
-                <p>
-                  <T>A clearer picture can start with one good question.</T>
-                </p>
-                <div className="suggestion-grid">
-                  <T>
-                    {[
-                      "How is my business doing today?",
-                      "What should I restock?",
-                      "Who owes me money?",
-                      "Where is my money going?",
-                    ].map((q) => (
-                      <LocalButton key={q} onClick={() => ask(q)}>
-                        <Sparkles size={15} />
-                        <span>
-                          <T>{q}</T>
-                        </span>
-                        <ArrowRight size={14} />
-                      </LocalButton>
-                    ))}
-                  </T>
-                </div>
-              </div>
-            ) : (
-              messages.map((m) => (
-                <div className={`chat-message message-${m.role}`} key={m.id}>
-                  <T>
-                    {m.role === "assistant" ? (
-                      <span className="ai-orb">
-                        <Sparkles size={15} />
-                      </span>
-                    ) : (
-                      <Avatar name={state.profile.name} small />
-                    )}
-                  </T>
-
-                  <div>
-                    <small>
-                      <T>
-                        {m.role === "assistant" ? "Business summary" : "You"}
-                      </T>
-                    </small>
-                    <p>
-                      <T>{m.text}</T>
-                    </p>
+        <div className="chat-wallpaper brand-doodle-surface">
+          <BrandDoodle />
+          <div className="chat-messages" aria-live="polite">
+            <T>
+              {!messages.length ? (
+                <div className="assistant-empty">
+                  <span className="ai-orb large-orb">
+                    <Sparkles size={32} />
+                  </span>
+                  <h2>
+                    <T>What’s on your mind,</T>{" "}
+                    <T>{state.profile.name.split(" ")[0]}</T> <T>?</T>
+                  </h2>
+                  <p>
+                    <T>A clearer picture can start with one good question.</T>
+                  </p>
+                  <div className="suggestion-grid">
+                    <T>
+                      {[
+                        "How is my business doing today?",
+                        "What should I restock?",
+                        "Who owes me money?",
+                        "Where is my money going?",
+                      ].map((q) => (
+                        <LocalButton key={q} onClick={() => ask(q)}>
+                          <Sparkles size={15} />
+                          <span>
+                            <T>{q}</T>
+                          </span>
+                          <ArrowRight size={14} />
+                        </LocalButton>
+                      ))}
+                    </T>
                   </div>
                 </div>
-              ))
-            )}
-          </T>
+              ) : (
+                messages.map((m) => (
+                  <div className={`chat-message message-${m.role}`} key={m.id}>
+                    <T>
+                      {m.role === "assistant" ? (
+                        <span className="ai-orb">
+                          <Sparkles size={15} />
+                        </span>
+                      ) : (
+                        <Avatar name={state.profile.name} small />
+                      )}
+                    </T>
+
+                    <div>
+                      <small>
+                        <T>
+                          {m.role === "assistant" ? "Business summary" : "You"}
+                        </T>
+                      </small>
+                      <p>
+                        <T>{m.text}</T>
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </T>
+          </div>
         </div>
         <form
           className="chat-composer"

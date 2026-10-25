@@ -189,223 +189,221 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
     LaunchedEffect(store.messages.size) {
         scroll.animateScrollToItem(store.messages.lastIndex.coerceAtLeast(0))
     }
-    Column(
-        Modifier.fillMaxSize()
-            .background(
-                androidx.compose.ui.graphics.Brush.verticalGradient(
-                    listOf(Canvas, BlueMist)
-                )
-            )
-            .padding(horizontal = 18.dp)
-            .padding(top = 12.dp)
-            .imePadding()
-    ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack, modifier = Modifier.size(34.dp)) {
-                AppIcon(Icons.Outlined.ChevronLeft, "Go back")
-            }
-            Box(
-                Modifier.size(37.dp)
-                    .background(
-                        androidx.compose.ui.graphics.Brush.sweepGradient(
-                            listOf(
-                                Color(0xFF35D8EE),
-                                Color(0xFF4567F8),
-                                Color(0xFF9146FF),
-                                Color(0xFF35D8EE),
-                            )
-                        ),
-                        CircleShape,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                AppIcon(
-                    Icons.Outlined.AutoAwesome,
-                    null,
-                    Modifier.size(18.dp),
-                    tint = Color.White.copy(alpha = .7f),
-                )
-            }
-            Column(Modifier.weight(1f).padding(start = 11.dp)) {
-                AppText(if (store.real) "Business summaries" else "BiasharaAI", fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                AppText(
-                    "Your business assistant",
-                    fontSize = 10.sp,
-                    color = Muted,
-                    modifier = Modifier.padding(top = 3.dp),
-                )
-            }
-            IconButton(onClick = { about = true }, modifier = Modifier.size(30.dp)) {
-                AppIcon(Icons.Outlined.MoreVert, "About this assistant", Modifier.size(19.dp))
-            }
-        }
-        LazyColumn(
-            Modifier.weight(1f),
-            state = scroll,
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(top = 25.dp, bottom = 14.dp),
+    Box(Modifier.fillMaxSize().background(Canvas)) {
+        BrandDoodleBackdrop(Modifier.matchParentSize())
+        Column(
+            Modifier.fillMaxSize()
+                .padding(horizontal = 18.dp)
+                .padding(top = 12.dp)
+                .imePadding()
         ) {
-            items(store.messages.size) { index ->
-                val m = store.messages[index]
-                Column(
-                    Modifier.fillMaxWidth(),
-                    horizontalAlignment = if (m.user) Alignment.End else Alignment.Start,
-                ) {
-                    Column(
-                        Modifier.widthIn(max = if (m.user) 265.dp else 355.dp)
-                            .background(
-                                if (m.user) Color(0xFF266CDE) else Surface,
-                                RoundedCornerShape(
-                                    topStart = 16.dp,
-                                    topEnd = 16.dp,
-                                    bottomStart = 16.dp,
-                                    bottomEnd = if (m.user) 5.dp else 16.dp,
-                                ),
-                            )
-                            .padding(15.dp)
-                    ) {
-                        AppText(
-                            m.text,
-                            fontSize = 12.sp,
-                            lineHeight = 20.sp,
-                            color = if (m.user) Color.White else Ink,
-                        )
-                        if (!store.real && index == 1 && !m.user) {
-                            Spacer(Modifier.height(15.dp))
-                            listOf(
-                                    Triple("Total sales", "KES 12,450", Mint),
-                                    Triple("Profit", "KES 3,890", BlueMist),
-                                    Triple("Expenses", "KES 2,300", Sand),
+            Row(Modifier.fillMaxWidth().background(Surface, RoundedCornerShape(20.dp)).padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack, modifier = Modifier.size(34.dp)) {
+                    AppIcon(Icons.Outlined.ChevronLeft, "Go back")
+                }
+                Box(
+                    Modifier.size(37.dp)
+                        .background(
+                            androidx.compose.ui.graphics.Brush.sweepGradient(
+                                listOf(
+                                    Color(0xFF35D8EE),
+                                    Color(0xFF4567F8),
+                                    Color(0xFF9146FF),
+                                    Color(0xFF35D8EE),
                                 )
-                                .forEachIndexed { i, (label, value, bg) ->
-                                    Row(
-                                        Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        IconTile(
-                                            if (i == 0) Icons.Outlined.ShoppingBag
-                                            else if (i == 1) Icons.Outlined.BarChart
-                                            else Icons.Outlined.AccountBalanceWallet,
-                                            if (i == 2) Amber else Green,
-                                            bg,
-                                            34,
-                                        )
-                                        Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                                            AppText(
-                                                value,
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Bold,
+                            ),
+                            CircleShape,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AppIcon(
+                        Icons.Outlined.AutoAwesome,
+                        null,
+                        Modifier.size(18.dp),
+                        tint = Color.White.copy(alpha = .7f),
+                    )
+                }
+                Column(Modifier.weight(1f).padding(start = 11.dp)) {
+                    AppText(if (store.real) "Business summaries" else "BiasharaAI", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                    AppText(
+                        "Your business assistant",
+                        fontSize = 10.sp,
+                        color = Muted,
+                        modifier = Modifier.padding(top = 3.dp),
+                    )
+                }
+                IconButton(onClick = { about = true }, modifier = Modifier.size(30.dp)) {
+                    AppIcon(Icons.Outlined.MoreVert, "About this assistant", Modifier.size(19.dp))
+                }
+            }
+            LazyColumn(
+                Modifier.weight(1f),
+                state = scroll,
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                contentPadding = PaddingValues(top = 25.dp, bottom = 14.dp),
+            ) {
+                items(store.messages.size) { index ->
+                    val m = store.messages[index]
+                    Column(
+                        Modifier.fillMaxWidth(),
+                        horizontalAlignment = if (m.user) Alignment.End else Alignment.Start,
+                    ) {
+                        Column(
+                            Modifier.widthIn(max = if (m.user) 265.dp else 355.dp)
+                                .background(
+                                    if (m.user) Color(0xFF266CDE) else Surface,
+                                    RoundedCornerShape(
+                                        topStart = 16.dp,
+                                        topEnd = 16.dp,
+                                        bottomStart = 16.dp,
+                                        bottomEnd = if (m.user) 5.dp else 16.dp,
+                                    ),
+                                )
+                                .padding(15.dp)
+                        ) {
+                            AppText(
+                                m.text,
+                                fontSize = 12.sp,
+                                lineHeight = 20.sp,
+                                color = if (m.user) Color.White else Ink,
+                            )
+                            if (!store.real && index == 1 && !m.user) {
+                                Spacer(Modifier.height(15.dp))
+                                listOf(
+                                        Triple("Total sales", "KES 12,450", Mint),
+                                        Triple("Profit", "KES 3,890", BlueMist),
+                                        Triple("Expenses", "KES 2,300", Sand),
+                                    )
+                                    .forEachIndexed { i, (label, value, bg) ->
+                                        Row(
+                                            Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            IconTile(
+                                                if (i == 0) Icons.Outlined.ShoppingBag
+                                                else if (i == 1) Icons.Outlined.BarChart
+                                                else Icons.Outlined.AccountBalanceWallet,
+                                                if (i == 2) Amber else Green,
+                                                bg,
+                                                34,
                                             )
+                                            Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                                                AppText(
+                                                    value,
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                )
+                                                AppText(
+                                                    label,
+                                                    fontSize = 10.sp,
+                                                    color = Muted,
+                                                    modifier = Modifier.padding(top = 3.dp),
+                                                )
+                                            }
                                             AppText(
-                                                label,
+                                                if (i == 0) "↑ 12%" else if (i == 1) "↑ 8%" else "↑ 5%",
                                                 fontSize = 10.sp,
-                                                color = Muted,
-                                                modifier = Modifier.padding(top = 3.dp),
+                                                color = if (i == 2) Coral else Green,
                                             )
                                         }
-                                        AppText(
-                                            if (i == 0) "↑ 12%" else if (i == 1) "↑ 8%" else "↑ 5%",
-                                            fontSize = 10.sp,
-                                            color = if (i == 2) Coral else Green,
-                                        )
                                     }
-                                }
-                            HorizontalDivider(Modifier.padding(vertical = 12.dp), color = Line)
-                            AppText("Your best selling item was", fontSize = 11.sp, color = Muted)
-                            AppText(
-                                "Soko Maize Flour 2kg",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(top = 7.dp),
-                            )
-                            AppText(
-                                "(28 units)",
-                                fontSize = 11.sp,
-                                color = Muted,
-                                modifier = Modifier.padding(top = 3.dp),
-                            )
-                            AppText(
-                                "Demo insights",
-                                fontSize = 9.sp,
-                                color = Muted,
-                                modifier = Modifier.padding(top = 12.dp),
-                            )
+                                HorizontalDivider(Modifier.padding(vertical = 12.dp), color = Line)
+                                AppText("Your best selling item was", fontSize = 11.sp, color = Muted)
+                                AppText(
+                                    "Soko Maize Flour 2kg",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(top = 7.dp),
+                                )
+                                AppText(
+                                    "(28 units)",
+                                    fontSize = 11.sp,
+                                    color = Muted,
+                                    modifier = Modifier.padding(top = 3.dp),
+                                )
+                                AppText(
+                                    "Demo insights",
+                                    fontSize = 9.sp,
+                                    color = Muted,
+                                    modifier = Modifier.padding(top = 12.dp),
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
-        Column(
-            verticalArrangement = Arrangement.spacedBy(7.dp),
-            modifier = Modifier.padding(bottom = 13.dp),
-        ) {
-            listOf("What should I restock?", "Who owes me money?", "Show profit this week")
-                .forEach { q ->
-                    Row(
-                        Modifier.fillMaxWidth()
-                            .background(Lavender, RoundedCornerShape(20.dp))
-                            .clickable { store.reply(q) }
-                            .padding(horizontal = 13.dp, vertical = 9.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        AppIcon(
-                            Icons.Outlined.ChatBubbleOutline,
-                            null,
-                            Modifier.size(13.dp),
-                            tint = Muted,
-                        )
-                        AppText(
-                            q,
-                            fontSize = 11.sp,
-                            color = Ink,
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
-                }
-        }
-        Row(
-            Modifier.fillMaxWidth()
-                .padding(bottom = 14.dp)
-                .navigationBarsPadding()
-                .background(Surface, RoundedCornerShape(22.dp))
-                .border(1.dp, Line, RoundedCornerShape(22.dp))
-                .padding(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            BasicTextField(
-                input,
-                { input = it.take(500) },
-                textStyle = TextStyle(fontFamily = AppFont, fontSize = 13.sp, color = Ink),
-                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-                decorationBox = { inner ->
-                    Box {
-                        if (input.isEmpty())
-                            AppText("Ask anything…", fontSize = 12.sp, color = Muted)
-                        inner()
-                    }
-                },
-            )
-            AppIcon(
-                Icons.Outlined.MicNone,
-                null,
-                Modifier.padding(end = 10.dp).size(17.dp),
-                tint = Muted,
-            )
-            Box(
-                Modifier.size(34.dp).background(Forest, CircleShape).clickable(
-                    enabled = input.isNotBlank()
-                ) {
-                    store.reply(input.trim())
-                    input = ""
-                },
-                contentAlignment = Alignment.Center,
+            Column(
+                verticalArrangement = Arrangement.spacedBy(7.dp),
+                modifier = Modifier.padding(bottom = 13.dp),
             ) {
-                AppIcon(
-                    Icons.Outlined.ArrowUpward,
-                    "Send message",
-                    Modifier.size(18.dp),
-                    tint = Color.White,
+                listOf("What should I restock?", "Who owes me money?", "Show profit this week")
+                    .forEach { q ->
+                        Row(
+                            Modifier.fillMaxWidth()
+                                .background(Lavender, RoundedCornerShape(20.dp))
+                                .clickable { store.reply(q) }
+                                .padding(horizontal = 13.dp, vertical = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            AppIcon(
+                                Icons.Outlined.ChatBubbleOutline,
+                                null,
+                                Modifier.size(13.dp),
+                                tint = Muted,
+                            )
+                            AppText(
+                                q,
+                                fontSize = 11.sp,
+                                color = Ink,
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
+                    }
+            }
+            Row(
+                Modifier.fillMaxWidth()
+                    .padding(bottom = 14.dp)
+                    .navigationBarsPadding()
+                    .background(Surface, RoundedCornerShape(22.dp))
+                    .border(1.dp, Line, RoundedCornerShape(22.dp))
+                    .padding(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BasicTextField(
+                    input,
+                    { input = it.take(500) },
+                    textStyle = TextStyle(fontFamily = AppFont, fontSize = 13.sp, color = Ink),
+                    modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                    decorationBox = { inner ->
+                        Box {
+                            if (input.isEmpty())
+                                AppText("Ask anything…", fontSize = 12.sp, color = Muted)
+                            inner()
+                        }
+                    },
                 )
+                AppIcon(
+                    Icons.Outlined.MicNone,
+                    null,
+                    Modifier.padding(end = 10.dp).size(17.dp),
+                    tint = Muted,
+                )
+                Box(
+                    Modifier.size(34.dp).background(Forest, CircleShape).clickable(
+                        enabled = input.isNotBlank()
+                    ) {
+                        store.reply(input.trim())
+                        input = ""
+                    },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AppIcon(
+                        Icons.Outlined.ArrowUpward,
+                        "Send message",
+                        Modifier.size(18.dp),
+                        tint = Color.White,
+                    )
+                }
             }
         }
     }
