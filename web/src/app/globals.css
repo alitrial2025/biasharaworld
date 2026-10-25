@@ -10344,3 +10344,91 @@ dialog.modal {
  .industry-record > div:last-child { margin-left: auto; text-align: right; }
  .verification-reminder { padding: 16px 20px; }
 }
+
+/* Funding cards share insets, readable form rows and separate action groups. */
+.funding-availability,
+.funding-calculator,
+.funding-guidance {
+  padding: 24px;
+}
+.funding-availability { display: grid; gap: 12px; }
+.funding-availability > .badge { justify-self: start; }
+.funding-availability p,
+.funding-guidance p,
+.funding-calculator > p { line-height: 1.8; max-width: 85ch; }
+.funding-calculator > h2,
+.funding-guidance > h2 { font-size: 1.35rem; line-height: 1.4; }
+.funding-calculator > p,
+.funding-guidance > p { margin-top: 12px; }
+.funding-calculator > .form-grid { margin-top: 24px; }
+.funding-panel-body { padding: 0 24px 24px; }
+.funding-readiness .panel-heading,
+.funding-requests .panel-heading { flex-wrap: wrap; gap: 16px; }
+.funding-readiness .panel-heading > div { flex: 1; min-width: min(100%, 280px); }
+.funding-readiness-list { display: grid; gap: 12px; margin: 0; padding-left: 20px; color: var(--muted); }
+.funding-panel-body > .button-row { margin-top: 24px; gap: 12px; flex-wrap: wrap; }
+.funding-panel-body .btn { max-width: 100%; white-space: normal; text-align: center; }
+.funding-list { display: grid; gap: 16px; padding: 0 24px 24px; }
+.funding-list-item { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; padding: 20px; border: 1px solid var(--line); border-radius: 12px; }
+.funding-list-item > div:first-child { min-width: 0; flex: 1 1 240px; overflow-wrap: anywhere; }
+.funding-list-item p { margin-top: 6px; }
+.funding-list-item small { display: block; margin-top: 6px; color: var(--muted); }
+.funding-list-item .button-row { flex-wrap: wrap; gap: 12px; }
+.funding-support-links { display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 20px; color: var(--green); }
+.funding-calculator .form-grid,
+.funding-fields .form-grid { gap: 20px; }
+.funding-calculator .field,
+.funding-fields .field,
+.funding-fields .checkbox-label { margin-bottom: 0; }
+.funding-calculator > .inline-note,
+.funding-calculator > .operation-error { margin-top: 24px; }
+.funding-fields,
+.funding-request-details { display: grid; gap: 20px; }
+.funding-fields > label.field { display: flex; flex-direction: column; gap: 8px; }
+.funding-fields .form-grid > p { grid-column: 1 / -1; }
+.funding-fields .detail-list { margin: 0; }
+.funding-fields .detail-list > div { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr); gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.funding-fields .detail-list dt { color: var(--muted); }
+.funding-fields .detail-list dd { margin: 0; overflow-wrap: anywhere; }
+.funding-request-details ul { margin: 0; padding-left: 20px; }
+.funding-request-details li + li { margin-top: 12px; }
+.funding-request-details h3 { font-size: 1.1rem; }
+@media (max-width: 600px) {
+  .funding-availability, .funding-calculator, .funding-guidance { padding: 20px; }
+  .funding-panel-body, .funding-list { padding: 0 20px 20px; }
+  .funding-fields .detail-list > div { grid-template-columns: 1fr; gap: 4px; }
+}
+
+/* One desktop section gap prevents adjoining notices/tabs and doubled card margins. */
+@media (min-width: 961px) {
+  .workspace .workspace-main {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .workspace .workspace-main > * {
+    margin-block: 0;
+    min-width: 0;
+  }
+  .workspace .page-heading > div:first-child {
+    min-width: 0;
+  }
+  .workspace .heading-actions,
+  .workspace .table-toolbar {
+    flex-wrap: wrap;
+    row-gap: 12px;
+  }
+  .workspace .heading-actions {
+    justify-content: flex-end;
+  }
+  .workspace .industry-filters {
+    align-items: flex-end;
+  }
+  .workspace .industry-filters .field {
+    margin-bottom: 0;
+  }
+  .workspace .industry-filters .checkbox-label {
+    min-height: 44px;
+    margin: 0;
+  }
+}

@@ -362,7 +362,7 @@ function OwnerFunding({
               icon={FileText}
             />
           </div>
-          <section className="panel">
+          <section className="panel funding-readiness">
             <div className="panel-heading">
               <div>
                 <h2>Your funding readiness</h2>
@@ -383,34 +383,38 @@ function OwnerFunding({
                   : "Business readiness needed"}
               </Badge>
             </div>
-            <ul>
-              <li>
-                {workspace.readiness.receipts30
-                  ? "Recent sales records available"
-                  : "Record sales to build a trading history"}
-              </li>
-              <li>
-                {workspace.readiness.products
-                  ? "Product catalogue available"
-                  : "Add products and keep stock records current"}
-              </li>
-              <li>
-                Expenses recorded over 30 days: KES{" "}
-                {money(workspace.readiness.expenses30)}
-              </li>
-              <li>
-                Identity verification and lending assessment: provider setup
-                pending
-              </li>
-            </ul>
-            <Button href="/dashboard/verification" variant="secondary">
-              Review business verification readiness
-            </Button>
-            <Button href="/dashboard/reports" variant="ghost">
-              Review business reports
-            </Button>
+            <div className="funding-panel-body">
+              <ul className="funding-readiness-list">
+                <li>
+                  {workspace.readiness.receipts30
+                    ? "Recent sales records available"
+                    : "Record sales to build a trading history"}
+                </li>
+                <li>
+                  {workspace.readiness.products
+                    ? "Product catalogue available"
+                    : "Add products and keep stock records current"}
+                </li>
+                <li>
+                  Expenses recorded over 30 days: KES{" "}
+                  {money(workspace.readiness.expenses30)}
+                </li>
+                <li>
+                  Identity verification and lending assessment: provider setup
+                  pending
+                </li>
+              </ul>
+              <div className="button-row">
+                <Button href="/dashboard/verification" variant="secondary">
+                  Review business verification readiness
+                </Button>
+                <Button href="/dashboard/reports" variant="ghost">
+                  Review business reports
+                </Button>
+              </div>
+            </div>
           </section>
-          <section className="panel">
+          <section className="panel funding-requests">
             <div className="panel-heading">
               <h2>Your requests and drafts</h2>
               <span className="muted">Latest 100 records · owner only</span>
@@ -482,7 +486,7 @@ function OwnerFunding({
         </>
       )}
       <FundingCalculator />
-      <section className="panel">
+      <section className="panel funding-guidance">
         <h2>Before you borrow</h2>
         <p>
           Compare total repayment, fees, repayment dates, late charges,
@@ -490,9 +494,11 @@ function OwnerFunding({
           provider. Borrowing is optional. Confirm a repayment plan against your
           real cash flow.
         </p>
-        <Link href="/help">Get help</Link> ·{" "}
-        <Link href="/privacy">Privacy policy</Link> ·{" "}
-        <Link href="/terms">Terms</Link>
+        <nav className="funding-support-links" aria-label="Funding support">
+          <Link href="/help">Get help</Link>
+          <Link href="/privacy">Privacy policy</Link>
+          <Link href="/terms">Terms</Link>
+        </nav>
       </section>
       <Modal
         open={!!editor}
@@ -508,7 +514,10 @@ function OwnerFunding({
       >
         {draft && (
           <>
-            <fieldset className="sheet-fields" disabled={disabled}>
+            <fieldset
+              className="sheet-fields funding-fields"
+              disabled={disabled}
+            >
               {step === 0 && (
                 <div className="form-grid">
                   <Field
@@ -722,32 +731,34 @@ function OwnerFunding({
         onClose={() => setDetails(null)}
         title="Funding request details"
       >
-        <p>{details && fundingStatus(details.status)}</p>
-        <p>
-          {details?.payload.amount} KES · {details?.payload.purpose} ·{" "}
-          {details?.payload.months} requested months
-        </p>
-        <p>{details?.payload.plan}</p>
-        <p>
-          This request has not been sent to a lender. No offer or eligibility
-          decision has been made.
-        </p>
-        <h3>Activity</h3>
-        <ul>
-          {details?.history.map((event, i) => (
-            <li key={i}>
-              {event.action === "save"
-                ? "Draft saved"
-                : event.action === "submit"
-                  ? "Request recorded · provider pending"
-                  : "Request withdrawn"}{" "}
-              ·{" "}
-              {new Date(event.at).toLocaleString("en-KE", {
-                timeZone: "Africa/Nairobi",
-              })}
-            </li>
-          ))}
-        </ul>
+        <div className="funding-request-details">
+          <p>{details && fundingStatus(details.status)}</p>
+          <p>
+            {details?.payload.amount} KES · {details?.payload.purpose} ·{" "}
+            {details?.payload.months} requested months
+          </p>
+          <p>{details?.payload.plan}</p>
+          <p>
+            This request has not been sent to a lender. No offer or eligibility
+            decision has been made.
+          </p>
+          <h3>Activity</h3>
+          <ul>
+            {details?.history.map((event, i) => (
+              <li key={i}>
+                {event.action === "save"
+                  ? "Draft saved"
+                  : event.action === "submit"
+                    ? "Request recorded · provider pending"
+                    : "Request withdrawn"}{" "}
+                ·{" "}
+                {new Date(event.at).toLocaleString("en-KE", {
+                  timeZone: "Africa/Nairobi",
+                })}
+              </li>
+            ))}
+          </ul>
+        </div>
       </Modal>
       <Modal
         open={!!withdraw}
@@ -800,7 +811,7 @@ function FundingCalculator() {
       error = e instanceof Error ? e.message : "Check the terms.";
     }
   return (
-    <section className="panel">
+    <section className="panel funding-calculator">
       <h2>Compare a provider’s quoted terms</h2>
       <p>
         Enter terms you received directly. This estimate assumes equal monthly
