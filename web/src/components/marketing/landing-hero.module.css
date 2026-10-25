@@ -914,3 +914,166 @@
     padding: 12px 17px;
   }
 }
+
+/* The full landing composition follows the selected theme. */
+:global(html:not([data-theme="dark"])) .header {
+  background: #f7fbf8f5 !important;
+  color: #173f2e;
+  border-bottom-color: #dbe9df;
+}
+:global(html:not([data-theme="dark"])) .header :global(.brand) {
+  color: #173f2e;
+}
+:global(html:not([data-theme="dark"])) .header :global(.site-nav) {
+  background: #ffffff80;
+  border-color: #cfe0d5;
+}
+:global(html:not([data-theme="dark"])) .header :global(.nav-link) {
+  color: #3d5d4c;
+}
+:global(html:not([data-theme="dark"])) .header :global(.nav-link.active),
+:global(html:not([data-theme="dark"])) .header :global(.nav-link:hover),
+:global(html:not([data-theme="dark"]))
+  .header
+  :global(.nav-link[aria-current="page"]) {
+  color: #006b4c;
+}
+:global(html:not([data-theme="dark"]))
+  .header
+  :global(.nav-link[aria-current="page"])::after {
+  background: #00815d;
+}
+:global(html:not([data-theme="dark"])) .header :global(.nav-auth > a:not(.btn)),
+:global(html:not([data-theme="dark"])) .header :global(.theme-toggle) {
+  color: #25543c;
+  border-color: #bad1c3;
+  background: #ffffff80;
+}
+:global(html:not([data-theme="dark"])) .header :global(.btn-primary) {
+  color: #fff;
+  background: #007b56;
+  border-color: #007b56;
+}
+:global(html:not([data-theme="dark"])) .header :global(.mobile-menu) {
+  color: #25543c;
+}
+:global(html:not([data-theme="dark"])) .hero {
+  --hero-heading: #153f2d;
+  --hero-mint: #007b56;
+  background: #f1f8f3 !important;
+  color: #153f2d;
+}
+:global(html:not([data-theme="dark"])) .hero::after {
+  background:
+    linear-gradient(
+      90deg,
+      #f1f8f3 0%,
+      #f1f8f3f2 29%,
+      #f1f8f359 57%,
+      #f1f8f300 80%
+    ),
+    linear-gradient(0deg, #f1f8f3 0%, #f1f8f300 22%),
+    radial-gradient(ellipse at 43% 22%, #b8dfc44d, transparent 53%);
+}
+:global(html:not([data-theme="dark"])) .hero > :global(.brand-doodle) {
+  opacity: 0.075;
+  filter: none;
+}
+:global(html:not([data-theme="dark"])) .kicker {
+  color: #3a624c;
+}
+:global(html:not([data-theme="dark"])) .kicker > span {
+  background: #007b56;
+}
+:global(html:not([data-theme="dark"])) .hero :global(.hero-copy h1) {
+  color: var(--hero-heading);
+}
+:global(html:not([data-theme="dark"])) .hero :global(.hero-copy > p),
+:global(html:not([data-theme="dark"])) .hero :global(.hero-footnote) {
+  color: #405f4e;
+}
+:global(html:not([data-theme="dark"])) .hero :global(.hero-footnote svg) {
+  color: #007b56;
+}
+:global(html:not([data-theme="dark"])) .hero :global(.hero-copy .btn-primary) {
+  color: #fff;
+  background: #007b56;
+  border-color: #007b56;
+  box-shadow: 0 6px 24px #007b561a;
+}
+:global(html:not([data-theme="dark"]))
+  .hero
+  :global(.hero-copy .btn-primary:hover),
+:global(html:not([data-theme="dark"])) .header :global(.btn-primary:hover) {
+  background: #006044;
+  border-color: #006044;
+}
+:global(html:not([data-theme="dark"]))
+  .hero
+  :global(.hero-copy .btn-secondary) {
+  color: #204f39;
+  background: #ffffffb3;
+  border-color: #87ae97;
+}
+:global(html:not([data-theme="dark"]))
+  .hero
+  :global(.hero-copy .btn-secondary:hover) {
+  background: #e0f0e5;
+}
+:global(html:not([data-theme="dark"])) .capabilities > a {
+  color: #345a44;
+}
+:global(html:not([data-theme="dark"])) .capabilities > a > svg {
+  color: #267750;
+}
+:global(html:not([data-theme="dark"])) .capabilities > a:hover {
+  color: #006345;
+}
+:global(html:not([data-theme="dark"])) .capabilities > a:hover > svg {
+  color: #006345;
+}
+:global(html:not([data-theme="dark"])) .anywhere {
+  color: #214d35;
+}
+:global(html:not([data-theme="dark"])) .previewLabel {
+  color: #385c47;
+}
+:global(html:not([data-theme="dark"])) .previewLabel > span {
+  background: #007b56;
+}
+:global(html:not([data-theme="dark"])) .proofBand {
+  background: linear-gradient(110deg, #f8fcf9, #eaf5ed 62%, #eef7f0);
+  color: #204d36;
+  border-color: #cfe2d5;
+}
+:global(html:not([data-theme="dark"])) .proofIcon {
+  background: #e0f0e5;
+  color: #167248;
+  border-color: #c5dfcf;
+}
+:global(html:not([data-theme="dark"])) .proofGrid strong {
+  color: #214d36;
+}
+:global(html:not([data-theme="dark"])) .proofGrid > a > div > span,
+:global(html:not([data-theme="dark"])) .proofGrid > div > div > span {
+  color: #456350;
+}
+:global(html:not([data-theme="dark"])) .proofGrid > a:hover strong {
+  color: #006345;
+}
+@media (max-width: 960px) {
+  :global(html:not([data-theme="dark"])) .header :global(.site-nav) {
+    background: #fff;
+  }
+}
+@media (max-width: 700px) {
+  :global(html:not([data-theme="dark"])) .hero::after {
+    background: linear-gradient(
+      180deg,
+      #f1f8f3 0%,
+      #f1f8f3ed 38%,
+      #f1f8f333 75%,
+      #f1f8f3 100%
+    );
+  }
+}

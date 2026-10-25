@@ -21,3 +21,5 @@ The landing hero follows the supplied composition with an emerald background, th
 The hero checks cover six viewport widths in both themes, image loading, real navigation destinations, keyboard menu dismissal, typing layout stability, reduced-motion switching, section reveals, unsupported observers and content without JavaScript.
 
 Validation: production build and ESLint passed. The final landing/download run passed 23 checks. Five appearance/directory checks passed in the preceding run. The final desktop workspace run passed all nine checks, following 38 combined workspace, industry, funding and dark-surface checks. Screenshots were reviewed at desktop and laptop widths in both themes. Verification artifacts are kept outside the repository.
+
+Light-mode follow-up: the landing header, hero, typing headline, actions, annotations, feature links and proof strip now follow the selected theme. The light palette uses pale green surfaces and deep green text. The device previews remain labelled product captures. Theme changes and reload persistence are covered at phone and desktop widths; the full 23-check landing/appearance run, production build and lint passed.

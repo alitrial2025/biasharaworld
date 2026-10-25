@@ -1,5 +1,5 @@
 .headline > .line.firstLine {
-  color: #f5fff9;
+  color: var(--hero-heading, #f5fff9);
 }
 .headline > .line.secondLine {
   color: var(--hero-mint, #37e7b0);
