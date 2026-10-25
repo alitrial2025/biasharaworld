@@ -1,6 +1,7 @@
 "use client";
 import { industries, resolveIndustry } from "@/lib/industries";
 import { FundingPageContent } from "./funding";
+import { WorkspaceTrend } from "./trend-chart";
 import { BrandDoodle } from "@/components/brand-doodle";
 import { ProductPhoto } from "@/components/product-photo";
 import { T, LocalButton, LocalInput } from "@/components/locale";
@@ -70,7 +71,7 @@ export function ExpensesPage() {
     <>
       <PageHeading
         eyebrow="THE LITTLE THINGS ADD UP"
-        title="Keep your spending in sight."
+        title="Expenses"
         description="From transport to electricity. Give every business expense a place."
       >
         <Button
@@ -340,7 +341,7 @@ export function ReportsPage() {
     <>
       <PageHeading
         eyebrow="SEE THE BIGGER PICTURE"
-        title="A clearer view. A smarter next step."
+        title="Business reports"
         description="Make a little space to look back, so you can move forward."
       >
         <Button
@@ -392,31 +393,74 @@ export function ReportsPage() {
             </T>
           </Badge>
         </div>
-        {metric === "Sales" ? (
-          <SalesChart period={period} series={report.series} />
-        ) : metric === "Stock" ? (
-          <p className="muted">
-            Current stock at recorded cost. Historical stock values are not
-            available.
-          </p>
-        ) : (
-            metric === "Profit" ? report.profitSeries : report.expenseSeries
-          ) ? (
-          <SalesChart
-            period={period}
-            series={
-              (metric === "Profit"
-                ? report.profitSeries
-                : report.expenseSeries)!
-            }
-            label={metric.toLowerCase()}
-          />
-        ) : (
-          <p className="muted">
-            Select Week or Month to see the daily trend. Expenses are recorded
-            by date.
-          </p>
+        {(metric === "Sales" ||
+          (metric === "Profit"
+            ? report.profitSeries
+            : metric === "Expenses"
+              ? report.expenseSeries
+              : null)) && (
+          <div className="report-desktop-chart">
+            <WorkspaceTrend
+              period={period}
+              start={report.start}
+              sales={
+                metric === "Sales"
+                  ? report.series
+                  : (metric === "Profit"
+                      ? report.profitSeries
+                      : report.expenseSeries)!
+              }
+              profit={metric === "Sales" ? report.profitSeries : null}
+              expenses={metric === "Sales" ? report.expenseSeries : null}
+              primaryLabel={metric === "Profit" ? "Operating profit" : metric}
+              primaryColor={
+                metric === "Profit"
+                  ? "var(--chart-profit)"
+                  : metric === "Expenses"
+                    ? "var(--chart-expenses)"
+                    : "var(--chart-sales)"
+              }
+            />
+          </div>
         )}
+        <div
+          className={
+            metric === "Sales" ||
+            (metric === "Profit"
+              ? report.profitSeries
+              : metric === "Expenses"
+                ? report.expenseSeries
+                : null)
+              ? "report-mobile-chart"
+              : "report-chart-note"
+          }
+        >
+          {metric === "Sales" ? (
+            <SalesChart period={period} series={report.series} />
+          ) : metric === "Stock" ? (
+            <p className="muted">
+              Current stock at recorded cost. Historical stock values are not
+              available.
+            </p>
+          ) : (
+              metric === "Profit" ? report.profitSeries : report.expenseSeries
+            ) ? (
+            <SalesChart
+              period={period}
+              series={
+                (metric === "Profit"
+                  ? report.profitSeries
+                  : report.expenseSeries)!
+              }
+              label={metric.toLowerCase()}
+            />
+          ) : (
+            <p className="muted">
+              Select Week or Month to see the daily trend. Expenses are recorded
+              by date.
+            </p>
+          )}
+        </div>
         {metric === "Sales" && report.timingIncomplete && (
           <p className="muted">
             Some older records have no transaction time and appear only in the
@@ -563,7 +607,7 @@ export function AssistantPage() {
     <>
       <PageHeading
         eyebrow="A LITTLE EXTRA CLARITY"
-        title="Good questions. Brighter next steps."
+        title="BiasharaAI"
         description="Your business assistant, with room for your next idea."
       >
         <Badge tone="purple">
@@ -720,7 +764,7 @@ export function SettingsPage() {
     <>
       <PageHeading
         eyebrow="MAKE YOURSELF AT HOME"
-        title="Your business. Your way."
+        title="Business settings"
         description="The details, preferences and little things that make it yours."
       />
       <div className="settings-extra-links">
@@ -767,7 +811,7 @@ export function SettingsPage() {
                       </T>
                     </p>
                   </div>
-                  <Avatar name={state.profile.name} photo />
+                  <Avatar name={state.profile.name} />
                 </div>
                 <form onSubmit={save} key={state.profile.email}>
                   <div className="form-grid">

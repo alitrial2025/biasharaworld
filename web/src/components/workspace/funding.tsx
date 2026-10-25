@@ -353,11 +353,13 @@ function OwnerFunding({
             />
             <StatCard
               label="Operating profit · last 30 days"
+              tone="blue"
               value={`KES ${money(workspace.readiness.profit30)}`}
               icon={Wallet}
             />
             <StatCard
               label="Recorded receipts · last 30 days"
+              tone="amber"
               value={String(workspace.readiness.receipts30)}
               icon={FileText}
             />

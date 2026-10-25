@@ -62,12 +62,12 @@ export function ToolPage({ slug }: { slug: string }) {
         <T>← All business tools</T>
       </Link>
       <PageHeading
-        eyebrow={`${feature.group.toUpperCase()} · A LITTLE MORE POSSIBLE`}
+        eyebrow={feature.group.toUpperCase()}
         title={feature.title}
         description={feature.description}
       >
         <Badge tone={feature.tone}>
-          <T>Feature</T> <T>{String(feature.id).padStart(2, "0")}</T>
+          <T>{feature.group}</T>
         </Badge>
         <Button href="/dashboard/tools" variant="secondary">
           <T>Explore all tools</T>

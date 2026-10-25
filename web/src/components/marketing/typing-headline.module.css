@@ -1,0 +1,39 @@
+.headline > .line.firstLine {
+  color: #f5fff9;
+}
+.headline > .line.secondLine {
+  color: var(--hero-mint, #37e7b0);
+}
+.line {
+  position: relative;
+  display: inline-block;
+  white-space: pre;
+}
+.reserve {
+  visibility: hidden;
+}
+.typed {
+  position: absolute;
+  inset: 0;
+  white-space: pre;
+}
+.caret {
+  display: inline-block;
+  width: 0.025em;
+  height: 0.78em;
+  margin-left: 0.055em;
+  background: currentColor;
+  vertical-align: -0.015em;
+  animation: blink 0.65s step-end infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .caret {
+    display: none;
+    animation: none;
+  }
+}

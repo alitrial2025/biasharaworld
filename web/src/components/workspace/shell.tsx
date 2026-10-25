@@ -92,7 +92,9 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     "/dashboard/preferences",
   ].includes(pathname);
   const active = (href: string) =>
-    href === "/dashboard" ? pathname === href : pathname.startsWith(href);
+    href === "/dashboard"
+      ? pathname === href
+      : pathname === href || pathname.startsWith(href + "/");
   function go(href: string) {
     setMobile(false);
     setSearchOpen(false);
@@ -132,77 +134,81 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             <X size={20} />
           </LocalButton>
         </div>
-        <Link
-          href="/dashboard/settings"
-          className="shop-switcher"
-          onClick={() => setMobile(false)}
-        >
-          <span>
-            <Store size={19} />
-          </span>
-          <div>
-            <strong>
-              <T>{state.profile.business}</T>
-            </strong>
-            <small>
-              <T>{navigation.industry.label}</T>
-            </small>
+        <div className="sidebar-navigation">
+          <Link
+            href="/dashboard/settings"
+            className="shop-switcher"
+            onClick={() => setMobile(false)}
+          >
+            <span>
+              <Store size={19} />
+            </span>
+            <div>
+              <strong>
+                <T>{state.profile.business}</T>
+              </strong>
+              <small>
+                <T>{navigation.industry.label}</T>
+              </small>
+            </div>
+            <ChevronDown size={14} />
+          </Link>
+          <div className="sidebar-section-label">
+            <T>YOUR BUSINESS</T>
           </div>
-          <ChevronDown size={14} />
-        </Link>
-        <div className="sidebar-section-label">
-          <T>YOUR BUSINESS</T>
-        </div>
-        <nav aria-label="Business navigation">
-          <T>
-            {mainLinks.map(([label, href, Icon]) => (
-              <Link
-                onClick={() => setMobile(false)}
-                className={active(href) ? "active" : ""}
-                href={href}
-                key={href}
-              >
-                <Icon size={19} />
-                <span>
-                  <T>{label}</T>
-                </span>
+          <nav aria-label="Business navigation">
+            <T>
+              {mainLinks.map(([label, href, Icon]) => (
+                <Link
+                  onClick={() => setMobile(false)}
+                  className={active(href) ? "active" : ""}
+                  aria-current={active(href) ? "page" : undefined}
+                  href={href}
+                  key={href}
+                >
+                  <Icon size={19} />
+                  <span>
+                    <T>{label}</T>
+                  </span>
 
-                <T>
-                  {href === "/dashboard/inventory" &&
-                    lowStock(state).length > 0 && (
-                      <small>
-                        <T>{lowStock(state).length}</T>
-                      </small>
-                    )}
-                </T>
-              </Link>
-            ))}
-          </T>
-        </nav>
-        <div className="sidebar-section-label">
-          <T>ROOM TO GROW</T>
-        </div>
-        <nav aria-label="Business tools">
-          <T>
-            {tools.map(([label, href, Icon]) => (
-              <Link
-                onClick={() => setMobile(false)}
-                className={active(href) ? "active" : ""}
-                href={href}
-                key={href}
-              >
-                <Icon size={19} />
-                <span>
-                  <T>{label}</T>
-                </span>
+                  <T>
+                    {href === "/dashboard/inventory" &&
+                      lowStock(state).length > 0 && (
+                        <small>
+                          <T>{lowStock(state).length}</T>
+                        </small>
+                      )}
+                  </T>
+                </Link>
+              ))}
+            </T>
+          </nav>
+          <div className="sidebar-section-label">
+            <T>ROOM TO GROW</T>
+          </div>
+          <nav aria-label="Business tools">
+            <T>
+              {tools.map(([label, href, Icon]) => (
+                <Link
+                  onClick={() => setMobile(false)}
+                  className={active(href) ? "active" : ""}
+                  aria-current={active(href) ? "page" : undefined}
+                  href={href}
+                  key={href}
+                >
+                  <Icon size={19} />
+                  <span>
+                    <T>{label}</T>
+                  </span>
 
-                <T>
-                  {label === "BiasharaAI" && <span className="ai-nav-dot" />}
-                </T>
-              </Link>
-            ))}
-          </T>
-        </nav>
+                  <T>
+                    {label === "BiasharaAI" && <span className="ai-nav-dot" />}
+                  </T>
+                </Link>
+              ))}
+            </T>
+          </nav>
+        </div>
         <div className="sidebar-bottom">
           <Link className="sidebar-app-link" href="/download">
             <Smartphone size={20} />
@@ -219,6 +225,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           <nav>
             <Link
               className={active("/dashboard/settings") ? "active" : ""}
+              aria-current={active("/dashboard/settings") ? "page" : undefined}
               href="/dashboard/settings"
               onClick={() => setMobile(false)}
             >
@@ -238,7 +245,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                 <T>{state.profile.name}</T>
               </strong>
               <small>
-                <T>Business owner</T>
+                <T>{store.workspace.role}</T>
               </small>
             </div>
             <Badge tone="gray">
@@ -309,7 +316,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
               <span>
                 <T>{state.profile.name.split(" ")[0]}</T>
                 <small>
-                  <T>Account</T>
+                  <T>{store.workspace.role}</T>
                 </small>
               </span>
               <ChevronDown size={13} />

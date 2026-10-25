@@ -35,11 +35,12 @@ import { businessReport } from "@/lib/backend/reports";
 import { useDemo } from "@/lib/store";
 import { resolveIndustry } from "@/lib/industries";
 import { downloadCSV } from "@/lib/csv";
+import { WorkspaceTrend } from "./trend-chart";
 
 export function Overview() {
   const { state, store } = useDemo();
   const industry = resolveIndustry(state.profile.type);
-  const [period, setPeriod] = useState("Day");
+  const [period, setPeriod] = useState("Week");
   const [targetOpen, setTargetOpen] = useState(false);
   const toast = useToast();
   const report = businessReport(state, period);
@@ -56,6 +57,63 @@ export function Overview() {
     month: "long",
     timeZone: "Africa/Nairobi",
   }).format(new Date());
+  function exportSnapshot() {
+    downloadCSV(
+      "business-snapshot.csv",
+      ["Metric", "KES"],
+      [
+        ["Sales", total],
+        ["Operating profit", todayReport.profit],
+        ["Expenses", expenses],
+        ["Customer balances", balance],
+      ],
+    );
+  }
+  const quickActions = [
+    {
+      icon: Plus,
+      label: "New sale",
+      href: "/dashboard/sales/new",
+      tone: "green",
+    },
+    industry.recommendedTools.includes("inventory")
+      ? {
+          icon: Package,
+          label: "Manage stock",
+          href: "/dashboard/inventory",
+          tone: "amber",
+        }
+      : {
+          icon: Package,
+          label: industry.labels.operations,
+          href: "/dashboard/operations",
+          tone: "amber",
+        },
+    {
+      icon: Users,
+      label: "Customers",
+      href: "/dashboard/customers",
+      tone: "blue",
+    },
+    {
+      icon: BarChart3,
+      label: "Reports",
+      href: "/dashboard/reports",
+      tone: "amber",
+    },
+    {
+      icon: Wallet,
+      label: "Expenses",
+      href: "/dashboard/expenses",
+      tone: "red",
+    },
+    {
+      icon: ShoppingBag,
+      label: "Operations",
+      href: "/dashboard/operations",
+      tone: "green",
+    },
+  ];
   async function saveTarget(e: FormEvent<HTMLFormElement>) {
     try {
       e.preventDefault();
@@ -86,26 +144,18 @@ export function Overview() {
         <span>
           <T>{date}</T>
         </span>
-        <LocalButton
-          onClick={() =>
-            downloadCSV(
-              "business-snapshot.csv",
-              ["Metric", "KES"],
-              [
-                ["Sales", total],
-                ["Operating profit", todayReport.profit],
-                ["Expenses", expenses],
-                ["Customer balances", balance],
-              ],
-            )
-          }
-        >
+        <LocalButton onClick={exportSnapshot}>
           <ArrowDownToLine size={15} />
           <T>Export snapshot</T>
         </LocalButton>
       </div>
-      <section className="dashboard-welcome">
-        <div>
+      <section
+        className={`dashboard-welcome ${industry.id === "retail" ? "welcome-retail" : "welcome-sector"}`}
+      >
+        <div className="welcome-copy">
+          <span className="welcome-industry">
+            <T>{industry.label}</T>
+          </span>
           <span className="welcome-eyebrow">
             <T>YOUR EVERYDAY, A LITTLE CLEARER</T>
           </span>
@@ -124,12 +174,33 @@ export function Overview() {
               <T>Your business</T>
             </Badge>
           </span>
+          <div className="welcome-desktop-actions">
+            <Button href="/dashboard/operations" arrow>
+              <T>Open operations</T>
+            </Button>
+            <Button href="/dashboard/sales/new" variant="ghost" icon={Plus}>
+              <T>New sale</T>
+            </Button>
+            <LocalButton
+              className="welcome-export"
+              onClick={exportSnapshot}
+              aria-label="Export snapshot"
+              title="Export snapshot"
+            >
+              <ArrowDownToLine size={17} />
+            </LocalButton>
+          </div>
         </div>
-        <Button href="/dashboard/sales/new" variant="white" icon={Plus}>
+        <Button
+          className="welcome-mobile-action"
+          href="/dashboard/sales/new"
+          variant="white"
+          icon={Plus}
+        >
           <T>New sale</T>
         </Button>
       </section>
-      <div className="stats-grid">
+      <div className="stats-grid overview-metrics">
         <StatCard
           label="Total sales"
           value={`KES ${money(total)}`}
@@ -163,7 +234,7 @@ export function Overview() {
           <div className="panel-heading">
             <div>
               <h2>
-                <T>A little momentum, every day.</T>
+                <T>Business performance</T>
               </h2>
               <p>
                 <T>Sales overview</T>
@@ -189,11 +260,22 @@ export function Overview() {
               <T>for this period</T>
             </span>
           </div>
-          <SalesChart
-            period={period}
-            bars={period === "Day"}
-            series={report.series}
-          />
+          <div className="overview-desktop-chart">
+            <WorkspaceTrend
+              period={period}
+              start={report.start}
+              sales={report.series}
+              profit={report.profitSeries}
+              expenses={report.expenseSeries}
+            />
+          </div>
+          <div className="overview-mobile-chart">
+            <SalesChart
+              period={period}
+              bars={period === "Day"}
+              series={report.series}
+            />
+          </div>
           {report.timingIncomplete && (
             <p className="muted">
               Some older records have no transaction time and appear only in the
@@ -216,7 +298,7 @@ export function Overview() {
           <div
             className="goal-ring"
             style={{
-              background: `conic-gradient(#00815d ${progress}%,#eaf1ec 0)`,
+              background: `conic-gradient(var(--goal-accent, #00815d) ${progress}%,var(--goal-track, #eaf1ec) 0)`,
             }}
           >
             <div>
@@ -252,18 +334,27 @@ export function Overview() {
           </div>
           <p className="target-note">
             <T>
-              {total >= state.target
-                ? "A lovely milestone. Keep the momentum going."
-                : `KES ${money(state.target - total)} to your next little win.`}
+              {!state.target
+                ? "Set a daily target to start tracking your progress."
+                : total >= state.target
+                  ? "A lovely milestone. Keep the momentum going."
+                  : `KES ${money(state.target - total)} to your next little win.`}
             </T>
           </p>
         </section>
       </div>
-      <div className="quick-workspace-actions">
+      <div className="quick-workspace-actions" aria-label="Quick actions">
         <T>
           {[
             [Plus, "New sale", "/dashboard/sales/new", "green"],
-            [Package, "Add stock", "/dashboard/inventory", "red"],
+            industry.recommendedTools.includes("inventory")
+              ? [Package, "Add stock", "/dashboard/inventory", "amber"]
+              : [
+                  Package,
+                  industry.labels.operations,
+                  "/dashboard/operations",
+                  "amber",
+                ],
             [Users, "Customers", "/dashboard/customers", "blue"],
             [Wallet, "Record expense", "/dashboard/expenses", "purple"],
           ].map(([Icon, title, href, tone]) => {
@@ -290,13 +381,59 @@ export function Overview() {
                 <T>Recent sales</T>
               </h2>
               <p>
-                <T>Little moments of progress.</T>
+                <T>Latest recorded receipts</T>
               </p>
             </div>
             <Link className="text-link" href="/dashboard/sales">
               <T>View all</T>
               <ArrowRight size={14} />
             </Link>
+          </div>
+          <div className="home-activity">
+            {state.sales
+              .filter(
+                (sale) =>
+                  (sale.branch ?? "main") === state.operations.activeBranch,
+              )
+              .slice(0, 3)
+              .map((sale) => (
+                <Link
+                  key={sale.id}
+                  href="/dashboard/sales"
+                  className="home-activity-row"
+                >
+                  <span className="icon-box tone-green">
+                    <ShoppingBag size={17} />
+                  </span>
+                  <span>
+                    <strong>
+                      <T>{sale.customer}</T>
+                    </strong>
+                    <small>
+                      <T>Receipt</T> #{sale.id} · <T>{sale.method}</T>
+                    </small>
+                  </span>
+                  <strong>KES {money(sale.amount)}</strong>
+                </Link>
+              ))}
+            {!state.sales.some(
+              (sale) =>
+                (sale.branch ?? "main") === state.operations.activeBranch,
+            ) && (
+              <div className="home-activity-empty">
+                <ShoppingBag size={25} />
+                <strong>
+                  <T>A fresh start for your business</T>
+                </strong>
+                <p>
+                  <T>Your recorded sales will appear here.</T>
+                </p>
+                <Link className="text-link" href="/dashboard/sales/new">
+                  <T>Record your first sale</T>
+                  <ArrowRight size={14} />
+                </Link>
+              </div>
+            )}
           </div>
           <div className="table-scroll">
             <table className="data-table">
@@ -359,56 +496,117 @@ export function Overview() {
             </table>
           </div>
         </section>
-        <section className="panel low-stock-panel">
+        {industry.recommendedTools.includes("inventory") ? (
+          <section className="panel low-stock-panel">
+            <div className="panel-heading">
+              <div>
+                <h2>
+                  <T>Stock to watch</T>
+                </h2>
+                <p>
+                  <T>{lowStock(state).length}</T>{" "}
+                  <T>products to keep an eye on.</T>
+                </p>
+              </div>
+              <Badge tone="amber">
+                <T>Stock</T>
+              </Badge>
+            </div>
+            <T>
+              {lowStock(state)
+                .slice(0, 4)
+                .map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/dashboard/inventory?q=${encodeURIComponent(p.name)}`}
+                    className="stock-alert-row"
+                  >
+                    <ProductPhoto product={p} />
+                    <span>
+                      <strong>
+                        <T>{p.name}</T>
+                      </strong>
+                      <small>
+                        <T>{p.size}</T>
+                      </small>
+                    </span>
+                    <Badge tone={p.stock === 0 ? "red" : "amber"}>
+                      <T>
+                        {p.stock === 0 ? "Out of stock" : `${p.stock} left`}
+                      </T>
+                    </Badge>
+                  </Link>
+                ))}
+            </T>{" "}
+            <T>
+              {!lowStock(state).length && (
+                <p className="inline-note">
+                  <T>Your shelves are looking good.</T>
+                </p>
+              )}
+            </T>
+            <Link href="/dashboard/inventory" className="text-link">
+              <T>Take a look at your stock</T>
+              <ChevronRight size={15} />
+            </Link>
+          </section>
+        ) : (
+          <section className="panel home-workflows">
+            <div className="panel-heading">
+              <div>
+                <h2>
+                  <T>Your operations</T>
+                </h2>
+                <p>
+                  <T>{industry.label}</T>
+                </p>
+              </div>
+            </div>
+            {industry.workflows.map((workflow) => (
+              <Link
+                className="home-workflow-row"
+                key={workflow.id}
+                href="/dashboard/operations"
+              >
+                <span className="icon-box tone-green">
+                  <Package size={17} />
+                </span>
+                <span>
+                  <strong>
+                    <T>{workflow.label}</T>
+                  </strong>
+                  <small>
+                    <T>{workflow.description}</T>
+                  </small>
+                </span>
+                <ArrowRight size={15} />
+              </Link>
+            ))}
+          </section>
+        )}
+        <section className="panel home-actions">
           <div className="panel-heading">
             <div>
               <h2>
-                <T>A little shelf check</T>
+                <T>Quick actions</T>
               </h2>
               <p>
-                <T>{lowStock(state).length}</T>{" "}
-                <T>products to keep an eye on.</T>
+                <T>Your everyday essentials</T>
               </p>
             </div>
-            <Badge tone="amber">
-              <T>Stock</T>
-            </Badge>
           </div>
-          <T>
-            {lowStock(state)
-              .slice(0, 4)
-              .map((p) => (
-                <Link
-                  key={p.id}
-                  href={`/dashboard/inventory?q=${encodeURIComponent(p.name)}`}
-                  className="stock-alert-row"
-                >
-                  <ProductPhoto product={p} />
-                  <span>
-                    <strong>
-                      <T>{p.name}</T>
-                    </strong>
-                    <small>
-                      <T>{p.size}</T>
-                    </small>
-                  </span>
-                  <Badge tone={p.stock === 0 ? "red" : "amber"}>
-                    <T>{p.stock === 0 ? "Out of stock" : `${p.stock} left`}</T>
-                  </Badge>
-                </Link>
-              ))}
-          </T>{" "}
-          <T>
-            {!lowStock(state).length && (
-              <p className="inline-note">
-                <T>Your shelves are looking good.</T>
-              </p>
-            )}
-          </T>
-          <Link href="/dashboard/inventory" className="text-link">
-            <T>Take a look at your stock</T>
-            <ChevronRight size={15} />
-          </Link>
+          <div className="home-action-grid">
+            {quickActions.map(({ icon: Icon, label, href, tone }) => (
+              <Link key={label} href={href}>
+                <span className={`icon-box tone-${tone}`}>
+                  <Icon size={18} />
+                </span>
+                <strong>
+                  <T>{label}</T>
+                </strong>
+              </Link>
+            ))}
+          </div>
         </section>
       </div>
       <Link href="/dashboard/assistant" className="assistant-banner">

@@ -48,7 +48,7 @@ export function SuppliersPage() {
     <>
       <PageHeading
         eyebrow="GOOD BUSINESS STARTS WITH GOOD CONNECTIONS"
-        title="Your next shelf, sorted."
+        title="Suppliers"
         description="Keep your suppliers and recorded quotes together. Purchase orders are internal records; send them to your supplier separately."
       >
         <Button
@@ -234,7 +234,9 @@ export function SupplierDetailPage({ id }: { id: string }) {
   const products = state.products.filter(
     (p) => !p.components?.length && (filter === "All" || p.category === filter),
   );
-  const lines = state.products.filter((p) => !p.components?.length && quantities[p.id] > 0);
+  const lines = state.products.filter(
+    (p) => !p.components?.length && quantities[p.id] > 0,
+  );
   const subtotal = lines.reduce(
     (sum, p) => sum + (supplier?.quotes?.[p.id] ?? p.cost) * quantities[p.id],
     0,
@@ -305,11 +307,13 @@ export function SupplierDetailPage({ id }: { id: string }) {
           <label>
             Product
             <select name="product" required>
-              {state.products.filter(p => !p.components?.length).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
+              {state.products
+                .filter((p) => !p.components?.length)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
             </select>
           </label>
           <Field

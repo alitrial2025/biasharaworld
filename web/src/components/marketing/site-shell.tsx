@@ -2,6 +2,7 @@
 import { T, LocalButton } from "@/components/locale";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -24,6 +25,7 @@ import { Brand, Button } from "@/components/ui";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { StoreBadges } from "./app-download";
 import { BrandDoodle } from "@/components/brand-doodle";
+import heroStyles from "./landing-hero.module.css";
 
 const menus = {
   Product: [
@@ -113,6 +115,7 @@ const menus = {
 };
 
 export function SiteHeader() {
+  const home = usePathname() === "/";
   const [open, setOpen] = useState<string | null>(null);
   const [mobile, setMobile] = useState(false);
   const ref = useRef<HTMLElement>(null);
@@ -137,13 +140,21 @@ export function SiteHeader() {
     };
   }, []);
   return (
-    <header className="site-header" ref={ref}>
+    <header
+      className={`site-header ${home ? heroStyles.header : ""}`}
+      ref={ref}
+    >
       <div className="container nav-inner">
         <Brand />
         <nav
           className={`site-nav ${mobile ? "mobile-open" : ""}`}
           aria-label="Main navigation"
         >
+          {home && (
+            <Link href="/" className="nav-link" aria-current="page">
+              <T>Home</T>
+            </Link>
+          )}
           <T>
             {Object.entries(menus).map(([label, items]) => (
               <div className="nav-dropdown" key={label}>

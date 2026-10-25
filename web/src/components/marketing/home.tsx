@@ -11,14 +11,17 @@ import {
   CheckCircle2,
   ChevronRight,
   CreditCard,
-  Heart,
+  FileText,
   Laptop,
   Package,
   ShoppingBag,
   Smartphone,
   Sparkles,
   Store,
+  ShieldCheck,
+  Users,
   Wallet,
+  ReceiptText,
 } from "lucide-react";
 import {
   Badge,
@@ -30,8 +33,10 @@ import {
 } from "@/components/ui";
 import { CTABanner } from "./site-shell";
 import { BrandDoodle } from "@/components/brand-doodle";
-import { LandingGrowthArt, LandingMotion } from "./landing-motion";
+import { LandingMotion } from "./landing-motion";
 import styles from "./landing-polish.module.css";
+import heroStyles from "./landing-hero.module.css";
+import { TypingHeadline } from "./typing-headline";
 import { faqs } from "@/lib/data";
 
 export function MiniDashboard({ large = false }: { large?: boolean }) {
@@ -144,21 +149,26 @@ export function HomePage() {
   return (
     <div className={styles.home} data-landing-home>
       <LandingMotion />
-      <section className={`hero-section brand-doodle-surface ${styles.hero}`}>
+      <section
+        className={`hero-section brand-doodle-surface ${styles.hero} ${heroStyles.hero}`}
+      >
+        <div className={heroStyles.photoBackdrop} aria-hidden="true">
+          <Image
+            src="/images/shop.webp"
+            alt=""
+            fill
+            sizes="(max-width: 700px) 100vw, 70vw"
+            preload
+          />
+        </div>
         <BrandDoodle />
         <div className="container hero-grid">
           <div className="hero-copy">
-            <div className="hero-eyebrow">
-              <span className="status-dot" />
-              <T>A WORLD OF BUSINESS.</T>
+            <div className={heroStyles.kicker}>
+              <span aria-hidden="true" />
+              <T>BUILT FOR YOUR EVERYDAY.</T>
             </div>
-            <h1>
-              <T>Your business.</T>
-              <br />
-              <span>
-                <T>All together.</T>
-              </span>
-            </h1>
+            <TypingHeadline />
             <p>
               <T>
                 From your first customer to your next big step. Keep sales,
@@ -177,100 +187,173 @@ export function HomePage() {
             </div>
             <div className="hero-footnote">
               <span>
-                <Check size={14} />
+                <CheckCircle2 size={15} />
                 <T>No credit card needed</T>
               </span>
               <span>
-                <Laptop size={14} />
+                <CheckCircle2 size={15} />
                 <T>Web + Android</T>
               </span>
-            </div>
-            <div className="hero-small-proof">
-              <span className="proof-mark">
-                <Store size={17} />
-              </span>
               <span>
-                <T>Built for 20 business sectors.</T>
-                <br />
-                <Link
-                  href="/solutions#business-types"
-                  className={styles.sectorLink}
-                >
-                  <T>Find your kind of business</T>
-                  <ArrowUpRight size={13} />
+                <CheckCircle2 size={15} />
+                <T>Kenya first</T>
+              </span>
+            </div>
+            <nav
+              className={heroStyles.capabilities}
+              aria-label="Explore business features"
+            >
+              {[
+                {
+                  icon: ShoppingBag,
+                  label: "Sales & POS",
+                  href: "/features#sales",
+                },
+                { icon: Package, label: "Inventory", href: "/features#stock" },
+                { icon: FileText, label: "Invoicing", href: "/features#money" },
+                { icon: Users, label: "Customers", href: "/features#people" },
+                {
+                  icon: BarChart3,
+                  label: "Reports",
+                  href: "/features#insights",
+                },
+                { icon: Store, label: "Services", href: "/solutions/services" },
+              ].map(({ icon: Icon, label, href }) => (
+                <Link key={label} href={href}>
+                  <Icon size={23} />
+                  <span>
+                    <T>{label}</T>
+                  </span>
                 </Link>
-              </span>
-            </div>
+              ))}
+            </nav>
           </div>
-          <div className="hero-visual">
-            <div className="hero-photo">
-              <Image
-                src="/images/shop.webp"
-                alt="A Kenyan shop owner managing her business on a phone"
-                width={1024}
-                height={1536}
-                priority
-              />
-              <div>
-                <span>
-                  <T>EVERYDAY ENTREPRENEUR</T>
-                </span>
-                <strong>
-                  <T>A shop full of possibility.</T>
-                </strong>
-              </div>
-            </div>
-            <div className="hero-dashboard">
-              <MiniDashboard />
-            </div>
-            <div className="floating-sale">
-              <span className="float-check">
-                <Check size={18} />
+          <div className={`hero-visual ${heroStyles.visual}`}>
+            <div className={heroStyles.anywhere}>
+              <span>
+                <T>Run your business.</T>
+                <br />
+                <T>Anywhere.</T>
               </span>
+              <svg viewBox="0 0 90 48" aria-hidden="true" focusable="false">
+                <path
+                  d="M5 8C30 2 61 5 74 35M58 27L75 38L83 22"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <figure
+              className={heroStyles.deviceShowcase}
+              aria-label="BiasharaOS web and Android product previews"
+            >
+              <div className={`hero-dashboard ${heroStyles.laptop}`}>
+                <div className={heroStyles.laptopScreen}>
+                  <Image
+                    src="/images/workspace-preview.webp"
+                    alt="Example BiasharaOS desktop workspace with sales, stock and business reports"
+                    width={1600}
+                    height={1000}
+                    sizes="(max-width: 700px) 88vw, 53vw"
+                    preload
+                  />
+                </div>
+                <span className={heroStyles.laptopBase} aria-hidden="true" />
+              </div>
+              <div className={heroStyles.phone}>
+                <Image
+                  src="/images/android-home-preview.webp"
+                  alt="BiasharaOS Android home and navigation preview"
+                  width={786}
+                  height={1704}
+                  sizes="(max-width: 700px) 25vw, 13vw"
+                />
+              </div>
+              <figcaption className={heroStyles.previewLabel}>
+                <span />
+                <T>Example workspace · Web + Android</T>
+              </figcaption>
+            </figure>
+            <aside
+              className={heroStyles.saleNote}
+              aria-label="Example sale receipt"
+            >
+              <ReceiptText aria-hidden="true" />
               <div>
                 <strong>
-                  <T>Another sale. Another step.</T>
+                  <T>Sale recorded</T>
                 </strong>
+                <span>KES 180</span>
                 <small>
-                  <T>KES 1,250 · Example payment record</T>
+                  <T>Example sale</T>
                 </small>
               </div>
-              <Sparkles size={16} />
-            </div>
-            <div className={styles.growthAccent}>
-              <LandingGrowthArt />
-            </div>
+            </aside>
           </div>
         </div>
       </section>
 
-      <section className="business-strip">
-        <div className="container">
-          <p>
-            <T>Whatever you’re building,</T>
-            <br />
-            <strong>
-              <T>there’s room for you here.</T>
-            </strong>
-          </p>
+      <section
+        className={heroStyles.proofBand}
+        aria-label="Built around your business"
+      >
+        <div className={`container ${heroStyles.proofGrid}`}>
+          <Link href="/solutions#business-types">
+            <span className={heroStyles.proofIcon}>
+              <Package size={23} />
+            </span>
+            <div>
+              <strong>
+                20 <T>business sectors</T>
+              </strong>
+              <span>
+                <T>Find your kind of business</T>
+                <ArrowUpRight size={12} />
+              </span>
+            </div>
+          </Link>
+          <Link href="/download">
+            <span className={heroStyles.proofIcon}>
+              <Smartphone size={23} />
+            </span>
+            <div>
+              <strong>
+                <T>Web + Android</T>
+              </strong>
+              <span>
+                <T>Your business, wherever you are</T>
+              </span>
+            </div>
+          </Link>
           <div>
-            <T>
-              {[
-                [Store, "Retail shops"],
-                [ShoppingBag, "Mini markets"],
-                [Package, "Wholesalers"],
-                [Heart, "Service businesses"],
-              ].map(([Icon, label]) => {
-                const I = Icon as typeof Store;
-                return (
-                  <span key={label as string}>
-                    <I size={21} />
-                    <T>{label as string}</T>
-                  </span>
-                );
-              })}
-            </T>
+            <span className={heroStyles.proofIcon}>
+              <Store size={23} />
+            </span>
+            <div>
+              <strong>
+                <T>Kenya first</T>
+              </strong>
+              <span>
+                <T>KES · Built for everyday business</T>
+              </span>
+            </div>
           </div>
+          <Link href="/privacy">
+            <span className={heroStyles.proofIcon}>
+              <ShieldCheck size={23} />
+            </span>
+            <div>
+              <strong>
+                <T>Your business. Your data.</T>
+              </strong>
+              <span>
+                <T>A private space for your records</T>
+              </span>
+            </div>
+          </Link>
         </div>
       </section>
 

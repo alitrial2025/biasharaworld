@@ -9,7 +9,7 @@ export function CheckoutHeading() {
         <T>← Back to sales</T>
       </Link>
       <PageHeading
-        title="A good day starts with a sale."
+        title="New sale"
         description="Quick checkout. Clear records. One less thing to juggle."
       >
         <Badge>

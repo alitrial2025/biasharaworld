@@ -51,7 +51,7 @@ export function SalesPage() {
     <>
       <PageHeading
         eyebrow="EVERY SALE IS A STEP FORWARD"
-        title="Your sales"
+        title="Sales"
         description="From the first customer to the last receipt. All in one place."
       >
         <Button
@@ -352,7 +352,7 @@ export function NewSalePage() {
         <T>Back to sales</T>
       </Link>
       <PageHeading
-        title="A good day starts with a sale."
+        title="New sale"
         description="Quick checkout. Clear records. One less thing to juggle."
       >
         <Badge>
@@ -680,7 +680,7 @@ export function InventoryPage({
     <>
       <PageHeading
         eyebrow="A PLACE FOR EVERYTHING"
-        title="Know your shelves."
+        title="Products & inventory"
         description="The right products. The right quantities. A little more peace of mind."
       >
         <Button

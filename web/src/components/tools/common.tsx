@@ -42,7 +42,7 @@ export const features: {
   {
     id: 1,
     slug: "scanner",
-    title: "A quicker way to find it.",
+    title: "Barcode scanner",
     description:
       "Enter a barcode, use a keyboard scanner or prepare labels for your shelves.",
     icon: Barcode,
@@ -52,7 +52,7 @@ export const features: {
   {
     id: 2,
     slug: "baskets",
-    title: "A little pause. Nothing lost.",
+    title: "Held baskets",
     description:
       "Park a basket, serve the next customer and pick up where you left off.",
     icon: Pause,
@@ -62,7 +62,7 @@ export const features: {
   {
     id: 3,
     slug: "promotions",
-    title: "A good reason to come back.",
+    title: "Promotions",
     description:
       "Simple offers for your neighbours, with clear dates and prices.",
     icon: Percent,
@@ -72,7 +72,7 @@ export const features: {
   {
     id: 4,
     slug: "split-payments",
-    title: "One basket. Your way to pay.",
+    title: "Split payments",
     description:
       "Record a payment across cash, M-Pesa and card, down to the last shilling.",
     icon: CreditCard,
@@ -82,7 +82,7 @@ export const features: {
   {
     id: 5,
     slug: "returns",
-    title: "A fair return. A clear record.",
+    title: "Returns & refunds",
     description:
       "Review the original receipt and record a local return without losing the details.",
     icon: RotateCcw,
@@ -92,7 +92,7 @@ export const features: {
   {
     id: 6,
     slug: "documents",
-    title: "From a good quote to a clear invoice.",
+    title: "Quotes & invoices",
     description:
       "Give every agreement a place, from your first draft to a recorded sale.",
     icon: BookOpen,
@@ -102,7 +102,7 @@ export const features: {
   {
     id: 7,
     slug: "register",
-    title: "Close the day with clarity.",
+    title: "Cash register",
     description:
       "Opening float, cash movements and the final count, brought together.",
     icon: Wallet,
@@ -112,7 +112,7 @@ export const features: {
   {
     id: 8,
     slug: "stocktakes",
-    title: "Every shelf. Every little difference.",
+    title: "Stocktakes",
     description:
       "Count at your pace, review what changed and bring your records up to date.",
     icon: ClipboardCheck,
@@ -122,7 +122,7 @@ export const features: {
   {
     id: 9,
     slug: "expiry",
-    title: "Fresh stock. Fewer surprises.",
+    title: "Expiry & batches",
     description:
       "Keep batch dates in sight and make room for the products that should move first.",
     icon: PackageSearch,
@@ -132,7 +132,7 @@ export const features: {
   {
     id: 10,
     slug: "variants",
-    title: "Every size. Every useful combination.",
+    title: "Variants & bundles",
     description:
       "Organise your product variants and build bundles from your existing stock.",
     icon: Layers,
@@ -142,7 +142,7 @@ export const features: {
   {
     id: 11,
     slug: "movements",
-    title: "The story behind your stock.",
+    title: "Stock movements",
     description:
       "A clear timeline of what came in, went out and moved between shelves.",
     icon: RefreshCw,
@@ -152,7 +152,7 @@ export const features: {
   {
     id: 12,
     slug: "transfers",
-    title: "The right stock, in the right shop.",
+    title: "Stock transfers",
     description:
       "Prepare, dispatch and receive branch transfers with one shared local record.",
     icon: Warehouse,
@@ -162,7 +162,7 @@ export const features: {
   {
     id: 13,
     slug: "compare",
-    title: "A little comparison goes a long way.",
+    title: "Supplier comparison",
     description:
       "Compare the same goods, delivery fees and minimums before your next order.",
     icon: Boxes,
@@ -172,7 +172,7 @@ export const features: {
   {
     id: 14,
     slug: "deliveries",
-    title: "From your shelf to their doorstep.",
+    title: "Order fulfilment",
     description:
       "Pack carefully, keep the customer order in sight and follow every next step.",
     icon: Truck,
@@ -182,7 +182,7 @@ export const features: {
   {
     id: 15,
     slug: "loyalty",
-    title: "Good customers. Little thank-yous.",
+    title: "Customer rewards",
     description:
       "Reward familiar faces and keep points as clear as your sales records.",
     icon: Gift,
@@ -192,7 +192,7 @@ export const features: {
   {
     id: 16,
     slug: "branches",
-    title: "One business. More places to grow.",
+    title: "Branches",
     description:
       "Switch branches, compare your shops and keep each shelf in its own place.",
     icon: MapPin,
@@ -202,7 +202,7 @@ export const features: {
   {
     id: 17,
     slug: "online-shop",
-    title: "Your neighbourhood shop, online.",
+    title: "Online shop",
     description:
       "Choose your products, shape your shopfront and preview a new way to order.",
     icon: ShoppingBag,
@@ -212,7 +212,7 @@ export const features: {
   {
     id: 18,
     slug: "customer-portal",
-    title: "A clearer picture for your customers.",
+    title: "Customer portal",
     description:
       "Preview orders, invoices, balances and little rewards from the other side of the counter.",
     icon: Globe,
@@ -222,7 +222,7 @@ export const features: {
   {
     id: 19,
     slug: "sync",
-    title: "A little reassurance, wherever you work.",
+    title: "Connection & activity",
     description:
       "See what is saved on this device and explore connection and retry states.",
     icon: RefreshCw,
@@ -232,7 +232,7 @@ export const features: {
   {
     id: 20,
     slug: "preferences",
-    title: "Make a little room for your preferences.",
+    title: "Language & appearance",
     description:
       "Choose your language, theme and reading size. Feel at home on every screen.",
     icon: Settings2,
@@ -390,7 +390,7 @@ export function ToolsHub() {
     <>
       <PageHeading
         eyebrow="A LITTLE MORE POSSIBLE"
-        title="Room for your next step."
+        title="Business tools"
         description="Your relevant workflows first, with every shared business tool available when you need it."
       >
         <Button href="/dashboard/sales/new" arrow>
@@ -448,7 +448,6 @@ export function ToolsHub() {
                     <f.icon size={22} />
                   </span>
                   <Badge tone="gray">
-                    <T>{String(f.id).padStart(2, "0")}</T> <T>·</T>{" "}
                     <T>{f.group}</T>
                   </Badge>
                 </div>

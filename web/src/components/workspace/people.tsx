@@ -82,7 +82,7 @@ export function CustomersPage({
     <>
       <PageHeading
         eyebrow="PEOPLE MAKE A BUSINESS"
-        title="A familiar face. A clearer record."
+        title="Customers"
         description="Keep your customers close and your balances easy to follow."
       >
         <Button
@@ -359,7 +359,7 @@ export function TeamPage() {
     <>
       <PageHeading
         eyebrow="GOOD PEOPLE. SHARED PROGRESS."
-        title="Your team, together."
+        title="Your team"
         description="Give everyone a clear place in your business."
       >
         <Button icon={Plus} disabled={!canManage} onClick={() => setOpen(true)}>
