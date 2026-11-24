@@ -25,6 +25,8 @@ fun nativeCommand(action:String,v:Map<String,String>,store:DemoStore):JSONObject
         "basket"->{v.keys.forEach {key->when(key){"redeem"->number(key);"discount"->if((v["discountKind"]?:store.operations.state.optString("discountKind"))=="fixed")amount(key)else number(key);else->text(key)}}}
         "hold"->text("name",default="A sale for later")
         "resume","discard","convertDocument","issueDocument","payDocument","refreshCount","receiveTransfer","dispatchTransfer","cancelTransfer","orderPaid"->id()
+        "invoicePayment"->{id();amount("amount");text("method")}
+        "cancelInvoice"->{id();text("reason");result.put("confirmedRefund",v["returned"]=="true")}
         "checkout"->{
             val total=store.operations.price().optLong("total")
             val payments=if(v["split"]=="true")listOf(json("method" to "M-Pesa","amount" to parseMinor(v["mpesa"]?:"0")),json("method" to "Cash","amount" to parseMinor(v["cash"]?:"0")),json("method" to "Card","amount" to parseMinor(v["card"]?:"0")))else listOf(json("method" to (v["method"]?:"Cash"),"amount" to total))

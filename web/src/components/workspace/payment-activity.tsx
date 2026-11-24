@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Button, Field, PageHeading, SelectField } from "@/components/ui";
 import { downloadCSV } from "@/lib/csv";
 import { cash } from "@/lib/operations";
+import { paymentMethods, type PaymentChannel } from "@/lib/payment-methods";
 import { useDemo } from "@/lib/store";
 import { supabase } from "@/lib/supabase";
 
@@ -11,7 +12,7 @@ type Entry = {
   order_id: number;
   reference: string;
   amount_minor: number;
-  channel: "card" | "mobile_money" | null;
+  channel: PaymentChannel | null;
   receipt_id: number | null;
   paid_at: string | null;
   created_at: string;
@@ -20,7 +21,7 @@ type Activity = { entries: Entry[]; next: number | null };
 type Filter = { status: string; order: string };
 const defaultFilter: Filter = { status: "all", order: "" };
 const dateFormat = new Intl.DateTimeFormat("en-KE", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Nairobi" });
-const method = (channel: Entry["channel"]) => channel === "card" ? "Card" : channel === "mobile_money" ? "M-Pesa" : "—";
+const method = (channel: Entry["channel"]) => channel ? paymentMethods[channel] : "—";
 
 async function activityRequest<T>(query: string, order?: number, signal?: AbortSignal): Promise<T> {
   const { data: { session } } = await supabase().auth.getSession();
@@ -89,7 +90,9 @@ function MerchantPaymentActivity() {
   }
 
   return <>
-    <PageHeading title="Payment activity" description="Track online order payments and export references for settlement reconciliation." />
+    <PageHeading title="Payment activity" description="Track online order payments and export references for settlement reconciliation.">
+      <Button href="/dashboard/settlements" variant="secondary">Reconcile settlements</Button>
+    </PageHeading>
     <section className="panel settings-panel">
       <p>Confirmed amounts are gross payments. Use the provider settlement report and bank statement to verify deposits and fees.</p>
       <form onSubmit={applyFilter}>

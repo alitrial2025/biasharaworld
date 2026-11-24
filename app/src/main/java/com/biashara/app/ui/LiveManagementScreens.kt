@@ -11,14 +11,15 @@ import com.biashara.app.data.*
 private fun LiveFormError(store:DemoStore){store.backend?.error?.takeIf{it.isNotBlank()}?.let{AppText(it,color=Coral)}}
 
 @Composable
-fun LiveSuppliersScreen(store: DemoStore, onBack: () -> Unit, onPurchaseOrders: () -> Unit) {
+fun LiveSuppliersScreen(store: DemoStore, onBack: () -> Unit, onPurchaseOrders: () -> Unit, onNetwork: () -> Unit) {
  var adding by remember{mutableStateOf(false)};var name by remember{mutableStateOf("")};var fee by remember{mutableStateOf("0")}
  var supplierId by remember{mutableStateOf("")};var productId by remember{mutableIntStateOf(0)};var quote by remember{mutableStateOf("")}
  Page {
   PageTitle("Suppliers",onBack=onBack)
-  AppText("Your supplier directory and recorded quotes. Purchase orders are internal records; contact the supplier to arrange delivery.")
+  AppText("Your supplier contacts and recorded quotes. Use the supplier network to exchange orders with verified businesses.")
   val canManage = store.backend?.role in listOf("Owner", "Manager")
   PrimaryButton("Purchase orders", onPurchaseOrders, tone = Green)
+  if (canManage) PrimaryButton("Supplier network", onNetwork, tone = Green)
   if (canManage) PrimaryButton("Add supplier", { adding = true }, tone = Green)
   if(store.suppliers.isEmpty())EmptyState("Your first supplier","Add the suppliers you buy from. No sample listings are imported.")
   store.liveState.records("suppliers").forEach{s->SurfaceCard{AppText(s.optString("name"),style=MaterialTheme.typography.titleLarge);AppText(s.optString("category"));AppText("Delivery fee: "+minorMoney(kotlin.math.round(s.optDouble("deliveryFee")*100).toLong()));if(canManage) PrimaryButton("Record a quote",{supplierId=s.optString("id");productId=store.products.firstOrNull()?.id?:0},enabled=store.products.isNotEmpty(),tone=Green)}}

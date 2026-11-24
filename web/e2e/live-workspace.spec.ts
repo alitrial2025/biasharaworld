@@ -68,6 +68,39 @@ test('Paystack return checks the pending order with the server', async ({ page }
  await expect(page.getByRole('status')).toHaveText('Payment confirmed for order #123.');
  await expect(page.getByText(/Payment recorded/)).toBeVisible();
 });
+test('owners can reach the supplier, import and reconciliation workflows', async ({ page }) => {
+ await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: storageKey, value: JSON.stringify(session) });
+ await page.goto('/dashboard/suppliers');
+ await page.getByRole('link', { name: 'Supplier network' }).click();
+ await expect(page.getByRole('heading', { name: 'Supplier network' })).toBeVisible();
+ await expect(page.getByText('No verified supplier listings match this search.')).toBeVisible();
+ await page.goto('/dashboard/settings');
+ await page.getByRole('link', { name: 'Import business records' }).click();
+ await expect(page.getByRole('heading', { name: 'Import business records' })).toBeVisible();
+ await expect(page.getByRole('button', { name: 'Download CSV template' })).toBeVisible();
+ await page.goto('/dashboard/reports');
+ await page.getByRole('link', { name: 'Financial overview' }).click();
+ await expect(page.getByRole('heading', { name: 'Outstanding invoices and supplier bills' })).toBeVisible();
+ await page.getByRole('link', { name: 'Reconcile settlements' }).click();
+ await expect(page.getByRole('heading', { name: 'Settlement reconciliation' })).toBeVisible();
+ await expect(page.getByText('No statement matches in this view.')).toBeVisible();
+});
+test('owners can save a service and find customer support notes', async ({ page }) => {
+ await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: storageKey, value: JSON.stringify(session) });
+ await page.goto('/dashboard/settings');
+ await page.getByRole('link', { name: 'Services and bookings' }).click();
+ await page.getByRole('button', { name: 'Add service' }).click();
+ await page.getByLabel('Service name').fill('Fittings');
+ await page.getByLabel('Duration (minutes)').fill('45');
+ await page.getByLabel('Price (KES)').fill('250.50');
+ await page.getByRole('button', { name: 'Save service' }).click();
+ await expect(page.getByText('Service saved.', { exact: true })).toBeVisible();
+ await expect(page.getByRole('button', { name: 'Edit Fittings' })).toBeVisible();
+ await page.goto('/dashboard/customers');
+ await page.getByRole('link', { name: 'Customer service notes' }).click();
+ await expect(page.getByRole('heading', { name: 'Customer service notes' })).toBeVisible();
+ await expect(page.getByText('Add a customer before saving a note.')).toBeVisible();
+});
 test('real sign-in, product creation and sign-out',async({page})=>{
  await page.goto('/login');await page.getByLabel('Email address').fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Continue to workspace'}).click();await expect(page.locator('.workspace-main h1')).toContainText('Browser',{timeout:20000});
  await page.goto('/dashboard/inventory');await page.getByRole('button',{name:'Add product',exact:true}).click();const dialog=page.getByRole('dialog');await dialog.getByLabel('Product name').fill('Actual inventory');await dialog.getByLabel('Pack size').fill('1 unit');await dialog.getByLabel('Selling price (KES)').fill('100');await dialog.getByLabel('Cost price (KES)').fill('60');await dialog.getByLabel('Stock quantity').fill('5');await dialog.getByRole('button',{name:'Add product',exact:true}).click();await expect(dialog).not.toBeVisible({timeout:20000});await expect(page.locator('tbody')).toContainText('Actual inventory');

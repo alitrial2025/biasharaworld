@@ -7,6 +7,12 @@ import { OrdersPage, SuppliersPage } from "@/components/workspace/procurement";
 import { IdentityVerificationPage } from "@/components/workspace/identity-verification";
 import { PaymentSettingsPage } from "@/components/workspace/payment-settings";
 import { PaymentActivityPage } from "@/components/workspace/payment-activity";
+import { SettlementReconciliationPage } from "@/components/workspace/settlement-reconciliation";
+import { SupplierExchangePage } from "@/components/workspace/supplier-exchange";
+import { BusinessImportPage } from "@/components/workspace/business-import";
+import { FinancialOverviewPage } from "@/components/workspace/financial-overview";
+import { ServiceBookingsPage } from "@/components/workspace/service-bookings";
+import { CustomerServicePage } from "@/components/workspace/customer-service";
 import {
   ExpensesPage,
   ReportsPage,
@@ -30,6 +36,12 @@ const titles: Record<string, string> = {
   "company-verification": "Kenyan company verification",
   payments: "Online payments",
   "payment-activity": "Payment activity",
+  settlements: "Settlement reconciliation",
+  "supplier-network": "Supplier network",
+  imports: "Import business records",
+  "financial-overview": "Financial overview",
+  bookings: "Services and bookings",
+  "customer-service": "Customer service notes",
 };
 export async function generateMetadata({
   params,
@@ -78,6 +90,18 @@ export default async function Page({
       return <PaymentSettingsPage />;
     case "payment-activity":
       return <PaymentActivityPage />;
+    case "settlements":
+      return <SettlementReconciliationPage />;
+    case "supplier-network":
+      return <SupplierExchangePage />;
+    case "imports":
+      return <BusinessImportPage />;
+    case "financial-overview":
+      return <FinancialOverviewPage />;
+    case "bookings":
+      return <ServiceBookingsPage />;
+    case "customer-service":
+      return <CustomerServicePage />;
     default:
       if (
         [

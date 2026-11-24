@@ -1,4 +1,5 @@
 import type { DemoState, Product } from "./data";
+import type { ProviderPaymentMethod } from "./payment-methods";
 
 export type Payment = { method: string; amount: number };
 export type SaleLine = {
@@ -77,9 +78,16 @@ export type Document = {
   lines: SaleLine[];
   total: number;
   due: string;
-  status: "Draft" | "Issued locally" | "Paid locally";
+  status: "Draft" | "Issued locally" | "Paid locally" | "Cancelled locally";
   saleId?: number;
+  installments?: (Payment & { date: string })[];
+  cancellation?: { date: string; reason: string };
 };
+export function invoiceBalance(doc: Document) {
+  if (doc.status === "Paid locally" || doc.status === "Cancelled locally") return 0;
+  return doc.total - (doc.installments ?? []).reduce((sum, payment) => sum + payment.amount, 0);
+}
+export const recordedMethods = ["Cash", "M-Pesa", "Card", "Bank transfer"] as const;
 export type CustomerOrder = {
   id: number;
   customer: string;
@@ -98,6 +106,12 @@ export type CustomerOrder = {
   paid: boolean;
   packed: number[];
   events: string[];
+};
+export type Service = { id: number; name: string; duration: number; priceMinor: number; active: boolean };
+export type Booking = {
+  id: number; serviceId: number; serviceName: string; duration: number; priceMinor: number;
+  startsAt: string; memberId: number; customerId: number;
+  status: "Scheduled" | "In progress" | "Completed" | "Cancelled";
 };
 export type Operations = {
   version: 2;
@@ -131,6 +145,8 @@ export type Operations = {
     productId: number | null;
   }[];
   documents: Document[];
+  services?: Service[];
+  bookings?: Booking[];
   registers: {
     id: number;
     branch: string;
@@ -210,6 +226,8 @@ export type Action =
     }
   | { type: "document"; kind: "Quotation" | "Invoice"; due: string }
   | { type: "convertDocument" | "issueDocument" | "payDocument"; id: number }
+  | { type: "invoicePayment"; id: number; amount: number; method: string }
+  | { type: "cancelInvoice"; id: number; reason: string; confirmedRefund: boolean }
   | { type: "openRegister"; amount: number }
   | { type: "cashEntry"; amount: number; label: string }
   | { type: "closeRegister"; amount: number }
@@ -483,6 +501,7 @@ export function available(
   id: number,
   branch = state.operations.activeBranch,
   includeReserved = true,
+  except?: { invoice?: number; order?: number },
 ): number {
   const p = state.products.find((p) => p.id === id);
   if (!p) return 0;
@@ -490,7 +509,7 @@ export function available(
     return Math.min(
       ...p.components.map((c) =>
         Math.floor(
-          available(state, c.productId, branch, includeReserved) / c.quantity,
+          available(state, c.productId, branch, includeReserved, except) / c.quantity,
         ),
       ),
     );
@@ -504,27 +523,16 @@ export function available(
         b.productId === id && b.branch === branch && b.expires < localDate(),
     )
     .reduce((s, b) => s + b.quantity, 0);
-  const reserved = includeReserved
-    ? state.operations.deliveries
-        .filter(
-          (o) =>
-            o.branch === branch && ["Confirmed", "Packing"].includes(o.status),
-        )
-        .reduce(
-          (sum, o) =>
-            sum +
-            o.lines.reduce(
-              (s, l) =>
-                s +
-                (l.components ?? [{ productId: l.productId, quantity: 1 }])
-                  .filter((c) => c.productId === id)
-                  .reduce((a, c) => a + c.quantity * l.quantity, 0),
-              0,
-            ),
-          0,
-        )
-    : 0;
+  const reserved = includeReserved ? [
+    ...state.operations.deliveries.filter(o => o.branch === branch && o.id !== except?.order && ["Confirmed", "Packing"].includes(o.status)),
+    ...state.operations.documents.filter(doc => doc.branch === branch && doc.id !== except?.invoice &&
+      !!doc.installments?.length && doc.status === "Issued locally"),
+  ].reduce((sum, order) => sum + demandForProduct(order.lines, id), 0) : 0;
   return Math.max(0, raw - expired - reserved);
+}
+function demandForProduct(lines: SaleLine[], id: number) {
+  return lines.reduce((sum, line) => sum + (line.components ?? [{ productId: line.productId, quantity: 1 }])
+    .filter(part => part.productId === id).reduce((quantity, part) => quantity + part.quantity * line.quantity, 0), 0);
 }
 export function pricedLines(
   state: DemoState,
@@ -601,7 +609,7 @@ export function pricedLines(
 export function execute(
   original: DemoState,
   action: Action,
-  confirmedOrderPayment?: "Card" | "M-Pesa",
+  confirmedOrderPayment?: ProviderPaymentMethod,
 ): { state: DemoState; message: string; id?: number } {
   const state = structuredClone(original);
   const op = state.operations;
@@ -711,19 +719,23 @@ export function execute(
           branch,
         );
   };
+  const invoiceForPayment = (id: number) => {
+    const invoice = op.documents.find(d => d.id === id);
+    assert(invoice?.kind === "Invoice" && ["Draft", "Issued locally"].includes(invoice.status) && invoice.branch === op.activeBranch,
+      "This invoice is already paid, cancelled, or unavailable at this branch.");
+    return invoice;
+  };
+  const checkSaleStock = (lines: SaleLine[], branch = op.activeBranch, except?: { invoice?: number; order?: number }) => {
+    assert(lines.length, "Add a product to your basket first.");
+    const products = new Set(lines.flatMap(line => line.components?.map(part => part.productId) ?? [line.productId]));
+    assert([...products].every(id => demandForProduct(lines, id) <= available(state, id, branch, true, except)),
+      "A product is no longer available at this branch.");
+  };
   const checkout = (payments: Payment[], documentId?: number) => {
     const doc =
       documentId === undefined
         ? undefined
-        : op.documents.find((d) => d.id === documentId);
-    if (documentId !== undefined)
-      assert(
-        doc &&
-          doc.kind === "Invoice" &&
-          doc.status !== "Paid locally" &&
-          doc.branch === op.activeBranch,
-        "This invoice is already paid or belongs to another branch.",
-      );
+        : invoiceForPayment(documentId);
     const basket = doc
       ? { lines: doc.lines, total: doc.total, discount: 0 }
       : pricedLines(
@@ -734,18 +746,14 @@ export function execute(
           op.redeem,
           op.promotion,
         );
-    assert(basket.lines.length, "Add a product to your basket first.");
-    assert(
-      basket.lines.every((l) => l.quantity <= available(state, l.productId)),
-      "A product is no longer available at this branch.",
-    );
+    checkSaleStock(basket.lines, op.activeBranch, { invoice: doc?.id });
+    const allPayments = [...(doc?.installments ?? []), ...payments];
     assert(
       payments.length > 0 &&
-        payments.every(
-          (p) =>
-            ["Cash", "M-Pesa", "Card"].includes(p.method) && integer(p.amount),
+        allPayments.every(
+          (p) => recordedMethods.some(method => method === p.method) && integer(p.amount),
         ) &&
-        payments.reduce((s, p) => s + p.amount, 0) === basket.total,
+        allPayments.reduce((s, p) => s + p.amount, 0) === basket.total,
       "Payment portions must equal the exact amount due.",
     );
     assert(
@@ -776,7 +784,7 @@ export function execute(
       lines: basket.lines,
       total: basket.total,
       discount: basket.discount,
-      payments: payments.filter((p) => p.amount > 0),
+      payments: allPayments.filter((p) => p.amount > 0).map(({ method, amount }) => ({ method, amount })),
       date: localDate(),
       earned,
       redeemed,
@@ -789,7 +797,7 @@ export function execute(
       customer,
       items: basket.lines.reduce((s, l) => s + l.quantity, 0),
       amount: basket.total / 100,
-      method: payments
+      method: allPayments
         .filter((p) => p.amount > 0)
         .map((p) => p.method)
         .join(" + "),
@@ -1098,9 +1106,39 @@ export function execute(
       break;
     }
     case "payDocument": {
-      const doc = op.documents.find((d) => d.id === action.id);
-      assert(doc, "Document not found.");
-      checkout([{ method: "Cash", amount: doc.total }], doc.id);
+      const doc = invoiceForPayment(action.id);
+      checkout([{ method: "Cash", amount: invoiceBalance(doc) }], doc.id);
+      break;
+    }
+    case "invoicePayment": {
+      const doc = invoiceForPayment(action.id);
+      const outstanding = invoiceBalance(doc);
+      assert(integer(action.amount, 1) && action.amount <= outstanding && recordedMethods.some(method => method === action.method),
+        "Enter a supported payment method and an amount within the outstanding invoice balance.");
+      const payment = { method: action.method, amount: action.amount };
+      if (payment.amount === outstanding) {
+        checkout([payment], doc.id);
+        message = "Invoice fully paid. The receipt was recorded.";
+      } else {
+        checkSaleStock(doc.lines, op.activeBranch, { invoice: doc.id });
+        doc.installments ??= [];
+        doc.installments.push({ ...payment, date: localDate() });
+        doc.status = "Issued locally";
+        if (payment.method === "Cash") cashEntry(payment.amount, `Invoice #${Math.abs(doc.id)} deposit`);
+        resultId = doc.id;
+        message = "Invoice payment recorded. Stock is reserved until the invoice is closed.";
+      }
+      break;
+    }
+    case "cancelInvoice": {
+      const doc = invoiceForPayment(action.id);
+      assert(!!action.reason.trim() && (!doc.installments?.length || action.confirmedRefund),
+        "Enter a reason and confirm any deposits have already been returned.");
+      const cashReturned = (doc.installments ?? []).filter(payment => payment.method === "Cash").reduce((total, payment) => total + payment.amount, 0);
+      if (cashReturned) cashEntry(-cashReturned, `Invoice #${Math.abs(doc.id)} deposit returned`);
+      doc.status = "Cancelled locally";
+      doc.cancellation = { reason: action.reason, date: localDate() };
+      message = "Invoice cancelled and reserved stock released.";
       break;
     }
     case "openRegister":
@@ -1462,14 +1500,9 @@ export function execute(
           : next[order.status] === action.status,
         "This order cannot move to that status.",
       );
-      if (action.status === "Confirmed")
-        assert(
-          order.lines.every(
-            (l) => l.quantity <= available(state, l.productId, order.branch),
-          ),
-          "Stock changed. Restock before confirming this order.",
-        );
+      if (action.status === "Confirmed") checkSaleStock(order.lines, order.branch);
       if (action.status === "Dispatched") {
+        checkSaleStock(order.lines, order.branch, { order: order.id });
         assert(
           order.lines.every((l) => order.packed.includes(l.productId)),
           "Check every item on the packing list before dispatching.",

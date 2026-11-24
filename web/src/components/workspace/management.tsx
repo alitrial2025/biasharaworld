@@ -343,6 +343,9 @@ export function ReportsPage() {
         {["Owner", "Manager"].includes(store.workspace?.role ?? "") && (
           <Button href="/dashboard/payment-activity" variant="secondary">Payment activity</Button>
         )}
+        {["Owner", "Manager"].includes(store.workspace?.role ?? "") && (
+          <Button href="/dashboard/financial-overview" variant="secondary">Financial overview</Button>
+        )}
       </PageHeading>
       <div className="report-notice">
         <Sparkles size={18} />
@@ -786,6 +789,12 @@ export function SettingsPage() {
         description="The details, preferences and little things that make it yours."
       />
       <div className="settings-extra-links">
+        {store.workspace && ["Owner", "Manager"].includes(store.workspace.role) && (
+          <Link className="text-link" href="/dashboard/imports">Import business records</Link>
+        )}
+        {store.workspace && ["Owner", "Manager"].includes(store.workspace.role) && (
+          <Link className="text-link" href="/dashboard/bookings">Services and bookings</Link>
+        )}
         {store.workspace?.role === "Owner" && (
           <Link className="text-link" href="/dashboard/verification">Owner identity verification</Link>
         )}

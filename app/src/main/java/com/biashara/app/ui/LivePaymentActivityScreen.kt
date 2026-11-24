@@ -27,13 +27,14 @@ private val statuses = listOf("all" to "All payments", "pending" to "Pending con
 private fun paymentMethod(entry: JSONObject) = when (entry.optString("channel")) {
     "card" -> "Card"
     "mobile_money" -> "M-Pesa"
+    "bank_transfer" -> "Bank transfer"
     else -> ""
 }
 private fun paymentStatus(entry: JSONObject) =
     if (entry.isNull("paid_at")) "Pending confirmation" else "Payment confirmed"
 
 @Composable
-fun LivePaymentActivityScreen(store: DemoStore, onBack: () -> Unit) {
+fun LivePaymentActivityScreen(store: DemoStore, onBack: () -> Unit, onReconcile: () -> Unit) {
     val backend = store.backend
     val allowed = backend?.role in listOf("Owner", "Manager")
     var draftStatus by remember { mutableStateOf("all") }
@@ -91,6 +92,7 @@ fun LivePaymentActivityScreen(store: DemoStore, onBack: () -> Unit) {
             return@Page
         }
         AppText("Compare confirmed gross payments with the provider settlement report and bank statement.")
+        PrimaryButton("Reconcile settlements", onReconcile, tone = Green)
         ToolSelect("Payment status", draftStatus, statuses) { draftStatus = it }
         OutlinedTextField(
             value = draftOrder,

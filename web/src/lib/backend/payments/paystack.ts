@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ApiError } from "../server";
 import { paystackConfig } from "../provider-config.mjs";
+import type { PaymentChannel } from "../../payment-methods";
 export { paystackConfig } from "../provider-config.mjs";
 
 const paystackEnvelope = z.object({ status: z.literal(true), data: z.unknown(), meta: z.object({ next: z.string().nullable().optional() }).optional() });
@@ -79,12 +80,16 @@ export function hostedCheckoutUrl(value: string) {
   return url.href;
 }
 
-export async function initializeCheckout(input: { email: string; amount: number; reference: string; subaccount: string; slug: string; orderId: number }) {
+export function checkoutChannels(): PaymentChannel[] {
+  return process.env.PAYSTACK_BANK_TRANSFERS === "true" ? ["card", "mobile_money", "bank_transfer"] : ["card", "mobile_money"];
+}
+
+export async function initializeCheckout(input: { email: string; amount: number; reference: string; subaccount: string; slug: string; orderId: number; channels: PaymentChannel[] }) {
   const config = paystackConfig();
   if (!config) throw new ApiError("Online payments are unavailable for this shop.", 503);
   const { data } = await request("/transaction/initialize", {
     email: input.email, amount: input.amount, reference: input.reference, subaccount: input.subaccount,
-    currency: "KES", channels: ["card", "mobile_money"], bearer: "subaccount",
+    currency: "KES", channels: input.channels, bearer: "subaccount",
     callback_url: `${config.origin}/portal/${encodeURIComponent(input.slug)}?paymentOrder=${input.orderId}`,
   });
   const checkout = checkoutShape.parse(data);

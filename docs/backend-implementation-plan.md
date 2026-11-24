@@ -13,7 +13,7 @@ The web workspace and Android app share Supabase Auth and the Next.js workspace 
 
 ## Finished local checks
 
-- [x] Web lint, production build, TypeScript, 35 Playwright checks and 36 local API checks passed.
+- [x] Web lint, production build, TypeScript, 37 Playwright checks and 36 baseline API checks passed. The combined expansion suite passed supplier exchange and one-time stock receipt, settlement matching, CSV imports, invoice deposits, ageing, bookings and customer preferences.
 - [x] Android debug build and lint passed. The JVM suite has 27 passing checks.
 - [x] Owners and managers can look up online payments by order and download reference and receipt data on web and Android. API tests verified business isolation and rejection of cashier access.
 - [x] A simulated Paystack test recovered a payment through the merchant’s provider check before the webhook arrived. Duplicate notifications preserved one receipt.
@@ -26,6 +26,7 @@ The web workspace and Android app share Supabase Auth and the Next.js workspace 
 - [x] Applied and verified the four owner KYC, Paystack, company KYB and merchant activation migrations on hosted Supabase. Authenticated workspace users and the application service role cannot submit representative review decisions.
 - [x] Deployed the web integration to the existing Vercel production alias and verified public routes, authorization responses and both webhook routes with the provider keys absent. Set the public production callback origin in Vercel.
 - [x] Applied all migrations to the dedicated staging project, set the web and Android auth redirects, and deployed the Preview alias. A temporary staging account signed in, created a workspace and declared its legal structure. Production rejected the staging session. Both staging webhook routes reached the application. The test account and workspace were removed.
+- [x] Applied the combined expansion migrations to staging and deployed the business operations build. Staging smoke checks exercised sign-in, service creation, settlement matching, finance reporting and customer-note access. A local provider simulation verified that bank transfer produces a single receipt when the checkout offered that channel. Live bank-transfer approval and settlement acceptance are open. [Combined roadmap](product-roadmap.md#phases-23--business-operations-suppliers-and-kenyan-payments)
 
 ## Launch checks
 

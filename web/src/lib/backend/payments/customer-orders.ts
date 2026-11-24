@@ -1,15 +1,17 @@
 import { randomUUID } from "node:crypto";
 import type { User } from "@supabase/supabase-js";
 import type { DemoState } from "../../data";
+import { paymentMethods, type PaymentChannel } from "../../payment-methods";
 import { admin, ApiError } from "../server";
 import { applyCommand } from "../commands";
 import { merchantVerificationStatus } from "../merchant-verification";
-import { hostedCheckoutUrl, initializeCheckout, paystackConfig, PaystackError, settlementVerified, verifyCheckout } from "./paystack";
+import { checkoutChannels, hostedCheckoutUrl, initializeCheckout, paystackConfig, PaystackError, settlementVerified, verifyCheckout } from "./paystack";
 
 export const paymentReference = /^biashara-[a-f0-9-]{36}$/;
 type OrderPayment = {
   business_id: string; order_id: number; user_id: string; reference: string; amount_minor: number;
   subaccount_code: string; checkout_url: string | null; paid_at: string | null; receipt_id: number | null;
+  allowed_channels: PaymentChannel[];
 };
 
 export async function merchantSettlementCode(businessId: string) {
@@ -69,10 +71,20 @@ export async function customerOrderPayment(user: User, slug: string, orderId: nu
   const payment = reservation.data as OrderPayment & { created: boolean };
   if (!payment.created) return paymentStatus(payment);
 
+  const channels = checkoutChannels();
+  if (channels.includes("bank_transfer")) {
+    const allowed = await db.from("customer_order_payments").update({ allowed_channels: channels })
+      .eq("reference", payment.reference).is("paid_at", null).select("reference").maybeSingle();
+    if (allowed.error || !allowed.data) {
+      await db.from("customer_order_payments").delete().eq("reference", payment.reference).is("checkout_url", null).is("paid_at", null);
+      throw new ApiError("Could not prepare bank transfer for this checkout.", 503);
+    }
+  }
+
   let checkoutUrl: string;
   try {
     checkoutUrl = await initializeCheckout({
-      email: user.email, amount: payment.amount_minor, reference: payment.reference, subaccount: payment.subaccount_code, slug, orderId,
+      email: user.email, amount: payment.amount_minor, reference: payment.reference, subaccount: payment.subaccount_code, slug, orderId, channels,
     });
   } catch (error) {
     if (error instanceof PaystackError && [400, 422].includes(error.providerStatus ?? 0)) {
@@ -98,7 +110,8 @@ export async function reconcilePayment(reference: string) {
   if (!payment || payment.paid_at) return;
   const transaction = await verifyCheckout(reference);
   if (transaction.status !== "success") return;
-  const method = transaction.channel === "card" ? "Card" : transaction.channel === "mobile_money" ? "M-Pesa" : null;
+  const channel = payment.allowed_channels.find(allowed => allowed === transaction.channel);
+  const method = channel && paymentMethods[channel];
   if (!method || !transaction.paid_at || transaction.domain !== paystackConfig()?.domain ||
       transaction.reference !== reference || transaction.currency !== "KES" || transaction.amount !== payment.amount_minor ||
       transaction.subaccount?.subaccount_code !== payment.subaccount_code) {

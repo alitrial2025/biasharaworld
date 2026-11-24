@@ -1,6 +1,9 @@
 import { z } from 'zod';
-import { execute, type Action } from '../operations';
+import { execute, recordedMethods, type Action } from '../operations';
 import { today, type DemoState } from '../data';
+import type { ProviderPaymentMethod } from '../payment-methods';
+import { businessImport, type ImportKind } from '../business-import';
+import { applyBooking, bookingCommands } from './service-bookings';
 const text=z.string().trim().min(1).max(200);
 const note=z.string().trim().max(2000);
 const id=z.number().int().positive().max(1e9);
@@ -15,6 +18,10 @@ const payment=z.object({method:z.enum(['Cash','M-Pesa','Card','Bank transfer','B
 const member=z.object({name:text,email:z.email(),role:z.enum(['Manager','Cashier','Viewer'])}).strict();
 const shape:Record<string,z.ZodRawShape>={
  addSupplier:{name:text,category:text,description:note,delivery:note,minimum:amount,deliveryFee:amount},supplierQuote:{id:text,productId:id,cost:amount},
+ importBusiness:{kind:z.enum(['products','customers']),csv:z.string().min(1).max(90000)},
+ invoicePayment:{id:documentId,amount:int.positive(),method:z.enum(recordedMethods)},
+ cancelInvoice:{id:documentId,reason:text,confirmedRefund:z.boolean()},
+ ...bookingCommands,
  inviteMember:{member},updateMember:{id,role:z.enum(['Manager','Cashier','Viewer'])},removeMember:{id},
  branch:{id:text},addBranch:{name:text,location:note},cart:{id,quantity:qty},basket:{customer:text.optional(),discount:int.optional(),discountKind:z.enum(['percent','fixed']).optional(),promotion:z.string().max(30).optional(),redeem:int.optional()},clearCart:{},hold:{name:text},resume:{id},discard:{id},checkout:{payments:z.array(payment).min(1).max(5),documentId:documentId.optional()},promotion:{name:text,percent:z.number().int().min(1).max(100),ends:date,productId:id.nullable()},return:{id,productId:id,quantity:qty.positive(),restock:z.boolean(),reason:text},document:{kind:z.enum(['Quotation','Invoice']),due:date},convertDocument:{id:documentId},issueDocument:{id:documentId},payDocument:{id:documentId},openRegister:{amount:int},cashEntry:{amount:z.number().int().min(-1e9).max(1e9),label:text},closeRegister:{amount:int},startCount:{name:text},count:{id,productId:id,quantity:qty},finaliseCount:{id,reason:note.optional()},refreshCount:{id,reason:note.optional()},batch:{productId:id,quantity:qty.positive(),expires:date,code:text},writeOff:{id,reason:text},variant:{parentId:id,name:text,size:note,sku:text,price:int.positive(),stock:qty},bundle:{name:text,price:int.positive(),components:z.array(z.object({productId:id,quantity:qty.positive()}).strict()).min(1).max(50)},barcode:{id,code:z.string().regex(/^\d{13}$/)},transfer:{productId:id,quantity:qty.positive(),to:text},dispatchTransfer:{id},receiveTransfer:{id},cancelTransfer:{id},shop:{name:text.optional(),description:note.optional(),published:z.boolean().optional(),branch:text.optional(),hidden:z.array(id).max(10000).optional(),fee:int.optional()},placeOrder:{customer:text,cart:z.record(z.string().regex(/^\d+$/),qty),address:text},orderStatus:{id,status:z.enum(['New','Confirmed','Packing','Dispatched','Delivered','Cancelled'])},pack:{id,productId:id},orderPaid:{id},rewardRate:{amount:int.positive()},preferences:{language:z.enum(['en','sw']).optional(),theme:z.enum(['light','dark','system']).optional(),textSize:z.union([z.literal(100),z.literal(115),z.literal(130)]).optional()},
  updateProfile:{profile:z.object({name:text.optional(),business:text.optional(),email:z.email().optional(),phone:note.optional(),location:note.optional(),type:text.optional()}).strict()},setTarget:{target:amount.positive()},addProduct:{product},updateProduct:{id,changes:product.partial()},addCustomer:{customer},payBalance:{id,amount:amount.positive()},addExpense:{expense:z.object({name:text,category:text,amount:amount.positive(),date,method:text}).strict()},removeExpense:{id},toggleNotification:{name:text},createOrder:{supplier:text,items:z.array(z.object({productId:id,quantity:qty.positive(),cost:amount}).strict()).min(1).max(500),deliveryFee:amount},receiveOrder:{id}
@@ -25,21 +32,38 @@ export function parseCommand(input:unknown):Record<string,unknown> & {type:strin
  return z.object({type:z.literal(type),...shape[type]}).strict().parse(input) as Record<string,unknown> & {type:string};
 }
 const personal=new Set(['branch','cart','basket','clearCart','hold','resume','discard','preferences']);
-const cashier=new Set([...personal,'checkout','document','convertDocument','issueDocument','payDocument','openRegister','cashEntry','closeRegister','addCustomer','payBalance','placeOrder','pack','orderStatus','orderPaid']);
+const cashier=new Set([...personal,'checkout','document','convertDocument','issueDocument','payDocument','invoicePayment','openRegister','cashEntry','closeRegister','addCustomer','payBalance','placeOrder','pack','orderStatus','orderPaid']);
 export function authorizeCommand(role:string,type:string) {
  if(['inviteMember','updateMember','removeMember'].includes(type)&&role!=='Owner')throw new Error('Only the owner can manage team access.');
  if(role==='Owner'||role==='Manager'||(role==='Cashier'&&cashier.has(type))||(role==='Viewer'&&personal.has(type))) return;
  throw new Error('Your role does not allow this change. Ask the business owner.');
 }
-export function applyCommand(original:DemoState,input:unknown,role:string,confirmedOrderPayment?:"Card"|"M-Pesa") {
+export function applyCommand(original:DemoState,input:unknown,role:string,confirmedOrderPayment?:ProviderPaymentMethod) {
  const a=parseCommand(input);
  authorizeCommand(role,a.type);
  let state=structuredClone(original);
  let resultId:number|undefined;
+ let message='Saved to your business.';
  // Input has been strictly validated. These casts expose the corresponding discriminated variants.
  const v=a as never as {product:DemoState['products'][number];changes:Partial<DemoState['products'][number]>;id:number;customer:DemoState['customers'][number];amount:number;expense:DemoState['expenses'][number];profile:Partial<DemoState['profile']>;target:number;name:string;supplier:string;items:DemoState['orders'][number]['items'];deliveryFee:number};
  const next=(items:{id:number}[])=>Math.max(0,...items.map(x=>x.id))+1;
  switch(a.type) {
+ case 'saveService': case 'scheduleBooking': case 'rescheduleBooking': case 'bookingStatus': {
+  const recorded=applyBooking(state,a);
+  resultId=recorded.id; message=recorded.message;
+  break;
+ }
+ case 'importBusiness': {
+  const kind=a.kind as ImportKind;
+  const records=businessImport(kind,a.csv as string);
+  for(const {line,command} of records) {
+   try { state=applyCommand(state,command,role).state; }
+   catch(error) { throw new Error(`CSV line ${line}: ${error instanceof z.ZodError ? 'Check the required fields and limits.' : error instanceof Error ? error.message : 'Check this record.'}`); }
+  }
+  const label=records.length===1?(kind==='products'?'product':'customer'):kind;
+  message=`Imported ${records.length} ${label}.`;
+  break;
+ }
  case 'addSupplier': {state.suppliers??=[];const name=a.name as string;state.suppliers.push({id:crypto.randomUUID(),name,initial:name[0],category:a.category as string,description:a.description as string,distance:'',rating:'',reviews:0,color:'mint',delivery:a.delivery as string,minimum:a.minimum as number,deliveryFee:a.deliveryFee as number,quotes:{}});break;}
  case 'supplierQuote': {const supplier=state.suppliers?.find(s=>s.id===a.id);if(!supplier||!state.products.some(p=>p.id===a.productId))throw new Error('Choose an existing supplier and product.');supplier.quotes??={};supplier.quotes[a.productId as number]=a.cost as number;break;}
 
@@ -86,6 +110,7 @@ export function applyCommand(original:DemoState,input:unknown,role:string,confir
  }
  default: {
   const result=execute(state,a as Action,confirmedOrderPayment);state=result.state;resultId=result.id;
+  if(a.type==='invoicePayment'||a.type==='cancelInvoice')message=result.message;
  }
  }
  // Snapshot cost at creation, so later product edits cannot rewrite historical margins.
@@ -95,5 +120,5 @@ export function applyCommand(original:DemoState,input:unknown,role:string,confir
  }
  // Domain validators preserve atomic stock, receipt, return and discount invariants.
  for(const p of state.products) if(!p.components) state.operations.stock[state.operations.activeBranch][p.id]=p.stock;
- return {state,message:'Saved to your business.',id:resultId};
+ return {state,message,id:resultId};
 }

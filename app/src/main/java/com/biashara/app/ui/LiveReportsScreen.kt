@@ -11,7 +11,7 @@ import com.biashara.app.data.minorMoney
 import com.biashara.app.data.report
 
 @Composable
-fun LiveReportsScreen(store: DemoStore, onBack: () -> Unit, onExpenses: () -> Unit, onPayments: () -> Unit) {
+fun LiveReportsScreen(store: DemoStore, onBack: () -> Unit, onExpenses: () -> Unit, onPayments: () -> Unit, onFinance: () -> Unit) {
     var period by rememberSaveable { mutableStateOf("Today") }
     val days = when (period) {
         "Week" -> 7
@@ -39,6 +39,7 @@ fun LiveReportsScreen(store: DemoStore, onBack: () -> Unit, onExpenses: () -> Un
         }
         if (store.backend?.role in listOf("Owner", "Manager")) {
             PrimaryButton("Payment activity", onPayments, tone = Green)
+            PrimaryButton("Financial overview", onFinance, tone = Green)
         }
         SurfaceCard {
             Eyebrow("Transactions")

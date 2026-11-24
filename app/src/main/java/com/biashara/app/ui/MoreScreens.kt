@@ -85,6 +85,11 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
         )
         Column {
             MenuRow(Icons.Outlined.PersonOutline, "Business Profile") { navigate(Screen.PROFILE) }
+            if (store.backend?.role in listOf("Owner", "Manager")) {
+                MenuRow(Icons.Outlined.Inventory2, "Import business records") { navigate(Screen.BUSINESS_IMPORT) }
+                MenuRow(Icons.Outlined.Apps, "Services and bookings") { navigate(Screen.SERVICE_BOOKINGS) }
+                MenuRow(Icons.Outlined.Groups, "Customer service notes") { navigate(Screen.CUSTOMER_SERVICE) }
+            }
             if (store.backend?.role == "Owner") {
                 MenuRow(Icons.Outlined.VerifiedUser, "Owner identity verification") { navigate(Screen.VERIFICATION) }
                 MenuRow(Icons.Outlined.VerifiedUser, "Kenyan company verification") { navigate(Screen.COMPANY_VERIFICATION) }

@@ -34,11 +34,15 @@ import {
   localDate,
   minor,
   pricedLines,
+  invoiceBalance,
+  recordedMethods,
+  type Action,
   type DetailedReceipt,
   type Document as ShopDocument,
   type Payment,
 } from "@/lib/operations";
 import { useOperations, ToolPanel, OperationError } from "./common";
+import { kesMinor } from "@/lib/settlements";
 
 export function BarcodeArt({ code }: { code: string }) {
   const bars = eanBars(code);
@@ -1253,7 +1257,7 @@ export function ReturnsTool() {
   );
 }
 export function DocumentsTool() {
-  const { op, act, error } = useOperations();
+  const { op, act, error, store } = useOperations();
   const [kind, setKind] = useState("All documents");
   const [selected, setSelected] = useState<number | null>(null);
   const doc = op.documents.find((d) => d.id === selected);
@@ -1354,16 +1358,10 @@ export function DocumentsTool() {
                     </Button>
                   )}
                 </T>{" "}
-                <T>
-                  {doc.kind === "Invoice" && doc.status !== "Paid locally" && (
-                    <Button
-                      onClick={async () => await act({ type: "payDocument", id: doc.id })}
-                    >
-                      <T>Record cash received</T>
-                    </Button>
-                  )}
-                </T>
               </div>
+              {doc.kind === "Invoice" && ["Draft", "Issued locally"].includes(doc.status) &&
+                <InvoiceActions key={doc.id} doc={doc} act={act} role={store.workspace?.role} />}
+              {doc.cancellation && <p>Cancelled {doc.cancellation.date} · {doc.cancellation.reason}</p>}
               <p className="quiet-note">
                 <T>
                   No invoice is emailed, no payment is collected, and this is
@@ -1376,6 +1374,47 @@ export function DocumentsTool() {
       </Modal>
     </>
   );
+}
+function InvoiceActions({ doc, role, act }: { doc: ShopDocument; role?: string; act: (input: Action) => Promise<unknown> }) {
+  const [action, setAction] = useState<"payment" | "cancel">("payment");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const outstanding = invoiceBalance(doc);
+  const deposits = (doc.installments ?? []).reduce((sum, payment) => sum + payment.amount, 0);
+  if (!role || !["Owner", "Manager", "Cashier"].includes(role)) return null;
+  return <div className="settings-panel no-print">
+    <p>Payments recorded {cash(deposits)} · Outstanding {cash(outstanding)}</p>
+    {!!doc.installments?.length && <ul>{doc.installments.map((entry, i) =>
+      <li key={i}>{entry.date} · {entry.method} · {cash(entry.amount)}</li>)}</ul>}
+    {role !== "Cashier" && <Button variant="secondary" onClick={() => setAction(action === "payment" ? "cancel" : "payment")}>
+      {action === "payment" ? "Cancel invoice" : "Back to payment"}
+    </Button>}
+    <form key={`${action}:${outstanding}`} onSubmit={async event => {
+      event.preventDefault();
+      setError(""); setBusy(true);
+      const fields = new FormData(event.currentTarget);
+      try {
+        if (action === "cancel") {
+          await act({ type: "cancelInvoice", id: doc.id, reason: String(fields.get("reason")), confirmedRefund: fields.has("returned") });
+        } else if (outstanding === 0) {
+          await act({ type: "payDocument", id: doc.id });
+        } else {
+          await act({ type: "invoicePayment", id: doc.id, amount: kesMinor(String(fields.get("amount"))), method: String(fields.get("method")) });
+        }
+      } catch (failure) { setError(failure instanceof Error ? failure.message : "Check the amount."); }
+      finally { setBusy(false); }
+    }}>
+      {action === "cancel" ? <>
+        <Field label="Reason for cancellation" name="reason" required maxLength={200} />
+        {deposits > 0 && <label><input type="checkbox" name="returned" required /> I confirm the deposits were already returned.</label>}
+      </> : outstanding > 0 && <>
+        <Field label="Amount already received (KES)" name="amount" inputMode="decimal" defaultValue={(outstanding / 100).toFixed(2)} required />
+        <SelectField label="Payment method" name="method">{recordedMethods.map(method => <option key={method}>{method}</option>)}</SelectField>
+      </>}
+      <Button type="submit" disabled={busy}>{action === "cancel" ? "Confirm cancellation" : "Record received payment"}</Button>
+      {error && <p role="alert">{error}</p>}
+    </form>
+  </div>;
 }
 function InvoicePreview({ doc }: { doc: ShopDocument }) {
   return (

@@ -1,5 +1,5 @@
 "use client";
-import {useEffect,useState,type FormEvent} from 'react';
+import {useEffect,useRef,useState,type FormEvent} from 'react';
 import Link from 'next/link';
 import {Brand,Button,Field,ProductArt} from './ui';
 import {supabase} from '@/lib/supabase';
@@ -13,9 +13,9 @@ export function PublicShop({slug}:{slug:string}) {
  return <main id="main-content" className="container section"><header className="panel-heading"><Brand/><Link href={'/portal/'+slug}>My orders</Link><Link href="/login">Sign in</Link></header><h1>{shop?.name||'Your neighbourhood shop'}</h1><p>{shop?.description}</p>{error&&<p role="alert" className="operation-error">{error}</p>}{message&&<p role="status">{message}</p>}{shop&&<><div className="stats-grid">{shop.products.map(p=><article className="panel" key={p.id}><ProductArt art={p.art} name={p.name}/><h2>{p.name}</h2><p>{p.size} · {cash(Math.round(p.price*100))}</p><p>{p.stock} available</p><label>Quantity<input aria-label={'Quantity for '+p.name} type="number" min={0} max={p.stock} value={cart[p.id]||0} disabled={busy||!!pending} onChange={e=>setCart({...cart,[p.id]:Math.max(0,Math.min(p.stock,Math.floor(Number(e.target.value))))})}/></label></article>)}</div>{shop.products.length===0&&<p>The merchant has not listed products yet.</p>}<form onSubmit={order} className="panel"><h2>Your order</h2><p>Delivery fee: {cash(shop.fee)} · Total: {cash(shop.products.reduce((s,p)=>s+Math.round(p.price*100)*(cart[p.id]||0),shop.fee))}</p><Field name="address" label="Delivery address or pickup instructions" required minLength={3} maxLength={500}/><Button type="submit" disabled={busy||Object.values(cart).every(n=>!n)}>{pending?'Retry saved order':'Send order'}</Button><p>Check My orders for payment options once the merchant has delivered your order.</p></form></>}</main>
 }
 type PortalOrder = { id: number; status: string; total: number; paid: boolean; onlinePayment: "pending" | "available" | "suspended" | null };
-type PortalData = { business: string; customer: string; balance: number; points: number; orders: PortalOrder[]; documents: { id: number; kind: string; total: number; status: string }[] };
+type PortalData = { business: string; customer: string; balance: number; points: number; orders: PortalOrder[]; checkoutMethods?: string[]; emailOptIn?: boolean | null; documents: { id: number; kind: string; total: number; status: string; due: string; outstanding: number | null }[] };
 
-async function customerRequest(path: string, input?: { action: "start" | "refresh"; orderId: number }) {
+async function customerRequest(path: string, input?: Record<string, unknown>) {
  const { data: { session } } = await supabase().auth.getSession();
  if (!session) throw new Error("Sign in with your verified customer email to view private records.");
  const response = await fetch(path, {
@@ -33,6 +33,8 @@ export function PublicPortal({ slug }: { slug: string }) {
  const [error, setError] = useState("");
  const [message, setMessage] = useState("");
  const [busyOrder, setBusyOrder] = useState<number | null>(null);
+ const [savingPreference, setSavingPreference] = useState(false);
+ const preferenceRequest = useRef<{ id: string; emailOptIn: boolean } | null>(null);
  const portalPath = `/api/portal/${encodeURIComponent(slug)}`;
  useEffect(() => {
   let current = true;
@@ -81,6 +83,20 @@ export function PublicPortal({ slug }: { slug: string }) {
   } finally { setBusyOrder(null); }
  }
 
+ async function updatePreference(emailOptIn: boolean) {
+  setSavingPreference(true);
+  setError("");
+  setMessage("");
+  try {
+   if (preferenceRequest.current?.emailOptIn !== emailOptIn) preferenceRequest.current = { id: crypto.randomUUID(), emailOptIn };
+   const result = await customerRequest(`${portalPath}/preferences`, preferenceRequest.current);
+   preferenceRequest.current = null;
+   setData(value => value && { ...value, emailOptIn: result.emailOptIn });
+   setMessage("Marketing preference saved.");
+  } catch (failure) { setError(failure instanceof Error ? failure.message : "Could not save your preference."); }
+  finally { setSavingPreference(false); }
+ }
+
  return (
   <main id="main-content" className="container section">
    <Brand />
@@ -99,16 +115,27 @@ export function PublicPortal({ slug }: { slug: string }) {
      <article className="panel" key={order.id}>
       <h3>Order #{order.id}</h3>
       <p>{order.status} · {cash(order.total)} · {order.paid ? "Payment recorded" : "Payment pending"}</p>
+      {order.onlinePayment === "available" && !!data.checkoutMethods?.length && <p>{data.checkoutMethods.join(" · ")}</p>}
       {order.onlinePayment && <div className="button-row">
        {order.onlinePayment !== "suspended" && <Button disabled={busyOrder !== null} onClick={() => void payment(order.id, "start")}>
-        {order.onlinePayment === "pending" ? "Open checkout" : "Pay by card or M-Pesa"}
+        {order.onlinePayment === "pending" ? "Open checkout" : "Pay online"}
        </Button>}
        {order.onlinePayment !== "available" && <Button variant="secondary" disabled={busyOrder !== null} onClick={() => void payment(order.id, "refresh")}>Check payment status</Button>}
       </div>}
      </article>
     )) : <p>No orders yet.</p>}
     <h2>Your documents</h2>
-    {data.documents.map(document => <article className="panel" key={document.id}>{document.kind} #{document.id} · {cash(document.total)} · {document.status}</article>)}
+    {data.documents.map(document => <article className="panel" key={document.id}>
+      {document.kind} #{Math.abs(document.id)} · {cash(document.total)} · {document.status}
+      {!!document.outstanding && <p>Outstanding {cash(document.outstanding)} · Due {document.due}</p>}
+    </article>)}
+    {typeof data.emailOptIn === "boolean" && <section className="panel">
+      <h2>Email preferences</h2>
+      <p>{data.emailOptIn ? "Promotional email is on." : "Promotional email is off."}</p>
+      <Button disabled={savingPreference} variant="secondary" onClick={() => void updatePreference(!data.emailOptIn)}>
+        {data.emailOptIn ? "Opt out of promotional email" : "Allow promotional email"}
+      </Button>
+    </section>}
    </>}
    <Link href={`/shop/${slug}`}>Visit shop</Link>
   </main>

@@ -51,7 +51,7 @@ export function SuppliersPage() {
       <PageHeading
         eyebrow="GOOD BUSINESS STARTS WITH GOOD CONNECTIONS"
         title="Your next shelf, sorted."
-        description="Keep your suppliers and recorded quotes together. Purchase orders are internal records; send them to your supplier separately."
+        description="Keep your supplier contacts and recorded quotes together. Use the supplier network to exchange orders with verified businesses."
       >
         <Button
           href="/dashboard/orders"
@@ -61,6 +61,7 @@ export function SuppliersPage() {
           <T>Your purchase orders</T>
         </Button>
       </PageHeading>
+      {store.workspace && ["Owner", "Manager"].includes(store.workspace.role) && <Button href="/dashboard/supplier-network" variant="secondary">Supplier network</Button>}
       <Button onClick={()=>setAdding(true)}>Add supplier</Button>
       {adding&&<section className="panel"><h2>Your supplier</h2>{error&&<p role="alert">{error}</p>}<form onSubmit={async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{await store.saveRecord({type:'addSupplier',name:String(f.get('name')),category:String(f.get('category')),description:String(f.get('description')),delivery:String(f.get('delivery')),minimum:Number(f.get('minimum')),deliveryFee:Number(f.get('deliveryFee'))});setAdding(false)}catch(e){setError(e instanceof Error?e.message:'Could not save supplier.')}}}><Field label="Supplier name" name="name" required/><Field label="Category" name="category" defaultValue="Groceries" required/><Field label="Notes" name="description"/><Field label="Delivery terms" name="delivery"/><Field label="Minimum order (KES)" name="minimum" type="number" min={0} step="0.01" defaultValue={0} required/><Field label="Delivery fee (KES)" name="deliveryFee" type="number" min={0} step="0.01" defaultValue={0} required/><Button type="submit">Save supplier</Button><Button variant="secondary" onClick={()=>setAdding(false)}>Cancel</Button></form></section>}
       <div className="supplier-intro">

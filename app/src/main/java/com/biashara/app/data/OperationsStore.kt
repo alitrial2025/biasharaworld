@@ -206,12 +206,13 @@ class OperationsStore(private val store: DemoStore) {
                 .sumOf { it.optInt("quantity") }
         val reserved =
             if (includeReserved)
-                root
-                    .records("deliveries")
-                    .filter {
+                (root.records("deliveries").filter {
                         it.optString("branch") == branchId &&
                             it.optString("status") in listOf("Confirmed", "Packing")
-                    }
+                    } + root.records("documents").filter {
+                        it.optString("branch") == branchId && it.optString("status") == "Issued locally" &&
+                            it.records("installments").isNotEmpty()
+                    })
                     .sumOf { o ->
                         o.records("lines").sumOf { l ->
                             val parts =

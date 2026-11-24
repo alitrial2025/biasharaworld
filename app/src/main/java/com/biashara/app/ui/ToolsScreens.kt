@@ -1119,17 +1119,29 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                             )
                                         }
                                 )
-                            if (
-                                d.optString("kind") == "Invoice" &&
-                                    d.optString("status") != "Paid locally"
-                            )
-                                PrimaryButton(
-                                    "Record demo cash payment",
-                                    {
-                                        run("payDocument", mapOf("id" to d.optInt("id").toString()))
-                                    },
-                                    tone = Green,
-                                )
+                            if (d.optString("kind") == "Invoice" && d.optString("status") in listOf("Draft", "Issued locally")) {
+                                val id = d.optInt("id").toString()
+                                val deposits = d.records("installments").sumOf { it.optLong("amount") }
+                                val outstanding = d.optLong("total") - deposits
+                                if (store.real && store.backend?.role in listOf("Owner", "Manager", "Cashier")) {
+                                    AppText("Payments recorded ${minorMoney(deposits)} · Outstanding ${minorMoney(outstanding)}")
+                                    PrimaryButton("Record payment", {
+                                        if (outstanding == 0L) run("payDocument", mapOf("id" to id))
+                                        else ask("invoicePayment", "Record received payment", listOf(
+                                            ToolField("amount", "Amount already received (KES)", java.math.BigDecimal.valueOf(outstanding, 2).toPlainString(), numeric = true),
+                                            ToolField("method", "Payment method", options = listOf("Cash", "M-Pesa", "Card", "Bank transfer").map { it to it }),
+                                        ), extra = mapOf("id" to id))
+                                    }, tone = Green)
+                                    if (store.backend?.role in listOf("Owner", "Manager")) ActionRow("Cancel invoice" to {
+                                        val fields = listOf(ToolField("reason", "Reason for cancellation"))
+                                        val confirmation = if (deposits > 0L) listOf(ToolField("returned", "Were the deposits already returned?",
+                                            options = listOf("false" to "No", "true" to "Yes"))) else emptyList()
+                                        ask("cancelInvoice", "Cancel invoice", fields + confirmation, extra = mapOf("id" to id))
+                                    })
+                                } else if (!store.real) PrimaryButton("Record demo cash payment", {
+                                    run("payDocument", mapOf("id" to id))
+                                }, tone = Green)
+                            }
                         }
                     }
             }

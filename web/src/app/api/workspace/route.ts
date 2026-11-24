@@ -32,7 +32,7 @@ export async function POST(request:Request) {
   if(input.revision!==workspace.revision) throw new ApiError('Records changed. Refresh and review before trying again.',409);
   if(input.draft)Object.assign(workspace.state.operations,input.draft);
   const result=applyCommand(workspace.state,input.command,workspace.role);
-  const command=input.command as {type:string;published?:boolean;id?:number};
+  const command=input.command as {type:string;published?:boolean;id?:number;kind?:string};
   if(command.type==='shop' && command.published===true) {
    const status=await merchantVerificationStatus(workspace.businessId);
    if(status!=='verified')throw new ApiError(verificationRequired[status],403);
@@ -44,9 +44,10 @@ export async function POST(request:Request) {
    if(online.data)throw new ApiError('This receipt was paid online. Review the refund in Paystack and contact support to reconcile the return.',409);
   }
   const {business,workspace:personal}=splitState(result.state);
+  const auditedCommand=command.type==='importBusiness'?{type:command.type,kind:command.kind}:input.command;
   const {data,error}=await admin().rpc('commit_business_command',{
    p_business:workspace.businessId,p_user:user.id,p_revision:workspace.revision,p_request:input.requestId,p_hash:hash,
-   p_type:(input.command as {type:string}).type,p_state:business,p_workspace:personal,p_result:{message:result.message,id:result.id},p_input:{command:input.command,...(input.draft?{draft:input.draft}:{})}
+   p_type:command.type,p_state:business,p_workspace:personal,p_result:{message:result.message,id:result.id},p_input:{command:auditedCommand,...(input.draft?{draft:input.draft}:{})}
   });
   if(data?.conflict)throw new ApiError('Records changed. Refresh and review before trying again.',409);
   if(error?.code==='42501' && error.message.includes('Merchant verification is required'))throw new ApiError('Complete merchant verification before publishing the shop.',403);

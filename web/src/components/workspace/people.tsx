@@ -85,6 +85,9 @@ export function CustomersPage({
         title="A familiar face. A clearer record."
         description="Keep your customers close and your balances easy to follow."
       >
+        {store.workspace && ["Owner", "Manager"].includes(store.workspace.role) && (
+          <Button href="/dashboard/customer-service" variant="secondary">Customer service notes</Button>
+        )}
         <Button
           variant="secondary"
           icon={ArrowDownToLine}

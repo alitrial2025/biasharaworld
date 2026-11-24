@@ -152,11 +152,12 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
                             Screen.MORE -> MoreScreen(store, navigate)
                             Screen.CUSTOMERS -> CustomersScreen(store, back)
                             Screen.SUPPLIERS ->
-                                if(store.real) LiveSuppliersScreen(store, back) { openTool("compare") } else SuppliersScreen(store, back) { i ->
+                                if(store.real) LiveSuppliersScreen(store, back, { openTool("compare") }, { navigate(Screen.SUPPLIER_NETWORK) }) else SuppliersScreen(store, back) { i ->
                                     supplier = i
                                     supplierCart.clear()
                                     navigate(Screen.SUPPLIER)
                                 }
+                            Screen.SUPPLIER_NETWORK -> LiveSupplierNetworkScreen(store, back)
                             Screen.SUPPLIER ->
                                 SupplierDetailScreen(
                                     store.suppliers[supplier],
@@ -182,7 +183,8 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
                                     },
                                 )
                             Screen.REPORTS -> if (store.real) {
-                                LiveReportsScreen(store, back, onExpenses = { navigate(Screen.EXPENSES) }, onPayments = { navigate(Screen.PAYMENT_ACTIVITY) })
+                                LiveReportsScreen(store, back, onExpenses = { navigate(Screen.EXPENSES) }, onPayments = { navigate(Screen.PAYMENT_ACTIVITY) },
+                                    onFinance = { navigate(Screen.FINANCIAL_OVERVIEW) })
                             } else ReportsScreen(store, back)
                             Screen.EXPENSES -> LiveExpensesScreen(store, back)
                             Screen.VERIFICATION -> LiveVerificationScreen(store, back, onCompany = { navigate(Screen.COMPANY_VERIFICATION) })
@@ -190,7 +192,12 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
                             Screen.PAYMENT_SETTINGS -> LivePaymentSettingsScreen(store, back) { company ->
                                 navigate(if (company) Screen.COMPANY_VERIFICATION else Screen.VERIFICATION)
                             }
-                            Screen.PAYMENT_ACTIVITY -> LivePaymentActivityScreen(store, back)
+                            Screen.PAYMENT_ACTIVITY -> LivePaymentActivityScreen(store, back) { navigate(Screen.SETTLEMENT_RECONCILIATION) }
+                            Screen.SETTLEMENT_RECONCILIATION -> LiveSettlementReconciliationScreen(store, back)
+                            Screen.BUSINESS_IMPORT -> LiveBusinessImportScreen(store, back)
+                            Screen.SERVICE_BOOKINGS -> LiveServiceBookingsScreen(store, back)
+                            Screen.CUSTOMER_SERVICE -> LiveCustomerServiceScreen(store, back)
+                            Screen.FINANCIAL_OVERVIEW -> LiveFinancialOverviewScreen(store, back) { navigate(Screen.SETTLEMENT_RECONCILIATION) }
                             Screen.ASSISTANT -> AssistantScreen(store, back)
                             Screen.FINANCE -> FinanceScreen(back)
                             Screen.PROFILE -> ProfileScreen(store, back)

@@ -137,6 +137,28 @@ class LiveBackend(context: Context, private val scope: CoroutineScope, private v
     suspend fun checkOnlinePayment(order: Int) {
         http(BuildConfig.API_URL, "/api/payments/activity", "POST", json("order" to order), token())
     }
+    suspend fun financialOverview(days: Int): JSONObject =
+        http(BuildConfig.API_URL, "/api/financial-overview?days=$days", token = token())
+    suspend fun customerService(customer: Int, page: Int = 0, command: JSONObject? = null): JSONObject {
+        val path = if (command == null) "/api/customer-service?customer=$customer&page=$page" else "/api/customer-service"
+        return http(BuildConfig.API_URL, path, if (command == null) "GET" else "POST", command, token())
+    }
+    suspend fun settlementStatements(exceptions: Boolean = false, after: String? = null, command: JSONObject? = null): JSONObject {
+        val query = Uri.Builder().appendQueryParameter("exceptions", exceptions.toString())
+        if (after != null) query.appendQueryParameter("after", after)
+        val path = if (command == null) "/api/settlements?${query.build().encodedQuery}" else "/api/settlements"
+        return http(BuildConfig.API_URL, path, if (command == null) "GET" else "POST", command, token())
+    }
+    suspend fun supplierExchange(
+        search: String = "", supplierAfter: String? = null, page: Int = 0,
+        exchange: String? = null, command: JSONObject? = null,
+    ): JSONObject {
+        val query = Uri.Builder().appendQueryParameter("search", search).appendQueryParameter("page", page.toString())
+        if (supplierAfter != null) query.appendQueryParameter("supplierAfter", supplierAfter)
+        if (exchange != null) query.appendQueryParameter("exchange", exchange)
+        val path = if (command == null) "/api/supplier-exchange?${query.build().encodedQuery}" else "/api/supplier-exchange"
+        return http(BuildConfig.API_URL, path, if (command == null) "GET" else "POST", command, token())
+    }
     private fun accept(workspace:JSONObject?){
         hasBusiness=workspace!=null
         if(workspace==null){store.clearLive();return}
