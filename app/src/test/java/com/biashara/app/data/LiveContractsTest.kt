@@ -29,4 +29,20 @@ class LiveContractsTest {
   store.restoreLive(seed)
   assertEquals("Real business",store.businessName);assertTrue(store.products.isEmpty());assertEquals(0L,store.report().sales)
  }
+
+ @Test fun purchaseOrdersUseSupplierQuotesAndKeepDeliveryCents() {
+  val store = DemoStore(real = true)
+  store.liveState = json(
+   "suppliers" to org.json.JSONArray(listOf(json("name" to "Supplier", "quotes" to json("1" to 4.25)))),
+   "products" to org.json.JSONArray(listOf(json("id" to 1, "cost" to 9.75), json("id" to 2, "cost" to 6.15))),
+  )
+  store.operations.state.put("compareCart", json("1" to 2, "2" to 1))
+  val command = nativeCommand("purchaseOrder", mapOf("supplier" to "Supplier", "fee" to "3.25"), store)
+  assertEquals("createOrder", command.getString("type"))
+  assertEquals(3.25, command.getDouble("deliveryFee"), 0.0)
+  val lines = command.records("items").associateBy { it.getInt("productId") }
+  assertEquals(4.25, lines.getValue(1).getDouble("cost"), 0.0)
+  assertEquals(2, lines.getValue(1).getInt("quantity"))
+  assertEquals(6.15, lines.getValue(2).getDouble("cost"), 0.0)
+ }
 }

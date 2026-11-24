@@ -1,82 +1,63 @@
 # BiasharaOS web
 
-The responsive **Next.js App Router + React + TypeScript** companion to the Kotlin Android app. It shares the emerald, pastel and white palette, Inter interface text, Manrope headings, photography and sample shop from the app. All fonts and images are local; there are no external UI assets or runtime API requirements.
+This Next.js App Router application serves the public website, account flows and the business workspace. Supabase handles sign-in and persistent business data. The Android app uses the same workspace API.
 
-## Run
+## Run locally
 
-Requires Node.js 20.9+ (verified with Node 24.19.0).
+Use Node.js 20.9 or later. The cloud setup uses Node.js 24 and the package lockfile. The live workspace needs a Supabase instance with the migrations in `../supabase/migrations/` applied.
+
+On the prepared Codex cloud machine, start local Supabase and the Next.js development server:
 
 ```sh
+cd /workspace/biasharaworld
+/workspace/.toolchains/biashara/start-local-backend
 cd web
-npm ci
-npm run dev
+/workspace/.toolchains/biashara/with-local-backend npm run dev
 ```
 
-The server binds to `0.0.0.0` on port 3000. For a production preview:
+For another machine, run `npm ci` in `web/`, start Supabase from the repository root and configure `web/.env.local` using `.env.example` and the local Supabase credentials. Set `SUPABASE_SECRET_KEY` for the server routes and keep it out of browser and Android builds. The development server listens on port 3000.
+
+## Workspace
+
+- **Accounts and business setup** support email signup, confirmation, sign-in, password recovery and an empty workspace for a new business.
+- **Selling and inventory** cover checkout, held baskets, split payments, returns, stocktakes, batches and transfers. Checkout records payments received by the merchant.
+- **Business management** includes customers and repayments, expenses and CSV export, supplier quotes, internal purchase orders, goods receipt, reports and role-based team access.
+- **Public shop and customer portal** expose published product information and let authenticated customers see their own orders. Owners must complete identity verification to publish and receive new orders. Use the shop link generated in your business workspace.
+
+Workspace writes go through `/api/workspace`. The server verifies identity and role, checks the current revision and saves the command and its result with a request ID. Client drafts cover personal workspace state such as the active branch and basket. Business data persists in Supabase.
+
+Connect a production email provider and verify signup and recovery delivery before inviting customers. Team invitations are recorded and claimed by a signed-in user with the verified email address. Automatic invitation delivery, financing and external AI remain outside the current release. Delivered customer orders can use Paystack after a verified merchant connects a supported Kenyan bank account. [Kenyan payment setup](../docs/kenya-payments.md) See the launch checklist for deployment and Android acceptance work. [Release checklist](../docs/backend-implementation-plan.md)
+
+Set `ANDROID_RELEASE_DOWNLOAD_URL` before building the site once a signed Android release is available. The download page displays the release status when this setting is empty.
+
+Use the pilot runbook for the Preview provider settings, signing webhooks and redeploying staging. Use `npm run providers:check` to validate the selected settings before exercising the sandbox workflows. [Provider activation](../docs/kenya-pilot-runbook.md#provider-activation) · [Merchant verification](../docs/merchant-verification.md)
+
+## Verify
+
+With local Supabase running, use the cloud helpers to build and run tests against disposable local accounts:
 
 ```sh
-npm run build
-npm run start
-```
-
-For the prepared cloud machine, `bash tools/setup-web.sh` from the repository root installs the locked dependencies and runs lint, the production build and TypeScript checks. It uses a writable temporary npm cache rather than the read-only home directory. This is separate from `tools/setup-cloud.sh`, which verifies Android.
-
-## Explore
-
-| Area                   | Pages and interactions                                                                                                                                                                                                                          |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Public website         | Landing, features, four industry solutions, monthly/yearly proposed pricing, about, contact form preview, searchable help centre, three business guides, Android download, draft privacy and terms                                              |
-| Account UI             | Email sign-in/sign-up, password visibility, Google sign-in explanation, password reset preview and a three-step business setup                                                                                                                  |
-| Everyday workspace     | Overview, searchable sales and receipt downloads, product checkout, payment method previews, stock filtering and restocking, product creation, customer directory and repayments                                                                |
-| Desktop business tools | Supplier catalogues, draft purchase orders and receiving, expense ledger, reports and CSV exports, local assistant, financing preview, team directory and role selector, business profile, notification preferences, plan picker and demo reset |
-
-There are 61 concrete pages, including the twenty new feature areas, their hub, merchant shop and customer portal. The public site and workspace both adapt to phones, tablets and desktops. Public navigation, mobile drawers, dialogs, forms, searches, filters, download controls and exports are interactive.
-
-## UI-first scope
-
-This is a frontend prototype, not a production business service. The account UI **does not authenticate or create real accounts**. Passwords are never persisted. No M-Pesa request, card charge, supplier order, email, invitation, loan application or external AI call is sent. Contact and password-reset completion screens explain this directly. Plans are proposed launch pricing and billing is inactive; permissions and role descriptions are previews.
-
-Workspace changes are saved under `biasharaos.demo.v2` (v1 data migrates automatically) in this browser’s local storage. Reloads preserve products, stock, sales, balances, expenses, orders, team, profile and preferences. Settings → Demo & data restores the initial sample shop. Checkout/held baskets, receipts, branch stock, counts, transfers, documents, deliveries, rewards and display preferences also persist. The assistant conversation lasts while its page stays mounted. Private browsing may limit persistence. Web and Android data do not sync.
-
-Today’s sales start from a KES 12,450 sample baseline; the five listed historical receipts are a subset. New sales are added to the baseline. Stock, balances and expenses respond to demo changes. Profit, historical comparisons, chart trends, supplier details and product rankings are labelled illustrative. This preview is not an accounting system.
-
-The privacy and terms pages are starter drafts describing this prototype, to be replaced with the operating entity’s actual policies before public launch. The Android download is the genuine debug UI-preview APK, not a production-signed release.
-
-## Checks and browser review
-
-```sh
+cd /workspace/biasharaworld/web
 npm run lint
+/workspace/.toolchains/biashara/with-local-backend npm run build
 npm run typecheck
-npm run build
-npm run format:check
-npm run test:e2e
-npm run capture
+/workspace/.toolchains/biashara/with-local-backend npm run test:e2e
 ```
 
-Playwright starts the production server or reuses a running one. In cloud it uses `/usr/bin/chromium` automatically. On other machines run `npx playwright install chromium`, or set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to a compatible installed Chromium. The 44 Playwright checks include twenty feature screens, ten transaction contracts, connected shop/delivery and stocktake/transfer workflows, language/theme/text persistence, storage recovery, and the original eight browser workflows. The original workflows cover navigation, pricing, account setup, password non-persistence, checkout and receipts, stock persistence, repayments and assistant data, purchasing and receiving, expense totals, team invitations, reset, exports and mobile navigation. Browser contexts are isolated per test.
+The Playwright configuration starts a production server on port 3002 and uses Chromium. It runs the domain operations suite and the authenticated browser suite. Reports and traces are in ignored `playwright-report/` and `test-results/` directories.
 
-`npm run capture` visits all 61 concrete pages at 1440, 1024, 768, 390 and 360 px widths, reports JavaScript errors and horizontal page overflow, and writes screenshots to `design/web/`. It requires a running server on port 3000. Browser report and traces are in ignored `playwright-report/` and `test-results/`.
+With the development server running on port 3000, run the API integration suite:
 
-Semantic landmarks, a skip link, labelled controls, visible keyboard focus, reduced-motion support, native modal focus trapping/Escape, and live toast messages are included. Wide data tables scroll inside their panels on phones. SEO titles, descriptions, an icon, social metadata and robot exclusions for demo account/workspace routes are included. Add the real public domain before configuring canonical URLs and a production sitemap.
+```sh
+TEST_BASE_URL=http://127.0.0.1:3000 /workspace/.toolchains/biashara/with-local-backend node tests/live-backend.mjs
+```
 
-## Structure
+The integration suites create users and business records and then clean them up. Use a disposable backend for these suites. The superseded browser demo tests are retained under `tests/legacy-ui/`. [Legacy test notes](tests/legacy-ui/README.md)
 
-- `src/app/(marketing)/`: public page wrappers and metadata.
-- `src/app/(auth)/`: account and onboarding previews.
-- `src/app/dashboard/`: workspace routes, loading state and shared shell.
-- `src/components/`: shared controls, marketing sections, account UI and business screens.
-- `src/lib/data.ts`: typed sample data and editorial content.
-- `src/lib/store.tsx`: local demo store exposed through React’s external-store API; server rendering uses a stable initial snapshot.
-- `src/lib/csv.ts`: real CSV downloads with formula-prefix protection.
-- `src/app/globals.css`: shared design tokens and responsive layouts.
-- `e2e/`: meaningful browser workflows.
+## Source layout
 
-Images are generated prototype assets shared with Android. Font licenses are retained in `public/fonts/` and the root `third_party/` directory.
-
-## Extended workspace
-
-Start at `/dashboard/tools`. Selling adds scanner/labels, held baskets, promotions, split payments, returns, quotations/invoices and registers. Stock adds stocktakes, expiry, variants/bundles, movements and transfers. Growth adds supplier comparison, deliveries, loyalty, branches, online-shop settings and customer portal preview. Connection activity and personalisation complete the twenty tools.
-
-The separate customer shop is `/shop/wanjiku`, and Mary's local customer preview is `/portal/6`. Merchant and customer surfaces share this browser's state. No secure/public customer account is created. Settings let you choose English/Kiswahili, Light/Dark/System and larger text across these surfaces. See [the full review guide](../docs/feature-expansion-review.md) for transactions, localisation scope and integration boundaries.
-
-`node scripts/review-expansion.mjs` adds dark/Kiswahili/large-text screenshots and checks checkout at 200% text. Update shared interface phrases with `python3 tools/generate-locales.py` from the repository root. `node scripts/generate-seed.mjs` from `web/` regenerates the shared catalogue/operation seed used by Android. Regenerate intentionally, then run both platforms' checks.
+- `src/app/` contains the page and API routes.
+- `src/components/` contains the website and workspace UI.
+- `src/lib/backend/` validates account access and business commands.
+- `src/lib/operations.ts` contains shared business rules used by the web client and server.
+- `e2e/` and `tests/live-backend.mjs` cover browser and API behavior.

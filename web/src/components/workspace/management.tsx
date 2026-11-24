@@ -191,7 +191,7 @@ export function ExpensesPage() {
             <EmptyState
               icon={Wallet}
               title="No expenses here yet."
-              description="Record a demo expense or try another search."
+              description="Record a business expense or try another search."
             />
           )}
         </T>
@@ -204,7 +204,7 @@ export function ExpensesPage() {
         open={open}
         onClose={() => setOpen(false)}
         title="Give that expense a place."
-        description="Add a sample business cost to your records."
+        description="Add a business cost to your records."
       >
         <form onSubmit={add}>
           <Field
@@ -219,7 +219,8 @@ export function ExpensesPage() {
               label="Amount (KES)"
               name="amount"
               type="number"
-              min={1}
+              min={0.01}
+              step={0.01}
               max={10000000}
               required
             />
@@ -298,7 +299,7 @@ export function ExpensesPage() {
 }
 
 export function ReportsPage() {
-  const { state } = useDemo();
+  const { state, store } = useDemo();
   const [period, setPeriod] = useState("Month");
   const [metric, setMetric] = useState("Sales");
   const report=businessReport(state,period);
@@ -339,12 +340,15 @@ export function ReportsPage() {
         >
           <T>Download report</T>
         </Button>
+        {["Owner", "Manager"].includes(store.workspace?.role ?? "") && (
+          <Button href="/dashboard/payment-activity" variant="secondary">Payment activity</Button>
+        )}
       </PageHeading>
       <div className="report-notice">
         <Sparkles size={18} />
         <span>
           <T>
-            Reports use recorded receipts, refunds, item costs and expenses. Payments are recorded manually after you receive them.
+            Reports use recorded receipts, refunds, item costs and expenses. Payment activity shows provider-confirmed online payments.
           </T>
         </span>
       </div>
@@ -782,6 +786,15 @@ export function SettingsPage() {
         description="The details, preferences and little things that make it yours."
       />
       <div className="settings-extra-links">
+        {store.workspace?.role === "Owner" && (
+          <Link className="text-link" href="/dashboard/verification">Owner identity verification</Link>
+        )}
+        {store.workspace?.role === "Owner" && (
+          <Link className="text-link" href="/dashboard/company-verification">Kenyan company verification</Link>
+        )}
+        {store.workspace?.role === "Owner" && (
+          <Link className="text-link" href="/dashboard/payments">Online payments</Link>
+        )}
         <Link className="text-link" href="/dashboard/preferences">
           <T>Language, theme & reading size →</T>
         </Link>
@@ -820,7 +833,7 @@ export function SettingsPage() {
                       <T>A little about your business.</T>
                     </h2>
                     <p>
-                      <T>Sample details stay in this browser.</T>
+                      <T>These details are saved to your business.</T>
                     </p>
                   </div>
                   <Avatar name={state.profile.name} photo />
@@ -997,7 +1010,7 @@ export function SettingsPage() {
                     </strong>
                     <p>
                       <T>
-                        Online payments are not available yet. You can record payments you receive.
+                        Subscription billing is unavailable. Use Online payments to manage customer payment settlement.
                       </T>
                     </p>
                   </div>

@@ -2,6 +2,14 @@ package com.biashara.app.data
 
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlin.math.roundToLong
+
+internal fun purchaseUnitCostMinor(store: DemoStore, supplier: JSONObject?, productId: Int): Long {
+    val quote = supplier?.optJSONObject("quotes")?.optDouble(productId.toString(), Double.NaN)
+    val product = store.liveState.records("products").firstOrNull { it.optInt("id") == productId }
+    val cost = quote?.takeIf { it.isFinite() } ?: product?.optDouble("cost", 0.0) ?: 0.0
+    return (cost * 100).roundToLong()
+}
 
 /** Converts native form strings to the same strictly validated commands used by the website. */
 fun nativeCommand(action:String,v:Map<String,String>,store:DemoStore):JSONObject {
@@ -42,8 +50,14 @@ fun nativeCommand(action:String,v:Map<String,String>,store:DemoStore):JSONObject
         "preferences"->{v.forEach{(k,value)->if(k=="textSize")result.put(k,value.toInt())else result.put(k,value)}}
         "receivePurchaseOrder"->{result.put("type","receiveOrder");id()}
         "purchaseOrder"->{
-            result.put("type","createOrder");text("supplier");result.put("deliveryFee",parseMinor(v["fee"]?:"0")/100.0)
-            result.put("items",JSONArray(store.operations.state.ints("compareCart").filterValues{it>0}.map{(id,q)->json("productId" to id,"quantity" to q,"cost" to (store.liveState.records("suppliers").firstOrNull{it.optString("name")==v["supplier"]}?.optJSONObject("quotes")?.optDouble(id.toString(),Double.NaN)?.takeIf{it.isFinite()}?:store.liveState.records("products").firstOrNull{it.optInt("id")==id}?.optDouble("cost")?:0.0))}))
+            val supplier = store.liveState.records("suppliers").firstOrNull { it.optString("name") == v["supplier"] }
+            result.put("type", "createOrder")
+            text("supplier")
+            result.put("deliveryFee", parseMinor(v["fee"] ?: "0") / 100.0)
+            val items = store.operations.state.ints("compareCart").filterValues { it > 0 }.map { (id, quantity) ->
+                json("productId" to id, "quantity" to quantity, "cost" to purchaseUnitCostMinor(store, supplier, id) / 100.0)
+            }
+            result.put("items", JSONArray(items))
         }
         "clearCart"->Unit
         else->error("This action is not connected yet. No business records were changed.")

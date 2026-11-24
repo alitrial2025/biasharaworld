@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { SalesPage, InventoryPage } from "@/components/workspace/commerce";
 import { CustomersPage, TeamPage } from "@/components/workspace/people";
 import { OrdersPage, SuppliersPage } from "@/components/workspace/procurement";
+import { IdentityVerificationPage } from "@/components/workspace/identity-verification";
+import { PaymentSettingsPage } from "@/components/workspace/payment-settings";
+import { PaymentActivityPage } from "@/components/workspace/payment-activity";
 import {
   ExpensesPage,
   ReportsPage,
@@ -23,6 +26,10 @@ const titles: Record<string, string> = {
   financing: "Business financing",
   team: "Your team",
   settings: "Settings",
+  verification: "Owner identity verification",
+  "company-verification": "Kenyan company verification",
+  payments: "Online payments",
+  "payment-activity": "Payment activity",
 };
 export async function generateMetadata({
   params,
@@ -63,6 +70,14 @@ export default async function Page({
       return <TeamPage />;
     case "settings":
       return <SettingsPage />;
+    case "verification":
+      return <IdentityVerificationPage />;
+    case "company-verification":
+      return <IdentityVerificationPage company />;
+    case "payments":
+      return <PaymentSettingsPage />;
+    case "payment-activity":
+      return <PaymentActivityPage />;
     default:
       if (
         [

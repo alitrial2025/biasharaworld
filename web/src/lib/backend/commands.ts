@@ -31,7 +31,7 @@ export function authorizeCommand(role:string,type:string) {
  if(role==='Owner'||role==='Manager'||(role==='Cashier'&&cashier.has(type))||(role==='Viewer'&&personal.has(type))) return;
  throw new Error('Your role does not allow this change. Ask the business owner.');
 }
-export function applyCommand(original:DemoState,input:unknown,role:string) {
+export function applyCommand(original:DemoState,input:unknown,role:string,confirmedOrderPayment?:"Card"|"M-Pesa") {
  const a=parseCommand(input);
  authorizeCommand(role,a.type);
  let state=structuredClone(original);
@@ -76,7 +76,7 @@ export function applyCommand(original:DemoState,input:unknown,role:string) {
  case 'removeExpense': if(!state.expenses.some(e=>e.id===v.id)) throw new Error('Expense not found.');state.expenses=state.expenses.filter(e=>e.id!==v.id);break;
  case 'toggleNotification':state.notifications[v.name]=!state.notifications[v.name];break;
  case 'createOrder': {
-  if(v.items.some(i=>!state.products.some(p=>p.id===i.productId))) throw new Error('An order product no longer exists.');
+  if(v.items.some(i=>!state.products.some(p=>p.id===i.productId&&!p.components?.length))) throw new Error('Choose individual stock items for this order.');
   resultId=next(state.orders);state.orders.unshift({id:resultId,supplier:v.supplier,items:v.items,deliveryFee:v.deliveryFee,branch:state.operations.activeBranch,amount:Math.round((v.items.reduce((s,i)=>s+i.quantity*i.cost,0)+v.deliveryFee)*100)/100,status:'Draft',date:today()});break;
  }
  case 'receiveOrder': {
@@ -85,7 +85,7 @@ export function applyCommand(original:DemoState,input:unknown,role:string) {
   state.orders.find(o=>o.id===v.id)!.status='Received';break;
  }
  default: {
-  const result=execute(state,a as Action);state=result.state;resultId=result.id;
+  const result=execute(state,a as Action,confirmedOrderPayment);state=result.state;resultId=result.id;
  }
  }
  // Snapshot cost at creation, so later product edits cannot rewrite historical margins.

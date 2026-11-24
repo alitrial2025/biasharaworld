@@ -601,6 +601,7 @@ export function pricedLines(
 export function execute(
   original: DemoState,
   action: Action,
+  confirmedOrderPayment?: "Card" | "M-Pesa",
 ): { state: DemoState; message: string; id?: number } {
   const state = structuredClone(original);
   const op = state.operations;
@@ -1343,8 +1344,9 @@ export function execute(
           !state.products.find((p) => p.id === action.productId)?.components,
         "Choose a destination and an available individual product quantity.",
       );
+      resultId = nextId(op.transfers);
       op.transfers.unshift({
-        id: nextId(op.transfers),
+        id: resultId,
         productId: action.productId,
         quantity: action.quantity,
         from: op.activeBranch,
@@ -1510,6 +1512,7 @@ export function execute(
           ...op.receipts.map((r) => r.id),
         ) + 1;
       const earned = Math.floor(order.total / op.rewardRate);
+      const method = confirmedOrderPayment ?? "Cash";
       op.receipts.unshift({
         id,
         branch: order.branch,
@@ -1518,7 +1521,7 @@ export function execute(
         total: order.total,
         deliveryFee: order.fee,
         discount: 0,
-        payments: [{ method: "Cash", amount: order.total }],
+        payments: [{ method, amount: order.total }],
         date: localDate(),
         earned,
         redeemed: 0,
@@ -1530,16 +1533,16 @@ export function execute(
         customer: order.customer,
         items: order.lines.reduce((sum, l) => sum + l.quantity, 0),
         amount: order.total / 100,
-        method: "Cash",
+        method,
         time: "Customer delivery",
       });
       point(order.customer, earned, `Receipt #${id}`);
       order.paid = true;
       order.events.push(
-        `${localDate()} · Payment recorded locally · Receipt #${id}`,
+        `${localDate()} · ${confirmedOrderPayment ? "Online payment confirmed" : "Cash received"} · Receipt #${id}`,
       );
-      cashEntry(order.total, `Customer order #${order.id}`, order.branch);
-      message = "Demo payment recorded. No money was collected.";
+      if (!confirmedOrderPayment) cashEntry(order.total, `Customer order #${order.id}`, order.branch);
+      message = confirmedOrderPayment ? "Online payment confirmed." : "Cash payment recorded.";
       resultId = id;
       break;
     }

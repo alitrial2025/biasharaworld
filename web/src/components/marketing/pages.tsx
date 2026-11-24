@@ -42,7 +42,6 @@ import {
   Field,
   IconBox,
   SearchField,
-  useToast,
 } from "@/components/ui";
 import { articles, faqs } from "@/lib/data";
 import { CTABanner } from "./site-shell";
@@ -1053,8 +1052,7 @@ export function ArticlePage({ slug }: { slug: string }) {
   );
 }
 
-export function DownloadPage() {
-  const toast = useToast();
+export function DownloadPage({ androidDownloadUrl }: { androidDownloadUrl?: string }) {
   return (
     <>
       <PageIntro
@@ -1083,10 +1081,10 @@ export function DownloadPage() {
             <MiniDashboard />
           </div>
           <Button href="/dashboard" arrow>
-            <T>Open the web demo</T>
+            <T>Open the web workspace</T>
           </Button>
           <span className="quiet-note">
-            <T>No installation required. Sample data only.</T>
+            <T>Sign in from your browser. No installation required.</T>
           </span>
         </div>
         <div className="download-card bg-mint">
@@ -1112,34 +1110,27 @@ export function DownloadPage() {
               height={852}
             />
           </div>
-          <a
-            className="btn btn-dark"
-            href="/downloads/biasharaos-preview.apk"
-            download
-            onClick={() =>
-              toast("Android UI preview download started.", "info")
-            }
-          >
-            <ArrowDownToLine size={17} />
-            <T>Download Android preview</T>
-          </a>
-          <span className="quiet-note">
-            <T>Android 8.0+ · Debug APK · Sample data · About 36 MB</T>
-          </span>
+          {androidDownloadUrl ? (
+            <a className="btn btn-dark" href={androidDownloadUrl}>
+              <ArrowDownToLine size={17} />
+              <T>Download Android app</T>
+            </a>
+          ) : (
+            <p className="quiet-note"><T>The Android release is not yet available to download.</T></p>
+          )}
+          <span className="quiet-note"><T>Requires Android 8.0 or later.</T></span>
         </div>
       </section>
       <section className="container download-note">
         <ShieldCheck size={22} />
         <div>
           <h3>
-            <T>A note about this preview</T>
+            <T>Your business records</T>
           </h3>
           <p>
             <T>
-              The Android APK is a development build for exploring the UI. It is
-              not a production release. There are no real payments, account
-              connections or live AI, and the Android and web demos use separate
-              data.
+              The web and Android workspaces use the same account and business records.
+              At checkout, record payments after you receive them.
             </T>
           </p>
         </div>
@@ -1157,17 +1148,17 @@ export function LegalPage({ type }: { type: "privacy" | "terms" }) {
       </span>
       <h1>
         <T>
-          {privacy ? "Privacy, in plain language." : "Terms for this preview."}
+          {privacy ? "Privacy, in plain language." : "Terms of use"}
         </T>
       </h1>
       <Badge tone="amber">
-        <T>Draft · UI preview only</T>
+        <T>Draft for review</T>
       </Badge>
       <p className="legal-lead">
         <T>
           {privacy
-            ? "This page explains the limited data behaviour of the current BiasharaOS prototype. Production privacy terms must be finalised before a public launch."
-            : "These draft terms describe the current prototype experience. They do not establish production service, payment or financing terms."}
+            ? "This draft describes how the BiasharaOS workspace handles account, business and verification data."
+            : "These draft terms describe the current BiasharaOS workspace. Production terms are pending review."}
         </T>
       </p>
 
@@ -1175,16 +1166,24 @@ export function LegalPage({ type }: { type: "privacy" | "terms" }) {
         {(privacy
           ? [
               [
-                "What the preview stores",
+                "Business records",
                 "Your signed-in business records are stored securely and shared across your devices. Account sessions and display preferences may be retained on your device. Sign out on devices you share.",
               ],
               [
                 "Account forms",
-                "Sign-in, sign-up and password-reset screens demonstrate account flows. They do not create or authenticate a real account. Passwords entered in these forms are not stored in the demo state.",
+                "Supabase Auth processes email signup, sign-in, confirmation and password recovery. Your device retains your account session so you can return to your workspace.",
+              ],
+              [
+                "Owner identity verification",
+                "When identity verification is enabled, business owners submit identity documents and a selfie to Didit. BiasharaOS retains the verification reference and status. Use the hosted verification form for identity documents.",
+              ],
+              [
+                "Online payments",
+                "When a shop enables online payments, Paystack handles its settlement details and customer checkout. BiasharaOS keeps the settlement bank name, the last four account digits, and the payment references needed to match orders and receipts.",
               ],
               [
                 "Messages and requests",
-                "Contact messages, team invitations, supplier orders and financing forms are previews. They are not sent to external recipients. BiasharaAI uses local sample responses.",
+                "Contact messages are saved for staff review. Team invitations and supplier purchase orders are business records. Contact a supplier separately to arrange a purchase.",
               ],
               [
                 "Using the website",
@@ -1192,7 +1191,7 @@ export function LegalPage({ type }: { type: "privacy" | "terms" }) {
               ],
               [
                 "Your controls",
-                "Reset the demo in Account Settings or clear this site’s browser storage to remove locally saved demo data. Avoid entering sensitive information into a prototype.",
+                "Sign out on shared devices. Clearing browser storage removes local session and display data. Contact support for requests about stored account or business data.",
               ],
               [
                 "Before launch",
@@ -1201,24 +1200,24 @@ export function LegalPage({ type }: { type: "privacy" | "terms" }) {
             ]
           : [
               [
-                "A prototype experience",
-                "BiasharaOS is currently a UI prototype for exploring business workflows. Data, reports, supplier listings and staff accounts are illustrative. Do not use sample figures as financial or trading records.",
+                "Your workspace",
+                "Use your own account and keep accurate business records. The business owner must complete identity verification to publish a shop and accept customer orders.",
               ],
               [
                 "Payments and purchasing",
-                "Online payments, automatic supplier orders and financing are not available yet. A recorded payment means a business entered a payment it received; it is not an independent confirmation that money moved.",
+                "Participating shops can accept card or M-Pesa payments for delivered orders through Paystack. BiasharaOS records online payments after provider confirmation. Cash payments are recorded by the merchant. Supplier purchase orders are internal records.",
               ],
               [
                 "Plans and availability",
-                "Pricing is proposed launch pricing. Billing, account security, cross-device sync, lending and live AI require further implementation. Choosing a plan in the demo does not create a paid subscription.",
+                "Plans and pricing are proposed for launch. Subscriptions, lending and external AI services remain unavailable.",
               ],
               [
-                "Use of the preview",
-                "Use the prototype to explore and evaluate the interface. Do not enter real payment credentials, identity documents or other sensitive information.",
+                "Verification and sensitive information",
+                "Submit identity documents through the provider’s hosted verification form. Keep payment credentials and identity documents out of contact messages.",
               ],
               [
                 "Changes and feedback",
-                "The interface and proposed features may change during development. The contact form demonstrates feedback collection but does not send messages in this version.",
+                "The interface and features may change during development. You can send feedback through the contact form.",
               ],
               [
                 "Production terms",

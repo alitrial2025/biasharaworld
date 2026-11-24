@@ -24,6 +24,50 @@ for(const slug of slugs)test(`empty authenticated business: ${slug}`,async({page
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  expect(errors).toEqual([]);
 });
+test('owners can open payment activity from Reports and filter by order', async ({ page }) => {
+ await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: storageKey, value: JSON.stringify(session) });
+ await page.goto('/dashboard/reports');
+ await page.getByRole('link', { name: 'Payment activity' }).click();
+ await expect(page.getByRole('heading', { name: 'Payment activity' })).toBeVisible();
+ await expect(page.getByText('No payments match this view.')).toBeVisible();
+ await page.getByLabel('Payment status').selectOption('pending');
+ await page.getByLabel('Order number').fill('123');
+ const result = page.waitForResponse(response => response.url().includes('/api/payments/activity?status=pending&order=123'));
+ await page.getByRole('button', { name: 'Filter payments' }).click();
+ expect((await result).status()).toBe(200);
+ await expect(page.getByText('No payments match this view.')).toBeVisible();
+});
+test('company verification leads the owner to their required identity check', async ({ page }) => {
+ await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: storageKey, value: JSON.stringify(session) });
+ await page.route('**/api/company-verification', route => route.fulfill({ json: { enabled: true, requiresOwner: true } }));
+ await page.goto('/dashboard/settings');
+ await page.getByRole('link', { name: 'Kenyan company verification' }).click();
+ await expect(page.getByRole('heading', { name: 'Kenyan company verification' })).toBeVisible();
+ const ownerCheck = page.getByRole('link', { name: 'owner identity verification', exact: true });
+ await expect(ownerCheck).toBeVisible();
+ await expect(page.getByRole('button', { name: 'Start verification' })).toHaveCount(0);
+ await ownerCheck.click();
+ await expect(page.getByRole('heading', { name: 'Owner identity verification' })).toBeVisible();
+ await page.getByLabel('Legal structure').selectOption('registered_entity');
+ await page.getByRole('button', { name: 'Confirm legal structure' }).click();
+ await expect(page.getByText('Company or other registered entity', { exact: true })).toBeVisible();
+});
+test('Paystack return checks the pending order with the server', async ({ page }) => {
+ await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: storageKey, value: JSON.stringify(session) });
+ let recorded = false;
+ await page.route('**/api/portal/test-checkout', route => route.fulfill({ json: {
+   business: 'Test merchant', customer: 'Test customer', balance: 0, points: 0, documents: [],
+   orders: [{ id: 123, status: 'Delivered', total: 10000, paid: recorded, onlinePayment: recorded ? null : 'pending' }],
+ } }));
+ await page.route('**/api/payments/order/test-checkout', route => {
+   expect(route.request().postDataJSON()).toEqual({ action: 'refresh', orderId: 123 });
+   recorded = true;
+   return route.fulfill({ json: { status: 'paid' } });
+ });
+ await page.goto('/portal/test-checkout?paymentOrder=123&status=success');
+ await expect(page.getByRole('status')).toHaveText('Payment confirmed for order #123.');
+ await expect(page.getByText(/Payment recorded/)).toBeVisible();
+});
 test('real sign-in, product creation and sign-out',async({page})=>{
  await page.goto('/login');await page.getByLabel('Email address').fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Continue to workspace'}).click();await expect(page.locator('.workspace-main h1')).toContainText('Browser',{timeout:20000});
  await page.goto('/dashboard/inventory');await page.getByRole('button',{name:'Add product',exact:true}).click();const dialog=page.getByRole('dialog');await dialog.getByLabel('Product name').fill('Actual inventory');await dialog.getByLabel('Pack size').fill('1 unit');await dialog.getByLabel('Selling price (KES)').fill('100');await dialog.getByLabel('Cost price (KES)').fill('60');await dialog.getByLabel('Stock quantity').fill('5');await dialog.getByRole('button',{name:'Add product',exact:true}).click();await expect(dialog).not.toBeVisible({timeout:20000});await expect(page.locator('tbody')).toContainText('Actual inventory');

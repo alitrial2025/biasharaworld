@@ -122,7 +122,7 @@ fun DashboardScreen(store: DemoStore, navigate: (Screen) -> Unit, onBranch: () -
                     listOf(
                         Triple("New Sale", Icons.Outlined.PointOfSale, Screen.NEW_SALE),
                         Triple("Add Stock", Icons.Outlined.Inventory2, Screen.STOCK),
-                        Triple("Expenses", Icons.Outlined.Receipt, Screen.REPORTS),
+                        Triple("Expenses", Icons.Outlined.Receipt, if (store.real) Screen.EXPENSES else Screen.REPORTS),
                         Triple("Customers", Icons.Outlined.PeopleOutline, Screen.CUSTOMERS),
                     )
                 val colors = listOf(Green, Color(0xFFEB5E52), Color(0xFF6557DF), Color(0xFF225CB5))

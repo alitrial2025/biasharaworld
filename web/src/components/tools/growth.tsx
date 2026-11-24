@@ -775,10 +775,12 @@ export function OnlineShopTool() {
           title="A shopfront that feels like you."
           action={
             <Badge tone={op.shop.published ? "green" : "gray"}>
-              <T>{op.shop.published ? "Published online" : "Hidden"}</T>
+              <T>{op.shop.published ? "Publishing enabled" : "Hidden"}</T>
             </Badge>
           }
         >
+          <p className="quiet-note">The shop is public only while the owner’s identity is verified.</p>
+          {store.workspace?.role === "Owner" && <Link href="/dashboard/verification">Owner identity verification</Link>}
           <form
             onSubmit={async (e) => {
               e.preventDefault();

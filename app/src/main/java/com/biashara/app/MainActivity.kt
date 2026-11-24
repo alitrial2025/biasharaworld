@@ -152,7 +152,7 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
                             Screen.MORE -> MoreScreen(store, navigate)
                             Screen.CUSTOMERS -> CustomersScreen(store, back)
                             Screen.SUPPLIERS ->
-                                if(store.real)LiveSuppliersScreen(store,back)else SuppliersScreen(store, back) { i ->
+                                if(store.real) LiveSuppliersScreen(store, back) { openTool("compare") } else SuppliersScreen(store, back) { i ->
                                     supplier = i
                                     supplierCart.clear()
                                     navigate(Screen.SUPPLIER)
@@ -181,7 +181,16 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
                                         navigate(Screen.SUPPLIERS)
                                     },
                                 )
-                            Screen.REPORTS -> if(store.real)LiveReportsScreen(store,back)else ReportsScreen(store, back)
+                            Screen.REPORTS -> if (store.real) {
+                                LiveReportsScreen(store, back, onExpenses = { navigate(Screen.EXPENSES) }, onPayments = { navigate(Screen.PAYMENT_ACTIVITY) })
+                            } else ReportsScreen(store, back)
+                            Screen.EXPENSES -> LiveExpensesScreen(store, back)
+                            Screen.VERIFICATION -> LiveVerificationScreen(store, back, onCompany = { navigate(Screen.COMPANY_VERIFICATION) })
+                            Screen.COMPANY_VERIFICATION -> LiveVerificationScreen(store, back, company = true)
+                            Screen.PAYMENT_SETTINGS -> LivePaymentSettingsScreen(store, back) { company ->
+                                navigate(if (company) Screen.COMPANY_VERIFICATION else Screen.VERIFICATION)
+                            }
+                            Screen.PAYMENT_ACTIVITY -> LivePaymentActivityScreen(store, back)
                             Screen.ASSISTANT -> AssistantScreen(store, back)
                             Screen.FINANCE -> FinanceScreen(back)
                             Screen.PROFILE -> ProfileScreen(store, back)

@@ -120,6 +120,23 @@ class LiveBackend(context: Context, private val scope: CoroutineScope, private v
         }
     }
     suspend fun load(){accept(api().optJSONObject("workspace"))}
+    suspend fun identityVerification(action: String? = null, company: Boolean = false, legalStructure: String? = null): JSONObject {
+        val body = action?.let { json("action" to it) }
+        if (legalStructure != null) body?.put("legalStructure", legalStructure)
+        val path = if (company) "/api/company-verification" else "/api/identity-verification"
+        return http(BuildConfig.API_URL, path, if (body == null) "GET" else "POST", body, token())
+    }
+    suspend fun paymentSettlement(details: JSONObject? = null): JSONObject =
+        http(BuildConfig.API_URL, "/api/payments/settlement", if (details == null) "GET" else "POST", details, token())
+    suspend fun paymentActivity(status: String = "all", order: String = "", before: Int? = null): JSONObject {
+        val query = Uri.Builder().appendQueryParameter("status", status)
+        if (order.isNotEmpty()) query.appendQueryParameter("order", order)
+        if (before != null) query.appendQueryParameter("before", before.toString())
+        return http(BuildConfig.API_URL, "/api/payments/activity?${query.build().encodedQuery}", token = token())
+    }
+    suspend fun checkOnlinePayment(order: Int) {
+        http(BuildConfig.API_URL, "/api/payments/activity", "POST", json("order" to order), token())
+    }
     private fun accept(workspace:JSONObject?){
         hasBusiness=workspace!=null
         if(workspace==null){store.clearLive();return}

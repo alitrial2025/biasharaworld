@@ -1,6 +1,6 @@
 # BiasharaOS · Android + web
 
-A native Android UI prototype for the everyday Kenyan entrepreneur. Built in **Kotlin with Jetpack Compose and Material 3**. The UI follows the supplied BiasharaOS reference: photographic shop headers and onboarding, clean white surfaces, pastel metric cards, familiar product imagery, green M-Pesa actions, compact lists and a flat bottom navigation bar.
+BiasharaOS is a business workspace for Kenyan merchants, with a native Android app and a web application. Built in **Kotlin with Jetpack Compose and Material 3**. The UI follows the supplied BiasharaOS reference: photographic shop headers and onboarding, clean white surfaces, pastel metric cards, familiar product imagery, green M-Pesa actions, compact lists and a flat bottom navigation bar.
 
 
 ## Next.js website
@@ -8,14 +8,13 @@ A native Android UI prototype for the everyday Kenyan entrepreneur. Built in **K
 The matching responsive web experience lives in [`web/`](web/README.md): a complete public website, account and onboarding UI, and a business workspace. It adds purchase orders, expenses, staff tools, CSV exports and account settings to the shared sales, stock, customer, supplier and reporting experience.
 
 ```sh
+cd /workspace/biasharaworld
+/workspace/.toolchains/biashara/start-local-backend
 cd web
-npm ci
-npm run dev
-# Verify: npm run lint && npm run build && npm run typecheck
-# Browser workflows: npm run test:e2e
+/workspace/.toolchains/biashara/with-local-backend npm run dev
 ```
 
-Node.js 20.9+ is required. In cloud, run `bash tools/setup-web.sh` from the repository root for a locked install and production checks. Accounts, payments, orders and AI remain frontend demo flows. Web changes persist in browser storage; Android and web do not sync yet.
+Node.js 20.9+ is required. The web and Android workspaces use shared Supabase accounts and business records. The app records payments received by merchants. See the web README for dependency installation, local configuration and test commands.
 
 See [desktop landing preview](design/web/landing-1440.png), [web dashboard](design/web/dashboard-1440.png), and [mobile checkout](design/web/checkout-390.png). Full route coverage, run instructions and UI boundaries are in the [web README](web/README.md).
 
@@ -27,7 +26,7 @@ Open **More → Explore all 20 business tools** on Android or **Business tools �
 
 ## Android app
 
-Open this folder in a current Android Studio, let Gradle sync, then run `app` on an Android 8.0+ emulator or device.
+Open this folder in a current Android Studio, let Gradle sync, then run `app` on an Android 8.0+ emulator or device. For live builds, provide `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `API_URL` as build environment variables or in ignored `backend.properties`. Use HTTPS services and a publishable client key.
 
 Requirements: JDK 17 or 21, Android SDK 35, Build Tools 35.0.0. The checked-in wrapper downloads Gradle 8.11.1. Point `ANDROID_HOME` at your SDK or set `sdk.dir` in an ignored `local.properties`.
 
@@ -58,9 +57,13 @@ In the prepared Codex cloud machine, source `tools/cloud-env.sh` before running 
 - **Business profile:** edit the demo shop details.
 - **Meet Biashara:** a three-step welcome and store setup tour, available from More.
 
-## Scope
+## Product roadmap
 
-This phase prioritises UI and interaction design. There is no backend, authentication, real payment processing, live AI, supplier integration, or lending. Data lives in a ViewModel and is saved to Preferences DataStore, so local business records and display preferences survive app restarts. Reports and historical activity are illustrative. No internet permission is requested. Demo payments and orders are explicitly identified in the UI.
+See the Kenya merchant pilot, shared business features, supplier network, and financial institution expansion. [Product roadmap](docs/product-roadmap.md)
+
+## Release scope
+
+Signed-in businesses start with an empty workspace. Sales, stock, customers, suppliers, expenses, purchase orders and reports use shared business records. Delivered shop orders can accept card and M-Pesa payments once the verified merchant’s Paystack settlement account is connected. Lending and external AI remain deferred. The JVM test harness uses local sample data for design checks. Android live flows still need device acceptance against a dedicated HTTPS deployment. [Release checklist](docs/backend-implementation-plan.md)
 
 ## Structure
 
@@ -70,4 +73,4 @@ Shop, product and financing images are generated prototype assets. Inter is used
 
 ## Backend phase
 
-Vercel and Supabase CLI setup is now documented in [backend setup](docs/backend-setup.md). Use `bash tools/backend-cli.sh vercel ...` or `bash tools/backend-cli.sh supabase ...` so credentials remain outside the checkout. Separate hosted projects have been prepared on the existing free accounts; application authentication and database feature integration are the next implementation phase. The current UI continues to use its local demo data.
+Vercel and Supabase CLI setup is now documented in [backend setup](docs/backend-setup.md). Use `bash tools/backend-cli.sh vercel ...` or `bash tools/backend-cli.sh supabase ...` so credentials remain outside the checkout. Use the isolated local stack for integration tests. The hosted release checklist covers the database, deployment, Android acceptance and email delivery.

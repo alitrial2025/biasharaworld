@@ -201,6 +201,7 @@ export function Field({
 export function SelectField({
   label,
   name,
+  required,
   children,
   defaultValue,
   value,
@@ -208,6 +209,7 @@ export function SelectField({
 }: {
   label: string;
   name?: string;
+  required?: boolean;
   children: ReactNode;
   defaultValue?: string;
   value?: string;
@@ -224,6 +226,7 @@ export function SelectField({
           className="input"
           id={id}
           name={name}
+          required={required}
           defaultValue={defaultValue}
           value={value}
           onChange={(e) => onChange?.(e.target.value)}

@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import com.biashara.app.data.*
+import java.math.BigDecimal
 import java.time.LocalDate
 import org.json.JSONArray
 import org.json.JSONObject
@@ -383,7 +384,7 @@ private fun FormDialog(form: ToolForm, errorProvider: () -> String, onClose: () 
 }
 
 @Composable
-private fun ToolSelect(
+internal fun ToolSelect(
     label: String,
     value: String,
     options: List<Pair<String, String>>,
@@ -1655,9 +1656,11 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                 }
             }
             "compare" -> {
+                val canManageOrders = !store.real || store.backend?.role in listOf("Owner", "Manager")
                 RecordCard(
-                    "The same basket. A clearer comparison.",
-                    "Prepare a sample restock basket, then compare goods, delivery and minimums.",
+                    "Compare supplier costs",
+                    if (store.real) "Compare goods, delivery fees and minimum order amounts before recording a purchase order."
+                    else "Prepare a sample restock basket, then compare goods, delivery and minimums.",
                     Sand,
                 ) {
                     ActionRow(
@@ -1687,10 +1690,11 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                     )
                 }
                 val compare = o.ints("compareCart")
+                val hasStockItems = products.any { it.components.isEmpty() && (compare[it.id] ?: 0) > 0 }
                 store.suppliers.forEachIndexed { i, supplier ->
                     val recorded=store.liveState.records("suppliers").firstOrNull{it.optString("name")==supplier.name}
                     val goods = products.sumOf { p ->
-                        if(store.real)kotlin.math.round((recorded?.optJSONObject("quotes")?.optDouble(p.id.toString(),Double.NaN)?.takeIf{it.isFinite()}?:store.liveState.records("products").firstOrNull{it.optInt("id")==p.id}?.optDouble("cost")?:0.0)*100).toLong()*(compare[p.id]?:0)
+                        if(store.real) purchaseUnitCostMinor(store, recorded, p.id) * (compare[p.id] ?: 0)
                         else p.priceMinor*8/10*(compare[p.id]?:0)*listOf(100,96,103)[i]/100
                     }
                     val fee = if(store.real)kotlin.math.round((recorded?.optDouble("deliveryFee")?:0.0)*100).toLong()else listOf(30000L,35000L,20000L)[i]
@@ -1706,19 +1710,19 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                             fontSize = 23.sp,
                             fontWeight = FontWeight.Bold,
                         )
-                        PrimaryButton(
-                            "Create demo purchase order",
+                        if (canManageOrders) PrimaryButton(
+                            if (store.real) "Create purchase order" else "Create demo purchase order",
                             {
                                 run(
                                     "purchaseOrder",
                                     mapOf(
                                         "supplier" to supplier.name,
-                                        "fee" to (fee / 100).toString(),
+                                        "fee" to if (store.real) BigDecimal.valueOf(fee, 2).toPlainString() else (fee / 100).toString(),
                                         "factor" to if(store.real)"100" else listOf("100", "96", "103")[i],
                                     ),
                                 )
                             },
-                            enabled = goods >= minimum,
+                            enabled = hasStockItems && goods >= minimum,
                             tone = Green,
                         )
                         if (goods < minimum)
@@ -1729,7 +1733,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                             )
                     }
                 }
-                Eyebrow("Local purchase orders")
+                Eyebrow(if (store.real) "Purchase orders · ${ops.branchName}" else "Local purchase orders")
                 o.records("purchaseOrders")
                     .filter { it.optString("branch", "main") == ops.branch }
                     .forEach { order ->
@@ -1738,14 +1742,17 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                             minorMoney(order.optLong("total")),
                         ) {
                             StatusLabel(order.optString("status"))
-                            if (order.optString("status") == "Draft")
+                            if (store.real) order.records("lines").forEach { line ->
+                                AppText("${line.optString("name")} · ${line.optInt("quantity")} × ${minorMoney(line.optLong("unit"))}")
+                            }
+                            if (canManageOrders && order.optString("status") == "Draft")
                                 PrimaryButton(
-                                    "Receive demo goods",
+                                    if (store.real) "Receive goods" else "Receive demo goods",
                                     {
-                                        run(
-                                            "receivePurchaseOrder",
-                                            mapOf("id" to order.optInt("id").toString()),
-                                        )
+                                        val values = mapOf("id" to order.optInt("id").toString())
+                                        if (store.real) ask("receivePurchaseOrder", "Receive goods?", emptyList(), values,
+                                            confirm = "Receive goods", description = "This adds the order quantities to ${ops.branchName}.")
+                                        else run("receivePurchaseOrder", values)
                                     },
                                     tone = Green,
                                 )
@@ -1977,9 +1984,14 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                 val shop = o.objectAt("shop")
                 RecordCard(shop.optString("name"), shop.optString("description"), Mint) {
                     StatusLabel(
-                        if (shop.optBoolean("published")) "Visible in local preview" else "Hidden",
+                        when {
+                            !shop.optBoolean("published") -> "Hidden"
+                            store.real -> "Publishing enabled"
+                            else -> "Visible in local preview"
+                        },
                         Green,
                     )
+                    if (store.real) AppText("The shop is public only while the owner’s identity is verified.")
                     ActionRow(
                         "Edit shop details" to
                             {

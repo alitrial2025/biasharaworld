@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 const url=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-const admin=createClient(url,process.env.SUPABASE_SECRET_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 const base=process.env.TEST_BASE_URL||'http://localhost:3001';
+for (const target of [url,base]) assert.ok(['127.0.0.1','localhost'].includes(new URL(target).hostname),'This suite creates business and verification fixtures and requires a local backend.');
+const admin=createClient(url,process.env.SUPABASE_SECRET_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 const users=[],businesses=[];let passed=0;
 function check(name,fn){fn();passed++;console.log('PASS',name)}
 async function actor(label){const email=`test-${label}-${randomUUID()}@biashara-test.invalid`,password=randomUUID()+'Aa9!';const created=await admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{name:'Backend verification'}});if(created.error)throw created.error;users.push(created.data.user.id);const client=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});const login=await client.auth.signInWithPassword({email,password});if(login.error)throw login.error;return {id:created.data.user.id,email,client,token:login.data.session.access_token}}
@@ -13,7 +14,7 @@ async function command(a,w,command,requestId=randomUUID()){return req(a,{revisio
 try{
  check('Unauthenticated workspace rejected',()=>{});assert.equal((await req(null)).status,401);
  const a=await actor('owner'),b=await actor('other'),c=await actor('staff');
- let w=await create(a);await create(b);
+ let w=await create(a);const otherWorkspace=await create(b);
  check('New businesses contain no sample records',()=>{assert.equal(w.state.products.length,0);assert.equal(w.state.sales.length,0);assert.equal(w.state.operations.receipts.length,0);assert.equal(w.state.customers.length,0);assert.equal(w.state.operations.loyalty['Mary Wambui'],undefined);assert.equal(w.state.operations.branches.length,1)});
  const alien=await b.client.from('business_records').select('*').eq('business_id',w.businessId);check('Cross-tenant reads denied by RLS',()=>{assert.equal(alien.error,null);assert.equal(alien.data.length,0)});
  const write=await a.client.from('business_records').update({state:{hacked:true}}).eq('business_id',w.businessId);check('Authenticated clients cannot upload snapshots',()=>assert.ok(write.error));
@@ -53,17 +54,96 @@ try{
  const transfer=await save({type:'transfer',productId:product.id,quantity:1,to:destination});await save({type:'dispatchTransfer',id:transfer.id});await save({type:'receiveTransfer',id:transfer.id});
  check('Branch transfer updates both stock ledgers once',()=>assert.equal(w.state.operations.stock[destination][product.id],1));
  await save({type:'addSupplier',name:'Recorded supplier',category:'Groceries',description:'Verified test contact',delivery:'Collection',minimum:0,deliveryFee:0});const supplier=w.state.suppliers[0];await save({type:'supplierQuote',id:supplier.id,productId:product.id,cost:55});
+ const bundle=w.state.products.find(p=>p.components?.length===2);
+ r=await command(a,w,{type:'createOrder',supplier:supplier.name,items:[{productId:bundle.id,quantity:1,cost:55}],deliveryFee:0});
+ check('Purchase orders reject bundles before receiving stock',()=>{assert.equal(r.status,400);assert.equal(r.body.error,'Choose individual stock items for this order.')});
  const po=await save({type:'createOrder',supplier:supplier.name,items:[{productId:product.id,quantity:2,cost:55}],deliveryFee:0});await save({type:'receiveOrder',id:po.id});r=await command(a,w,{type:'receiveOrder',id:po.id});check('Supplier quotes and goods receipts are real and single-use',()=>{assert.equal(w.state.suppliers[0].quotes[product.id],55);assert.equal(r.status,400)});
  await save({type:'preferences',language:'sw',theme:'dark',textSize:130});check('Personal preferences persist',()=>assert.equal(w.state.operations.preferences.language,'sw'));
  const audit=await a.client.from('business_commands').select('input').eq('business_id',w.businessId).eq('command_type','checkout');check('Financial commands retain actor-scoped audit inputs',()=>assert.ok(audit.data.every(r=>r.input?.command?.type==='checkout')));
  r=await command(a,w,{type:'inviteMember',member:{name:'Test staff',email:c.email,role:'Cashier'}});assert.equal(r.status,200,JSON.stringify(r.body));w=r.body.workspace;
  const staff=(await req(c)).body.workspace;check('Verified invited email joins the correct business',()=>{assert.equal(staff.businessId,w.businessId);assert.equal(staff.role,'Cashier')});
  r=await command(c,staff,{type:'addProduct',product:{name:'Forbidden',size:'',sku:'NO',category:'Food',price:1,cost:0,stock:0,reorder:1,art:0}});check('Cashier cannot edit inventory',()=>assert.equal(r.status,400));
- w=(await req(a)).body.workspace;r=await command(a,w,{type:'shop',published:true,name:'Verification shop'});assert.equal(r.status,200,JSON.stringify(r.body));w=r.body.workspace;
+ w=(await req(a)).body.workspace;
+ const ownerVerification=await req(a,null,'/api/identity-verification');
+ const staffVerification=await req(c,null,'/api/identity-verification');
+ const fabricated=await req(a,{action:'refresh',status:'Approved'},'/api/identity-verification');
+ check('Only the owner can use verification and clients cannot supply a decision',()=>{
+  assert.equal(ownerVerification.status,200);assert.equal(staffVerification.status,403);assert.equal(fabricated.status,400);
+ });
+ const companyPath='/api/company-verification';
+ const companyStaff=await req(c,null,companyPath);
+ const companyForged=await req(a,{action:'refresh',representativeReview:'Approved'},companyPath);
+ const reviewArgs={target_business:w.businessId,company_session:randomUUID(),identity_session:randomUUID(),decision:'Approved',ops_case_reference:randomUUID(),operator_reference:'test'};
+ const clientReview=await a.client.rpc('review_company_representative',reviewArgs);
+ const serviceReview=await admin.rpc('review_company_representative',reviewArgs);
+ check('Company review is reserved for operators and client decisions are rejected',()=>{
+  assert.equal(companyStaff.status,403);assert.equal(companyForged.status,400);
+  assert.equal(clientReview.error?.code,'42501');assert.equal(serviceReview.error?.code,'42501');
+ });
+ r=await command(a,w,{type:'shop',published:true,name:'Verification shop'});
+ check('Unverified businesses cannot publish a shop',()=>assert.equal(r.status,403));
+ const approval=await admin.from('business_identity_verifications').insert({business_id:w.businessId,owner_id:a.id,workflow_id:randomUUID(),session_id:randomUUID(),status:'Approved',checked_at:new Date().toISOString()});
+ assert.equal(approval.error,null);
+ const declare={action:'declare',legalStructure:'individual'};
+ const approvedWithoutStructure=await command(a,w,{type:'shop',published:true});
+ const staffDeclaration=await req(c,declare,'/api/identity-verification');
+ const declaration=await req(a,declare,'/api/identity-verification');
+ const repeatedDeclaration=await req(a,declare,'/api/identity-verification');
+ const changedDeclaration=await req(a,{...declare,legalStructure:'registered_entity'},'/api/identity-verification');
+ check('Owner must declare a legal structure, and retry cannot change that declaration',()=>{
+  assert.equal(approvedWithoutStructure.status,403);assert.equal(staffDeclaration.status,403);
+  assert.equal(declaration.body.merchantStatus,'verified');assert.equal(repeatedDeclaration.status,200);assert.equal(changedDeclaration.status,409);
+ });
+ const companyDeclaration=await req(b,{...declare,legalStructure:'registered_entity'},'/api/identity-verification');
+ assert.equal(companyDeclaration.status,200);
+ const companyOwnerApproval=await admin.from('business_identity_verifications').insert({business_id:otherWorkspace.businessId,owner_id:b.id,workflow_id:randomUUID(),session_id:randomUUID(),status:'Approved',checked_at:new Date().toISOString()});
+ assert.equal(companyOwnerApproval.error,null);
+ const companyStatus=await req(b,null,'/api/identity-verification');
+ const companySettlement=await admin.from('merchant_payment_accounts').insert({business_id:otherWorkspace.businessId,owner_id:b.id,bank_name:'Fixture',account_last_four:'0001'});
+ const companyPublish=await command(b,otherWorkspace,{type:'shop',published:true});
+ check('Company cannot publish or connect settlement with only personal KYC',()=>{
+  assert.equal(companyStatus.body.merchantStatus,'company_verification_required');
+  assert.equal(companyPublish.status,403);assert.equal(companySettlement.error?.code,'42501');
+ });
+ r=await command(a,w,{type:'shop',published:true,name:'Verification shop'});assert.equal(r.status,200,JSON.stringify(r.body));w=r.body.workspace;
  const shop=await req(null,null,'/api/shop/'+w.slug);check('Public shop excludes costs and private records',()=>{assert.equal(shop.status,200);assert.equal(shop.body.products[0].cost,undefined);assert.equal(shop.body.customers,undefined)});
- r=await req(b,{requestId:randomUUID(),cart:{[product.id]:1},address:'Collect at shop'},'/api/shop/'+w.slug);assert.equal(r.status,200,JSON.stringify(r.body));
+ const customerOrder={requestId:randomUUID(),cart:{[product.id]:1},address:'Collect at shop'};
+ r=await req(b,customerOrder,'/api/shop/'+w.slug);assert.equal(r.status,200,JSON.stringify(r.body));
  const portal=await req(b,null,'/api/portal/'+w.slug),stranger=await req(c,null,'/api/portal/'+w.slug);check('Customer sees only their own orders',()=>{assert.equal(portal.body.orders.length,1);assert.equal(stranger.body.orders.length,0)});
- console.log(JSON.stringify({passed,failed:0,project:'rhgoiebknrpxtouswaar'}));
+ const reference=`biashara-${randomUUID()}`;
+ const payment=await admin.from('customer_order_payments').insert({business_id:w.businessId,order_id:r.body.id,user_id:b.id,reference,amount_minor:12500,subaccount_code:'ACCT_testprivate',checkout_url:'https://checkout.paystack.com/testprivate'});
+ assert.equal(payment.error,null);
+ const revoked=await admin.from('business_identity_verifications').update({status:'Kyc Expired'}).eq('business_id',w.businessId);
+ assert.equal(revoked.error,null);
+ const closed=await req(null,null,'/api/shop/'+w.slug);
+ const blockedOrder=await req(b,{requestId:randomUUID(),cart:{[product.id]:1},address:'Collect at shop'},'/api/shop/'+w.slug);
+ const retriedOrder=await req(b,customerOrder,'/api/shop/'+w.slug);
+ const previousOrders=await req(b,null,'/api/portal/'+w.slug);
+ check('Expired verification stops new orders and preserves existing customer access',()=>{
+  assert.equal(closed.status,404);assert.equal(blockedOrder.status,404);assert.equal(retriedOrder.status,200);
+  assert.equal(retriedOrder.body.id,r.body.id);assert.equal(previousOrders.body.orders.length,1);
+ });
+ const ownerActivity=await req(a,null,`/api/payments/activity?status=pending&order=${r.body.id}`);
+ const otherActivity=await req(b,null,'/api/payments/activity');
+ const cashierActivity=await req(c,null,'/api/payments/activity');
+ const cashierRefresh=await req(c,{order:r.body.id},'/api/payments/activity');
+ const otherRefresh=await req(b,{order:r.body.id},'/api/payments/activity');
+ const invalidActivity=await req(a,null,'/api/payments/activity?order=1e3');
+ w=(await req(a)).body.workspace;
+ const member=w.state.members.find(m=>m.email===c.email);
+ const promotion=await command(a,w,{type:'updateMember',id:member.id,role:'Manager'});
+ assert.equal(promotion.status,200);
+ const managerActivity=await req(c,null,'/api/payments/activity');
+ check('Payment activity isolates businesses, limits roles and hides checkout and settlement credentials',()=>{
+  assert.equal(ownerActivity.status,200);assert.equal(ownerActivity.body.entries.length,1);
+  const entry=ownerActivity.body.entries[0];assert.equal(entry.reference,reference);assert.equal(entry.amount_minor,12500);
+  for(const field of ['user_id','checkout_url','subaccount_code']) assert.ok(!(field in entry));
+  assert.equal(otherActivity.status,200);assert.equal(otherActivity.body.entries.length,0);
+  assert.equal(cashierActivity.status,403);assert.equal(cashierRefresh.status,403);assert.equal(otherRefresh.status,404);
+  assert.equal(managerActivity.status,200);assert.equal(managerActivity.body.entries[0].reference,reference);
+  assert.equal(invalidActivity.status,400);
+ });
+ console.log(JSON.stringify({passed,failed:0,backend:new URL(url).hostname}));
 }finally{
  for(const id of businesses){await admin.from('business_commands').delete().eq('business_id',id);await admin.from('businesses').delete().eq('id',id)}
  for(const id of users){const r=await admin.auth.admin.deleteUser(id);if(r.error)console.error('Test account cleanup failed:',r.error.message)}

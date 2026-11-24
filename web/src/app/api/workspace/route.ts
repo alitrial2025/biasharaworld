@@ -3,6 +3,7 @@ import {z} from 'zod';
 import {admin,identity,loadBusiness,ensureBusiness,fail,json,ApiError} from '@/lib/backend/server';
 import {applyCommand} from '@/lib/backend/commands';
 import {splitState} from '@/lib/backend/empty';
+import {merchantVerificationStatus,verificationRequired} from '@/lib/backend/merchant-verification';
 export const dynamic='force-dynamic';
 export async function GET(request:Request) {
  try {return json({workspace:await loadBusiness(await identity(request))});}catch(e){return fail(e)}
@@ -31,12 +32,25 @@ export async function POST(request:Request) {
   if(input.revision!==workspace.revision) throw new ApiError('Records changed. Refresh and review before trying again.',409);
   if(input.draft)Object.assign(workspace.state.operations,input.draft);
   const result=applyCommand(workspace.state,input.command,workspace.role);
+  const command=input.command as {type:string;published?:boolean;id?:number};
+  if(command.type==='shop' && command.published===true) {
+   const status=await merchantVerificationStatus(workspace.businessId);
+   if(status!=='verified')throw new ApiError(verificationRequired[status],403);
+  }
+  if(command.type==='return') {
+   const online=await admin().from('customer_order_payments').select('receipt_id')
+    .eq('business_id',workspace.businessId).eq('receipt_id',command.id).maybeSingle();
+   if(online.error)throw new ApiError('Could not verify the receipt before recording a return.',503);
+   if(online.data)throw new ApiError('This receipt was paid online. Review the refund in Paystack and contact support to reconcile the return.',409);
+  }
   const {business,workspace:personal}=splitState(result.state);
   const {data,error}=await admin().rpc('commit_business_command',{
    p_business:workspace.businessId,p_user:user.id,p_revision:workspace.revision,p_request:input.requestId,p_hash:hash,
    p_type:(input.command as {type:string}).type,p_state:business,p_workspace:personal,p_result:{message:result.message,id:result.id},p_input:{command:input.command,...(input.draft?{draft:input.draft}:{})}
   });
   if(data?.conflict)throw new ApiError('Records changed. Refresh and review before trying again.',409);
+  if(error?.code==='42501' && error.message.includes('Merchant verification is required'))throw new ApiError('Complete merchant verification before publishing the shop.',403);
+  if(error?.code==='42501' && error.message.includes('online payment is pending'))throw new ApiError('An online payment is pending for this order. Check its status before recording cash.',409);
   if(error) throw new ApiError(error.code==='40001'?'Records changed. Refresh and review before trying again.':'The change could not be confirmed. Retry the same request safely.',error.code==='40001'?409:503);
   return json({workspace:await loadBusiness(user),result:data});
  } catch(e) {return fail(e)}

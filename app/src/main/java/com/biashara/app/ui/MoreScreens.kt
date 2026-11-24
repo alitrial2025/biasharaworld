@@ -85,7 +85,16 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
         )
         Column {
             MenuRow(Icons.Outlined.PersonOutline, "Business Profile") { navigate(Screen.PROFILE) }
-            MenuRow(
+            if (store.backend?.role == "Owner") {
+                MenuRow(Icons.Outlined.VerifiedUser, "Owner identity verification") { navigate(Screen.VERIFICATION) }
+                MenuRow(Icons.Outlined.VerifiedUser, "Kenyan company verification") { navigate(Screen.COMPANY_VERIFICATION) }
+            }
+            if (store.backend?.role == "Owner") MenuRow(
+                Icons.Outlined.AccountBalanceWallet,
+                "Online payments",
+                "Kenyan bank settlement",
+            ) { navigate(Screen.PAYMENT_SETTINGS) }
+            if (!store.real) MenuRow(
                 Icons.Outlined.AccountBalanceWallet,
                 "Payment Methods",
                 "M-Pesa, Bank Accounts",
@@ -120,13 +129,14 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
             Eyebrow("Business tools")
             MenuRow(Icons.Outlined.PeopleOutline, "Customers") { navigate(Screen.CUSTOMERS) }
             MenuRow(Icons.Outlined.LocalShipping, "Suppliers") { navigate(Screen.SUPPLIERS) }
+            if (store.real) MenuRow(Icons.Outlined.Receipt, "Expenses") { navigate(Screen.EXPENSES) }
             MenuRow(Icons.Outlined.BarChart, "Reports") { navigate(Screen.REPORTS) }
             MenuRow(Icons.Outlined.AutoAwesome, "BiasharaAI") { navigate(Screen.ASSISTANT) }
             MenuRow(Icons.Outlined.Spa, "Business Financing") { navigate(Screen.FINANCE) }
             MenuRow(Icons.Outlined.WavingHand, "Meet Biashara") { navigate(Screen.SETUP) }
         }
         AppText(
-            "BiasharaOS · UI preview 0.1.0",
+            if (store.real) "BiasharaOS · 0.1.0" else "BiasharaOS · UI preview 0.1.0",
             fontSize = 10.sp,
             color = Muted,
             modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -140,7 +150,7 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
                 AppText(
                     when (title) {
                         "Payment Methods" ->
-                            "M-Pesa and bank account connections will be available when payments are integrated. You can already try the demo checkout."
+                            "You can try payment methods using the demo checkout."
                         "Staff Management" ->
                             if(store.real)store.liveState.records("members").joinToString("\n"){"${it.optString("name")} · ${it.optString("role")} · ${it.optString("status")}"}+"\nManage invitations on the website." else "Sample team"
                         "App Settings" ->
@@ -148,7 +158,8 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
                         "Log Out" ->
                             "You are exploring a demo store. Account sign-in and sign-out will be added with authentication."
                         else ->
-                            "Explore selling, stock, customers, suppliers and reports. This UI preview uses local demo data. Payments, orders, financing and AI are not connected to live services."
+                            if (store.real) "Use Business tools to manage sales, inventory, customers, suppliers and reports. Open Connection status to check or retry a workspace update."
+                            else "Explore selling, stock, customers, suppliers and reports using sample data."
                     }
                 )
             },

@@ -2,11 +2,16 @@
 """Apply reviewed additive migrations to the dedicated BiasharaOS project via Management API.
 Credentials stay outside source; migration hashes prevent unnoticed edits/reapplication.
 """
-import hashlib,json,pathlib,urllib.request
+import argparse,hashlib,json,pathlib,re,urllib.request
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 TOKEN=pathlib.Path('/workspace/.config/biashara-cli/supabase/access-token').read_text().strip()
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--project-ref',default='rhgoiebknrpxtouswaar',help='Supabase project reference')
+project_ref=parser.parse_args().project_ref
+if not re.fullmatch('[a-z]{20}',project_ref):
+ raise SystemExit('Provide a valid Supabase project reference.')
 def sql(query):
- r=urllib.request.urlopen(urllib.request.Request('https://api.supabase.com/v1/projects/rhgoiebknrpxtouswaar/database/query',data=json.dumps({'query':query}).encode(),headers={'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json'}),timeout=60)
+ r=urllib.request.urlopen(urllib.request.Request(f'https://api.supabase.com/v1/projects/{project_ref}/database/query',data=json.dumps({'query':query}).encode(),headers={'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json'}),timeout=60)
  return json.load(r)
 sql('create schema if not exists app_migrations; create table if not exists app_migrations.applied(name text primary key, sha256 text not null, applied_at timestamptz not null default now());')
 for p in sorted((ROOT/'supabase/migrations').glob('*.sql')):

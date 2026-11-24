@@ -178,9 +178,9 @@ export function SupplierDetailPage({ id }: { id: string }) {
   const [created, setCreated] = useState<Order | null>(null);
   const toast = useToast();
   const products = state.products.filter(
-    (p) => filter === "All" || p.category === filter,
+    (p) => !p.components?.length && (filter === "All" || p.category === filter),
   );
-  const lines = state.products.filter((p) => quantities[p.id] > 0);
+  const lines = state.products.filter((p) => !p.components?.length && quantities[p.id] > 0);
   const subtotal = lines.reduce((sum, p) => sum + (supplier?.quotes?.[p.id]??p.cost) * quantities[p.id], 0);
   function change(id: number, n: number) {
     setQuantities((q) => ({
@@ -202,7 +202,7 @@ export function SupplierDetailPage({ id }: { id: string }) {
     );
     setCreated(order);
     setQuantities({});
-    toast("Sample order created. Nothing was sent to the supplier.");
+    toast("Purchase order saved. Contact the supplier to arrange delivery.");
   
  } catch { /* The shared connection banner retains the server error and retry action. */ }
 }
