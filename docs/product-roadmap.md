@@ -10,7 +10,7 @@ This roadmap distinguishes work implemented in the branch, work needed for a pro
 | --- | --- | --- |
 | 1 · Kenyan merchant pilot | In progress | Owner and company activation gates and Paystack card and M-Pesa checkout are deployed on Vercel and Supabase. Provider credentials, real sandbox tests, reviewer assignment, physical-device acceptance and pilot settlement remain open. |
 | 2–3 · Business operations, suppliers and Kenyan payments | In progress | Web and Android support invoice deposits, service bookings, customer service notes, opening data imports, financial reports, supplier exchange and stock receipt, and settlement statement matching. Paystack bank transfer is wired behind an enablement setting. |
-| Sector workspaces | Implemented locally | Web and Android onboarding offer 19 business types. The dashboard shows industry tools and shared essentials. Workspace search opens additional tools. Sector records share the Supabase backend. Staging rollout and physical-device acceptance remain open. |
+| Sector workspaces | Web deployed, Android source ready | Web and Android onboarding offer 19 business types. The dashboard shows industry tools and shared essentials. Workspace search opens additional tools. Sector records share the Supabase backend. Hosted staging verified onboarding and sector records. Physical-device acceptance remains open. |
 
 See completed local checks and the evidence required before release. [Release checklist](backend-implementation-plan.md) · [Kenya pilot runbook](kenya-pilot-runbook.md)
 
