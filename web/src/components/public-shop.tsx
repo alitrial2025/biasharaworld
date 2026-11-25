@@ -9,14 +9,26 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
-import { ShoppingBag, Search, Mail, MapPin, Phone } from "lucide-react";
-import { Brand, Button, Field, ProductArt } from "./ui";
+import {
+  ShoppingBag,
+  Search,
+  Mail,
+  MapPin,
+  Phone,
+  ArrowLeft,
+  ArrowUpRight,
+  PackageOpen,
+  Plus,
+  Minus,
+} from "lucide-react";
+import { Brand, Button, Field } from "./ui";
 import { supabase } from "@/lib/supabase";
 import { cash } from "@/lib/operations";
 import {
   storefrontPalettes,
   type PublicStorefront,
   type ShopCatalog,
+  type ShopProduct,
 } from "@/lib/storefront";
 
 const unstyled: PublicStorefront = {
@@ -35,6 +47,77 @@ const unstyled: PublicStorefront = {
   hours: "",
 };
 
+function photoStyle(url: string): CSSProperties | undefined {
+  return url ? { backgroundImage: `url(${JSON.stringify(url)})` } : undefined;
+}
+
+function ProductPhoto({ product }: { product: ShopProduct }) {
+  return (
+    <div
+      className={`storefront-product-photo ${product.image ? "has-image" : ""}`}
+      style={photoStyle(product.image ?? "")}
+      role={product.image ? "img" : undefined}
+      aria-label={product.image ? product.name : undefined}
+      aria-hidden={product.image ? undefined : true}
+    >
+      {!product.image && <PackageOpen size={34} strokeWidth={1.25} />}
+    </div>
+  );
+}
+
+function Quantity({
+  product,
+  count,
+  edit,
+}: {
+  product: ShopProduct;
+  count: number;
+  edit: (id: number, count: number) => void;
+}) {
+  return product.stock ? (
+    <div className="storefront-quantity">
+      <button
+        type="button"
+        aria-label={`Remove one ${product.name}`}
+        disabled={count < 1}
+        onClick={() => edit(product.id, count - 1)}
+      >
+        <Minus size={16} />
+      </button>
+      <input
+        aria-label={`Quantity for ${product.name}`}
+        inputMode="numeric"
+        type="number"
+        min={0}
+        max={product.stock}
+        value={count}
+        onChange={(event) =>
+          edit(
+            product.id,
+            Math.max(
+              0,
+              Math.min(
+                product.stock,
+                Math.floor(Number(event.target.value) || 0),
+              ),
+            ),
+          )
+        }
+      />
+      <button
+        type="button"
+        aria-label={`Add one ${product.name}`}
+        disabled={count >= product.stock}
+        onClick={() => edit(product.id, count + 1)}
+      >
+        <Plus size={16} />
+      </button>
+    </div>
+  ) : (
+    <p className="storefront-stock">Out of stock</p>
+  );
+}
+
 export function StorefrontDesign({
   design,
   shop,
@@ -43,6 +126,9 @@ export function StorefrontDesign({
   edit,
   preview = false,
   header,
+  path,
+  product,
+  missingProduct,
 }: {
   design: PublicStorefront;
   shop: ShopCatalog;
@@ -51,9 +137,14 @@ export function StorefrontDesign({
   edit?: (id: number, count: number) => void;
   preview?: boolean;
   header?: ReactNode;
+  path?: string;
+  product?: ShopProduct;
+  missingProduct?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
+  const [sort, setSort] = useState("");
+  const [inStock, setInStock] = useState(false);
   const palette =
     storefrontPalettes.find((theme) => theme.id === design.palette) ??
     storefrontPalettes[0];
@@ -64,71 +155,156 @@ export function StorefrontDesign({
   const template = design.template || "market";
   const name = design.name || shop.name || "Your shop";
   const categories = [
-    ...new Set(
-      shop.products.map((product) => product.category).filter(Boolean),
-    ),
+    ...new Set(shop.products.map((item) => item.category).filter(Boolean)),
   ].sort();
   const products = shop.products.filter(
-    (product) =>
-      (!category || product.category === category) &&
-      `${product.name} ${product.size} ${product.category}`
+    (item) =>
+      (!category || item.category === category) &&
+      (!inStock || item.stock > 0) &&
+      `${item.name} ${item.size} ${item.category}`
         .toLowerCase()
         .includes(query.trim().toLowerCase()),
   );
-  const cover = design.cover
-    ? { backgroundImage: `url(${JSON.stringify(design.cover)})` }
-    : undefined;
-  const logo = design.logo
-    ? { backgroundImage: `url(${JSON.stringify(design.logo)})` }
-    : undefined;
+  if (sort === "low") products.sort((a, b) => a.price - b.price);
+  if (sort === "high") products.sort((a, b) => b.price - a.price);
+  if (sort === "name") products.sort((a, b) => a.name.localeCompare(b.name));
+
+  const heroPhoto =
+    design.cover || shop.products.find((item) => item.image)?.image || "";
+  const logo = (
+    <>
+      {design.logo && (
+        <span
+          className="storefront-logo"
+          style={photoStyle(design.logo)}
+          aria-hidden="true"
+        />
+      )}
+      {name}
+    </>
+  );
+  const hasContact = Boolean(
+    design.email ||
+      design.phone ||
+      design.whatsapp ||
+      design.hours ||
+      (design.pickup && design.fulfillment === "pickup"),
+  );
+  const catalogueLink = shop.products.length
+    ? "#catalogue"
+    : shop.services?.length
+      ? "#services"
+      : hasContact
+        ? "#contact"
+        : null;
+
   return (
     <div
       className={`storefront storefront-${template} ${preview ? "storefront-preview" : ""}`}
       style={style}
     >
       <header className="storefront-bar">
-        <span className="storefront-wordmark">
-          {logo && (
-            <span className="storefront-logo" style={logo} aria-hidden="true" />
-          )}
-          {name}
-        </span>
+        {path ? (
+          <Link href={path} className="storefront-wordmark">
+            {logo}
+          </Link>
+        ) : (
+          <span className="storefront-wordmark">{logo}</span>
+        )}
         {header}
       </header>
-      <section className="storefront-hero">
-        <div className="storefront-intro">
-          <h1>{design.headline || name}</h1>
-          {(design.description || shop.description) && (
-            <p>{design.description || shop.description}</p>
-          )}
-          {!preview && shop.products.length > 0 && (
-            <a href="#catalogue">Browse products</a>
-          )}
-        </div>
-        {(template !== "directory" || cover) && (
-          <div className="storefront-cover" style={cover} aria-hidden="true">
-            {!cover &&
-              (shop.products[0] ? (
-                <ProductArt
-                  art={shop.products[0].art}
-                  name={shop.products[0].name}
-                />
-              ) : (
-                <ShoppingBag strokeWidth={1} size={62} />
-              ))}
+      {!product && (
+        <section
+          className={`storefront-hero ${heroPhoto ? "storefront-hero-photo" : ""}`}
+        >
+          <div className="storefront-intro">
+            <h1>{design.headline || name}</h1>
+            {(design.description || shop.description) && (
+              <p>{design.description || shop.description}</p>
+            )}
+            {!preview && catalogueLink && (
+              <a className="storefront-cta" href={catalogueLink}>
+                {shop.products.length
+                  ? "Browse products"
+                  : shop.services?.length
+                    ? "Explore services"
+                    : "Contact us"}
+                <ArrowUpRight size={18} aria-hidden="true" />
+              </a>
+            )}
           </div>
-        )}
-      </section>
+          {heroPhoto && (
+            <div
+              className="storefront-cover"
+              style={photoStyle(heroPhoto)}
+              aria-hidden="true"
+            />
+          )}
+        </section>
+      )}
       <div className="storefront-content">
-        {shop.products.length > 0 && (
+        {missingProduct && (
+          <p role="status">
+            This product is no longer listed. Browse the current catalogue
+            below.
+          </p>
+        )}
+        {product && (
+          <section className="storefront-product-detail">
+            <div className="storefront-detail-media">
+              <ProductPhoto product={product} />
+            </div>
+            <div className="storefront-detail-info">
+              <Link className="storefront-back" href={`${path}#catalogue`}>
+                <ArrowLeft size={16} /> All products
+              </Link>
+              {product.category && (
+                <p className="storefront-product-category">
+                  {product.category}
+                </p>
+              )}
+              <h1>{product.name}</h1>
+              {product.size && <p>{product.size}</p>}
+              {product.description && (
+                <p className="storefront-detail-description">
+                  {product.description}
+                </p>
+              )}
+              <strong className="storefront-detail-price">
+                {cash(Math.round(product.price * 100))}
+              </strong>
+              {edit && (
+                <Quantity
+                  product={product}
+                  count={cart?.[product.id] ?? 0}
+                  edit={edit}
+                />
+              )}
+              {!!cart?.[product.id] && (
+                <a className="storefront-cta" href="#order">
+                  View basket <ArrowUpRight size={17} />
+                </a>
+              )}
+            </div>
+          </section>
+        )}
+        {!product && shop.products.length > 0 && (
           <section
             id={preview ? undefined : "catalogue"}
             className="storefront-catalogue"
           >
-            <h2>{template === "studio" ? "The collection" : "Products"}</h2>
+            <div className="storefront-section-heading">
+              <h2>{template === "studio" ? "The collection" : "Products"}</h2>
+              {!preview && (
+                <span>
+                  {products.length}{" "}
+                  {products.length === 1 ? "product" : "products"}
+                </span>
+              )}
+            </div>
             <div className="storefront-filters">
               <label className="storefront-search">
-                <Search size={18} />
+                <Search size={18} aria-hidden="true" />
                 <input
                   aria-label="Search this shop"
                   placeholder="Find a product"
@@ -136,74 +312,109 @@ export function StorefrontDesign({
                   onChange={(event) => setQuery(event.target.value)}
                 />
               </label>
-              {categories.length > 1 && (
-                <div
-                  className="storefront-categories"
-                  aria-label="Product categories"
+              <select
+                aria-label="Sort products"
+                value={sort}
+                onChange={(event) => setSort(event.target.value)}
+              >
+                <option value="">Featured</option>
+                <option value="name">Name A–Z</option>
+                <option value="low">Price, low to high</option>
+                <option value="high">Price, high to low</option>
+              </select>
+              <label className="storefront-in-stock">
+                <input
+                  type="checkbox"
+                  checked={inStock}
+                  onChange={(event) => setInStock(event.target.checked)}
+                />{" "}
+                In stock
+              </label>
+            </div>
+            {categories.length > 1 && (
+              <div
+                className="storefront-categories"
+                aria-label="Product categories"
+              >
+                <button
+                  type="button"
+                  aria-pressed={!category}
+                  onClick={() => setCategory("")}
                 >
+                  All
+                </button>
+                {categories.map((item) => (
                   <button
                     type="button"
-                    aria-pressed={!category}
-                    onClick={() => setCategory("")}
+                    key={item}
+                    aria-pressed={item === category}
+                    onClick={() => setCategory(item)}
                   >
-                    All
+                    {item}
                   </button>
-                  {categories.map((item) => (
-                    <button
-                      type="button"
-                      key={item}
-                      aria-pressed={item === category}
-                      onClick={() => setCategory(item)}
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
             {products.length === 0 && <p>No products match your search.</p>}
             <div className="storefront-products">
-              {products.map((product) => (
-                <article key={product.id}>
-                  <ProductArt art={product.art} name={product.name} />
+              {products.map((item) => (
+                <article key={item.id}>
+                  {path ? (
+                    <Link
+                      href={`${path}?product=${item.id}`}
+                      className="storefront-item-link"
+                    >
+                      <ProductPhoto product={item} />
+                      <span className="storefront-detail-arrow">
+                        <ArrowUpRight size={18} aria-hidden="true" />
+                      </span>
+                      <span className="storefront-visit-label">
+                        View {item.name}
+                      </span>
+                    </Link>
+                  ) : (
+                    <ProductPhoto product={item} />
+                  )}
                   <div className="storefront-product-title">
-                    <h3>{product.name}</h3>
-                    <span>{product.size}</span>
+                    {item.category && (
+                      <p className="storefront-product-category">
+                        {item.category}
+                      </p>
+                    )}
+                    <h3>
+                      {path ? (
+                        <Link href={`${path}?product=${item.id}`}>
+                          {item.name}
+                        </Link>
+                      ) : (
+                        item.name
+                      )}
+                    </h3>
+                    {item.size && <span>{item.size}</span>}
                   </div>
-                  <strong>{cash(Math.round(product.price * 100))}</strong>
+                  <strong className="storefront-product-price">
+                    {cash(Math.round(item.price * 100))}
+                  </strong>
                   {edit && (
-                    <label className="storefront-quantity">
-                      <span>{product.stock ? "Quantity" : "Out of stock"}</span>
-                      <input
-                        aria-label={`Quantity for ${product.name}`}
-                        type="number"
-                        min={0}
-                        max={product.stock}
-                        value={cart?.[product.id] || 0}
-                        disabled={!product.stock}
-                        onChange={(event) =>
-                          edit(
-                            product.id,
-                            Math.max(
-                              0,
-                              Math.min(
-                                product.stock,
-                                Math.floor(Number(event.target.value) || 0),
-                              ),
-                            ),
-                          )
-                        }
-                      />
-                    </label>
+                    <Quantity
+                      product={item}
+                      count={cart?.[item.id] ?? 0}
+                      edit={edit}
+                    />
                   )}
                 </article>
               ))}
             </div>
           </section>
         )}
-        {!!shop.services?.length && (
-          <section className="storefront-services">
-            <h2>Services</h2>
+        {!product && !!shop.services?.length && (
+          <section
+            id={preview ? undefined : "services"}
+            className="storefront-services"
+          >
+            <div className="storefront-section-heading">
+              <h2>Services</h2>
+            </div>
             {shop.services.map((service) => (
               <article key={service.id}>
                 <h3>{service.name}</h3>
@@ -214,24 +425,23 @@ export function StorefrontDesign({
           </section>
         )}
         {children}
-        {(design.email ||
-          design.phone ||
-          design.whatsapp ||
-          design.hours ||
-          design.pickup) && (
-          <section className="storefront-contact">
+        {hasContact && (
+          <section
+            id={preview ? undefined : "contact"}
+            className="storefront-contact"
+          >
             <h2>Contact</h2>
             <div>
               {design.email && (
                 <a href={`mailto:${design.email}`}>
                   <Mail size={17} />
-                  {design.email}
+                  <span>{design.email}</span>
                 </a>
               )}
               {design.phone && (
                 <a href={`tel:${design.phone.replace(/[ ()-]/g, "")}`}>
                   <Phone size={17} />
-                  {design.phone}
+                  <span>{design.phone}</span>
                 </a>
               )}
               {design.whatsapp && (
@@ -246,7 +456,7 @@ export function StorefrontDesign({
               {design.pickup && design.fulfillment === "pickup" && (
                 <span>
                   <MapPin size={17} />
-                  {design.pickup}
+                  <span>{design.pickup}</span>
                 </span>
               )}
               {design.hours && <span>{design.hours}</span>}
@@ -262,17 +472,18 @@ export function PublicShop({
   slug,
   username,
   design = unstyled,
-  initial,
+  initial: shop,
+  productId,
 }: {
   slug: string;
   username?: string;
   design?: PublicStorefront;
-  initial?: ShopCatalog;
+  initial: ShopCatalog;
+  productId?: number;
 }) {
   const path = username ? `/${username}` : `/shop/${slug}`;
   const key = `biashara-shop-basket:${slug}`;
   const apiPath = `/api/shop/${encodeURIComponent(slug)}`;
-  const [shop, setShop] = useState<ShopCatalog | null>(initial ?? null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -284,21 +495,6 @@ export function PublicShop({
   } | null>(null);
 
   useEffect(() => {
-    if (initial) return;
-    const controller = new AbortController();
-    void fetch(apiPath, { cache: "no-store", signal: controller.signal })
-      .then(async (result) => {
-        const data = await result.json();
-        if (!result.ok) throw new Error(data.error);
-        setShop(data);
-      })
-      .catch((error) => {
-        if (!controller.signal.aborted) setError(error.message);
-      });
-    return () => controller.abort();
-  }, [apiPath, initial]);
-
-  useEffect(() => {
     Promise.resolve().then(() => {
       try {
         setCart(JSON.parse(browserStorage(key) || "{}"));
@@ -308,10 +504,12 @@ export function PublicShop({
     });
   }, [key]);
 
-  const login = `/login?next=${encodeURIComponent(path)}`;
-  const signup = `/signup?next=${encodeURIComponent(path)}`;
+  const product = shop.products.find((item) => item.id === productId);
+  const returnPath = product ? `${path}?product=${product.id}` : path;
+  const login = `/login?next=${encodeURIComponent(returnPath)}`;
+  const signup = `/signup?next=${encodeURIComponent(returnPath)}`;
   const validCart = Object.fromEntries(
-    (shop?.products ?? []).map((product) => [
+    shop.products.map((product) => [
       product.id,
       Math.max(
         0,
@@ -379,14 +577,6 @@ export function PublicShop({
     }
   }
 
-  if (!shop)
-    return (
-      <main id="main-content" className="container section">
-        <Brand />
-        <h1>Your neighbourhood shop</h1>
-        {error && <p role="alert">{error}</p>}
-      </main>
-    );
   return (
     <main id="main-content">
       <StorefrontDesign
@@ -394,9 +584,16 @@ export function PublicShop({
         shop={shop}
         cart={validCart}
         edit={edit}
+        path={path}
+        product={product}
+        missingProduct={productId !== undefined && !product}
         header={
           <nav aria-label="Shop navigation">
-            {!!quantity && <a href="#order">Basket ({quantity})</a>}
+            {!!quantity && (
+              <a className="storefront-basket" href="#order">
+                <ShoppingBag size={17} /> Basket ({quantity})
+              </a>
+            )}
             <Link href={`/portal/${slug}`}>My orders</Link>
             <Link href={login}>Sign in</Link>
           </nav>
@@ -639,7 +836,11 @@ export function PublicPortal({ slug }: { slug: string }) {
       <Brand />
       <h1>{data ? `Hello, ${data.customer}` : "Your customer account"}</h1>
       {error && <p role="alert">{error}</p>}
-      {error && !data && <Button href="/login">Sign in</Button>}
+      {error && !data && (
+        <Button href={`/login?next=${encodeURIComponent(`/portal/${slug}`)}`}>
+          Sign in
+        </Button>
+      )}
       {message && <p role="status">{message}</p>}
       {data && (
         <>

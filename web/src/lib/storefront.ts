@@ -52,19 +52,19 @@ export const storefrontTemplates = [
     id: "market",
     label: "Market",
     description:
-      "A welcoming homepage with a large banner, category filters and a product grid.",
+      "A bold shopfront with generous photography and an easy-to-browse product grid.",
   },
   {
     id: "studio",
     label: "Studio",
     description:
-      "An editorial split layout for a brand story, collections and a small, curated range.",
+      "An editorial shopfront with a type-led story and large collection images.",
   },
   {
     id: "directory",
     label: "Directory",
     description:
-      "A compact, searchable list for larger catalogues and service-led businesses.",
+      "A streamlined catalogue with quick search for products and services.",
   },
 ] as const;
 export const storefrontPalettes = [
@@ -97,6 +97,13 @@ export const storefrontDraft = z
     logo: imageURL,
     catalog: z.enum(["all", "selected", "off"]),
     products: z.array(z.number().int().positive()).max(10_000),
+    productDetails: z
+      .record(
+        z.string().regex(/^[1-9][0-9]{0,9}$/),
+        z.object({ image: imageURL, description: line(800) }).strict(),
+      )
+      .refine((items) => Object.keys(items).length <= 300)
+      .default({}),
     showServices: z.boolean(),
     branch: line(100),
     fulfillment: z.enum(["pickup", "delivery"]),
@@ -144,7 +151,15 @@ export type ShopProduct = {
   price: number;
   art: number;
   stock: number;
+  image?: string;
+  description?: string;
 };
+export function shopProductQuery(value: unknown) {
+  return typeof value === "string" && /^[1-9][0-9]{0,9}$/.test(value)
+    ? Number(value)
+    : undefined;
+}
+
 export type ShopCatalog = {
   name: string;
   description: string;
@@ -175,11 +190,17 @@ export function storefrontIssues(draft: StorefrontDraft) {
 export function customerReturn(value: unknown) {
   if (typeof value !== "string") return "";
   if (value === "/dashboard/online-shop") return value;
-  if (/^\/(shop|portal)\/[a-z0-9-]{3,40}$/.test(value)) return value;
+  const [path, query, extra] = value.split("?");
   if (
-    value.startsWith("/") &&
-    storefrontUsername.safeParse(value.slice(1)).success &&
-    value.slice(1) === value.slice(1).toLowerCase().trim()
+    extra !== undefined ||
+    (query !== undefined && !/^product=[1-9][0-9]{0,9}$/.test(query))
+  )
+    return "";
+  if (/^\/(shop|portal)\/[a-z0-9-]{3,40}$/.test(path)) return value;
+  if (
+    path.startsWith("/") &&
+    storefrontUsername.safeParse(path.slice(1)).success &&
+    path.slice(1) === path.slice(1).toLowerCase().trim()
   )
     return value;
   return "";

@@ -45,14 +45,16 @@ export function StorefrontBuilder() {
   const [busy, setBusy] = useState(false);
   const [availability, setAvailability] = useState("");
   const [catalogueQuery, setCatalogueQuery] = useState("");
+  const [detailsId, setDetailsId] = useState("");
   const processing = useRef(false);
   const publication = useRef<{ signature: string; requestId: string } | null>(
     null,
   );
 
   function accept(result: Setup) {
-    setSetup(result);
-    setDraft(result.draft);
+    const normalized = storefrontDraft.parse(result.draft);
+    setSetup({ ...result, draft: normalized });
+    setDraft(normalized);
     setName(result.username);
   }
 
@@ -199,6 +201,7 @@ export function StorefrontBuilder() {
       price: product.price,
       art: product.art,
       stock: available(state, product.id, draft!.branch),
+      ...draft?.productDetails?.[product.id],
     })),
     services: draft?.showServices
       ? (state.operations.services ?? [])
@@ -517,6 +520,68 @@ export function StorefrontBuilder() {
                         ))}
                     </div>
                   </>
+                )}
+                {draft.catalog !== "off" && selectedProducts.length > 0 && (
+                  <fieldset className="shop-product-editor">
+                    <legend>Product photos and descriptions</legend>
+                    <SelectField
+                      label="Product to showcase"
+                      value={detailsId}
+                      onChange={setDetailsId}
+                    >
+                      <option value="">Choose a product</option>
+                      {selectedProducts.map((product) => (
+                        <option key={product.id} value={String(product.id)}>
+                          {product.name}
+                        </option>
+                      ))}
+                    </SelectField>
+                    {selectedProducts.some(
+                      (product) => String(product.id) === detailsId,
+                    ) &&
+                      (() => {
+                        const details = draft.productDetails[detailsId] ?? {
+                          image: "",
+                          description: "",
+                        };
+                        const updateProduct = (
+                          key: "image" | "description",
+                          value: string,
+                        ) =>
+                          update("productDetails", {
+                            ...draft.productDetails,
+                            [detailsId]: { ...details, [key]: value },
+                          });
+                        return (
+                          <div className="shop-builder-fields">
+                            <Field
+                              label="Product photo URL"
+                              type="url"
+                              value={details.image}
+                              onChange={(event) =>
+                                updateProduct("image", event.target.value)
+                              }
+                              hint="Use an HTTPS link to this product’s photo."
+                            />
+                            <label className="field shop-builder-full">
+                              Product description
+                              <textarea
+                                className="input"
+                                rows={3}
+                                maxLength={800}
+                                value={details.description}
+                                onChange={(event) =>
+                                  updateProduct(
+                                    "description",
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </label>
+                          </div>
+                        );
+                      })()}
+                  </fieldset>
                 )}
                 <p>
                   Products, prices and stock come from your dashboard.{" "}

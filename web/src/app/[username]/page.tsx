@@ -4,28 +4,39 @@ import { notFound, redirect } from "next/navigation";
 import { PublicShop } from "@/components/public-shop";
 import { ApiError } from "@/lib/backend/server";
 import { storefrontByUsername } from "@/lib/backend/storefront";
-import { storefrontUsername } from "@/lib/storefront";
+import { shopProductQuery, storefrontUsername } from "@/lib/storefront";
 
-const load = cache(async (value: string) => {
-  const username = storefrontUsername.safeParse(value);
-  if (!username.success) notFound();
-  if (username.data !== value) redirect(`/${username.data}`);
+const load = cache(async (username: string) => {
   try {
-    return await storefrontByUsername(username.data);
+    return await storefrontByUsername(username);
   } catch (error) {
-    if (error instanceof ApiError && error.status === 404) notFound();
+    if (error instanceof ApiError && error.status === 404) return null;
     throw error;
   }
 });
 
-type Context = { params: Promise<{ username: string }> };
+type Context = {
+  params: Promise<{ username: string }>;
+  searchParams: Promise<{ product?: string | string[] }>;
+};
 
-export async function generateMetadata({ params }: Context): Promise<Metadata> {
-  const shop = await load((await params).username);
+export async function generateMetadata({
+  params,
+  searchParams,
+}: Context): Promise<Metadata> {
+  const username = storefrontUsername.safeParse((await params).username);
+  const shop = username.success ? await load(username.data) : null;
+  if (!shop) return { title: "Shop unavailable", robots: { index: false } };
+  const productId = shopProductQuery((await searchParams).product);
+  const product = shop.catalog.products.find((item) => item.id === productId);
   return {
-    title: shop.design.name,
-    description: shop.design.description,
-    alternates: { canonical: `/${shop.username}` },
+    title: product ? `${product.name} | ${shop.design.name}` : shop.design.name,
+    description: product?.description || shop.design.description,
+    alternates: {
+      canonical: product
+        ? `/${shop.username}?product=${product.id}`
+        : `/${shop.username}`,
+    },
     openGraph: {
       title: shop.design.name,
       description: shop.design.description,
@@ -34,14 +45,25 @@ export async function generateMetadata({ params }: Context): Promise<Metadata> {
   };
 }
 
-export default async function StorefrontPage({ params }: Context) {
-  const shop = await load((await params).username);
+export default async function StorefrontPage({
+  params,
+  searchParams,
+}: Context) {
+  const { username } = await params;
+  const normalized = storefrontUsername.safeParse(username);
+  if (!normalized.success) notFound();
+  const shop = await load(normalized.data);
+  if (!shop) notFound();
+  const productId = shopProductQuery((await searchParams).product);
+  if (shop.username !== username)
+    redirect(`/${shop.username}${productId ? `?product=${productId}` : ""}`);
   return (
     <PublicShop
       slug={shop.slug}
       username={shop.username}
       design={shop.design}
       initial={shop.catalog}
+      productId={productId}
     />
   );
 }

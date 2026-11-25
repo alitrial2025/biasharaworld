@@ -6,6 +6,7 @@ import type {
   StorefrontDraft,
   StorefrontRecord,
 } from "../storefront";
+import { storefrontDraft } from "../storefront";
 import { admin, ApiError } from "./server";
 import { shopRecord } from "./shop";
 
@@ -23,6 +24,7 @@ export function initialStorefront(state: DemoState): StorefrontDraft {
     products: state.products
       .filter((product) => !shop.hidden.includes(product.id))
       .map((product) => product.id),
+    productDetails: {},
     showServices: false,
     branch: shop.branch || state.operations.activeBranch,
     fulfillment: "delivery",
@@ -42,7 +44,12 @@ export async function businessStorefront(businessId: string) {
     .eq("business_id", businessId)
     .maybeSingle<StorefrontRecord>();
   if (result.error) throw new ApiError("Could not load the shop setup.", 503);
-  return result.data;
+  return (
+    result.data && {
+      ...result.data,
+      draft: storefrontDraft.parse(result.data.draft),
+    }
+  );
 }
 
 export function storefrontCatalog(
@@ -67,6 +74,7 @@ export function storefrontCatalog(
         price: product.price,
         art: product.art,
         stock: available(state, product.id, draft.branch),
+        ...draft.productDetails?.[product.id],
       })),
     services: draft.showServices
       ? (state.operations.services ?? [])
