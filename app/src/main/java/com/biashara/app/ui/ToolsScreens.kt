@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
+import com.biashara.app.BuildConfig
 import com.biashara.app.data.*
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -1993,6 +1995,17 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                 }
             }
             "online-shop" -> {
+                val openUri = LocalUriHandler.current
+                if (store.real && store.backend?.role == "Owner") {
+                    SurfaceCard {
+                        AppText("Shop builder", style = MaterialTheme.typography.titleMedium)
+                        AppText("Choose your shop link and design on the web. Orders and stock stay connected to this app.", color = Muted)
+                        TextButton(onClick = {
+                            val host = BuildConfig.API_URL.trimEnd('/').ifBlank { "https://biasharaworld.vercel.app" }
+                            openUri.openUri("$host/login?next=%2Fdashboard%2Fonline-shop")
+                        }) { AppText("Open Shop builder") }
+                    }
+                }
                 val shop = o.objectAt("shop")
                 RecordCard(shop.optString("name"), shop.optString("description"), Mint) {
                     StatusLabel(

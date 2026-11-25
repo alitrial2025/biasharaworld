@@ -72,6 +72,12 @@ Owners select their primary business type during onboarding and can change it in
 | Healthcare administration | Administrative appointments | Clinical information systems and provider integrations |
 | Nonprofits and community groups | Programmes and donation records | Donor self-service, recurring giving and fund restrictions |
 
+## Shops
+
+The owner opens **Shop builder** from the dashboard, reserves a unique username, and selects Market, Studio, or Directory. The setup covers branding, product and service visibility, fulfilment, contacts and a private preview. A shop can operate as a catalogue with checkout or a contact-only business website. Verified merchants publish at `https://biasharaworld.vercel.app/<username>`. The public username stays attached to the business after the first publication.
+
+Published shops use the dashboard’s current prices and stock from the chosen branch. Orders use the existing merchant order and customer portal flows. Unpublishing preserves orders and the draft. Android links owners to the web builder and keeps inventory and orders in the app.
+
 ## Platform work across every phase
 
 - **Accounts and organisations.** Support businesses with multiple branches, legal entities and providers. Enforce tenant isolation, least-privilege access, approval separation and audit trails for staff, partner and platform operators.

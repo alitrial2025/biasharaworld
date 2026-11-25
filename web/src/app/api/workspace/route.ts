@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {z} from 'zod';
 import {admin,identity,loadBusiness,ensureBusiness,fail,json,ApiError} from '@/lib/backend/server';
 import {applyCommand} from '@/lib/backend/commands';
+import {businessStorefront} from '@/lib/backend/storefront';
 import {splitState} from '@/lib/backend/empty';
 import {merchantVerificationStatus,verificationRequired} from '@/lib/backend/merchant-verification';
 export const dynamic='force-dynamic';
@@ -33,6 +34,9 @@ export async function POST(request:Request) {
   if(input.draft)Object.assign(workspace.state.operations,input.draft);
   const result=applyCommand(workspace.state,input.command,workspace.role);
   const command=input.command as {type:string;published?:boolean;id?:number;kind?:string};
+  if(command.type==='shop' && (await businessStorefront(workspace.businessId))?.live) {
+   throw new ApiError('Manage the published storefront in Shop builder.',409);
+  }
   if(command.type==='shop' && command.published===true) {
    const status=await merchantVerificationStatus(workspace.businessId);
    if(status!=='verified')throw new ApiError(verificationRequired[status],403);

@@ -104,6 +104,9 @@ internal fun LiveWorkspaceMore(store: DemoStore, role: String, open: (String, St
         SurfaceCard {
             TextButton(onClick = { open("settings", "") }) { AppText("Business profile") }
             TextButton(onClick = { open("preferences", "") }) { AppText("Preferences") }
+            if (role == "Owner") {
+                TextButton(onClick = { open("online-shop", "") }) { AppText("Shop builder") }
+            }
             if (role in listOf("Owner", "Manager")) {
                 TextButton(onClick = { open("team", "") }) { AppText("Your team") }
             }

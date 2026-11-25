@@ -24,15 +24,18 @@ import {
   useToast,
 } from "@/components/ui";
 import { useDemo } from "@/lib/store";
+import { customerReturn } from "@/lib/storefront";
 import { industries, industryFor } from "@/lib/industries";
 import { supabase } from "@/lib/supabase";
 
 export function AuthPage({
   mode,
   plan = "Starter",
+  next,
 }: {
   mode: "login" | "signup" | "forgot";
   plan?: string;
+  next?: string;
 }) {
   const [show, setShow] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -43,6 +46,9 @@ export function AuthPage({
   const [error,setError]=useState("");
   const [busy,setBusy]=useState(false);
   const [notice,setNotice]=useState("");
+  const destination = customerReturn(next);
+  const isCustomer = Boolean(destination && !destination.startsWith("/dashboard/"));
+  const nextQuery = destination ? "?next=" + encodeURIComponent(destination) : "";
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data=new FormData(event.currentTarget);
@@ -56,14 +62,14 @@ export function AuthPage({
       }
       const password=String(data.get('password')||'');
       if(mode==='signup') {
-        const {data:result,error}=await client.auth.signUp({email,password,options:{emailRedirectTo:location.origin+'/auth/callback',data:{name:String(data.get('name')||'').trim(),business:String(data.get('business')||'').trim()}}});
+        const {data:result,error}=await client.auth.signUp({email,password,options:{emailRedirectTo:location.origin+'/auth/callback'+nextQuery,data:{name:String(data.get('name')||'').trim(),business:String(data.get('business')||'').trim()}}});
         if(error)throw error;
         if(!result.session){setNotice('Check your email to confirm your account, then sign in. If you already have an account, use Log in.');return;}
-        store.session(result.user?.id||'');await store.hydrate();router.push('/onboarding');
+        store.session(result.user?.id||'');await store.hydrate();router.push(destination||'/onboarding');
       } else {
         const {data:result,error}=await client.auth.signInWithPassword({email,password});
         if(error)throw error;store.session(result.user.id);await store.hydrate();
-        toast('Welcome back.');router.push(store.workspace?'/dashboard':'/onboarding');
+        toast('Welcome back.');router.push(destination||(store.workspace?'/dashboard':'/onboarding'));
       }
     } catch(e) {setError(e instanceof Error?e.message:'Please try again.');}
     finally{setBusy(false);}
@@ -136,7 +142,7 @@ export function AuthPage({
 
                 <T>
                   {success ? (
-                    <Button href="/login" arrow>
+                    <Button href={"/login" + nextQuery} arrow>
                       <T>Back to sign in</T>
                     </Button>
                   ) : (
@@ -225,13 +231,13 @@ export function AuthPage({
                           required
                           autoComplete="name"
                         />
-                        <Field
+                        {!isCustomer && <Field
                           label="Business name"
                           name="business"
                           placeholder="Your shop name"
                           required
                           autoComplete="organization"
-                        />
+                        />}
                       </div>
                     )}
                   </T>
@@ -310,8 +316,8 @@ export function AuthPage({
                   <Button type="submit" disabled={busy} arrow>
                     <T>
                       {mode === "signup"
-                        ? "Create workspace"
-                        : "Continue to workspace"}
+                        ? isCustomer ? "Create customer account" : "Create workspace"
+                        : isCustomer ? "Return to shop" : "Continue to workspace"}
                     </T>
                   </Button>
                 </form>
@@ -322,7 +328,7 @@ export function AuthPage({
                       : "New around here?"}
                   </T>{" "}
                   <T> </T>
-                  <Link href={mode === "signup" ? "/login" : "/signup"}>
+                  <Link href={(mode === "signup" ? "/login" : "/signup") + nextQuery}>
                     <T>{mode === "signup" ? "Log in" : "Get started"}</T>
                   </Link>
                 </p>

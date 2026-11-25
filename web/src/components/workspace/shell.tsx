@@ -255,6 +255,10 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="sidebar-bottom">
           <nav>
+            {role === "Owner" && !links.includes("online-shop") && <Link href="/dashboard/online-shop"
+              className={pathname === "/dashboard/online-shop" ? "active" : ""} onClick={() => setMobile(false)}>
+              <ShoppingBag size={18} /><span><T>Shop builder</T></span>
+            </Link>}
             <Link
               href="/dashboard/settings"
               className={pathname === "/dashboard/settings" ? "active" : ""}

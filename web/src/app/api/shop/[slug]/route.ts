@@ -6,7 +6,7 @@ import {applyCommand} from '@/lib/backend/commands';
 import {splitState} from '@/lib/backend/empty';
 export const dynamic='force-dynamic';
 type Context={params:Promise<{slug:string}>};
-export async function GET(_request:Request,{params}:Context){try{const {state}=await shopRecord((await params).slug);return json(publicShop(state))}catch(e){return fail(e)}}
+export async function GET(_request:Request,{params}:Context){try{const {state,storefront}=await shopRecord((await params).slug);return json(publicShop(state,storefront))}catch(e){return fail(e)}}
 export async function POST(request:Request,{params}:Context){
  try{
   const user=await identity(request);if(!user.email_confirmed_at)throw new ApiError('Confirm your email before ordering.',403);
@@ -18,10 +18,10 @@ export async function POST(request:Request,{params}:Context){
   if(previous.error)throw new ApiError('Could not verify this order. Retry safely.',503);
   if(previous.data){if(previous.data.user_id!==user.id||previous.data.command_hash!==hash)throw new ApiError('Request ID already used.',409);return json(previous.data.result)}
   await requirePublicShop(shop.id,shop.canonical);
-  if(Object.keys(body.cart).some(id=>!publicShop(shop.state).products.some(p=>p.id===+id)))throw new ApiError('Some products are no longer available.');
+  if(Object.keys(body.cart).some(id=>!publicShop(shop.state,shop.storefront).products.some(p=>p.id===+id)))throw new ApiError('Some products are no longer available.');
   let customer=shop.state.customers.find(c=>c.email.toLowerCase()===(user.email||'').toLowerCase());
   if(!customer){const id=Math.max(0,...shop.state.customers.map(c=>c.id))+1;const base=String(user.user_metadata?.name||user.email?.split('@')[0]||'Customer').slice(0,160);customer={id,name:shop.state.customers.some(c=>c.name===base)?`${base} (${id})`:base,email:user.email||'',phone:'',balance:0,purchases:0,color:'mint'};shop.state.customers.push(customer)}
-  const result=applyCommand(shop.state,{type:'placeOrder',customer:customer.name,cart:body.cart,address:body.address},'Owner');
+  const result=applyCommand(shop.state,{type:'placeOrder',customer:customer.name,cart:body.cart,address:shop.storefront?.fulfillment==='pickup'?`Pickup at ${shop.storefront.pickup} · ${body.address}`:body.address},'Owner');
   const {business}=splitState(result.state);
   const {data,error}=await admin().rpc('commit_customer_order',{p_business:shop.id,p_user:user.id,p_revision:shop.revision,p_request:body.requestId,p_hash:hash,p_state:business,p_order:result.id,p_input:{cart:body.cart,address:body.address},p_result:{id:result.id,message:'Order sent to the shop. Payment will be arranged with the merchant.'}});
   if(data?.conflict)throw new ApiError('Stock changed. Refresh and review your order.',409);

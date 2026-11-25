@@ -1,3 +1,4 @@
+import { StorefrontBuilder } from "@/components/workspace/storefront-builder";
 import { IndustryPage } from "@/components/workspace/industry-page";
 import { ToolPage } from "@/components/tools/tool-page";
 import type { Metadata } from "next";
@@ -23,6 +24,7 @@ import {
 } from "@/components/workspace/management";
 const titles: Record<string, string> = {
   industry: "Industry operations",
+  "online-shop": "Shop builder",
   sales: "Sales",
   inventory: "Inventory",
   customers: "Customers",
@@ -62,6 +64,8 @@ export default async function Page({
   const { section } = await params;
   const { q, module } = await searchParams;
   switch (section) {
+    case "online-shop":
+      return <StorefrontBuilder />;
     case "industry":
       return <IndustryPage moduleId={module} />;
     case "sales":
@@ -126,7 +130,6 @@ export default async function Page({
           "deliveries",
           "loyalty",
           "branches",
-          "online-shop",
           "customer-portal",
           "sync",
           "preferences",

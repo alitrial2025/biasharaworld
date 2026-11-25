@@ -34,7 +34,7 @@
   ],
   ["payments", "Online payments", "Paystack bank settlement"],
   ["settlements", "Settlement reconciliation", "bank statement CSV matching"],
-  ["online-shop", "Online shop", "storefront ecommerce website"],
+  ["online-shop", "Shop builder", "online shop storefront ecommerce website username"],
   ["customer-portal", "Customer portal", "orders account"],
   ["deliveries", "Deliveries", "shipping fulfilment dispatch"],
   ["customer-service", "Customer service notes", "support feedback crm"],
