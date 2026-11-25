@@ -75,7 +75,9 @@ export function applyCommand(original:DemoState,input:unknown,role:string,confir
  case 'updateMember': {const m=state.members.find(x=>x.id===v.id);if(!m||m.role==='Owner')throw new Error('The owner cannot be changed here.');m.role=a.role as string;break;}
  case 'removeMember': {const m=state.members.find(x=>x.id===v.id);if(!m||m.role==='Owner')throw new Error('The owner cannot be removed.');state.members=state.members.filter(x=>x.id!==v.id);break;}
 
- case 'updateProfile': Object.assign(state.profile,v.profile);break;
+ case 'updateProfile':
+  if(role!=='Owner' && v.profile.type!==undefined && v.profile.type!==state.profile.type) throw new Error('Only the owner can change the business type.');
+  Object.assign(state.profile,v.profile);break;
  case 'setTarget': state.target=v.target;break;
  case 'addProduct': {
   if(state.products.some(p=>p.sku===v.product.sku)) throw new Error('SKU already exists.');

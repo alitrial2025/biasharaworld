@@ -1,4 +1,5 @@
-import { Overview } from "@/components/workspace/overview";
+import { IndustryHome } from "@/components/workspace/shell";
+
 export default function Page() {
-  return <Overview />;
+  return <IndustryHome />;
 }

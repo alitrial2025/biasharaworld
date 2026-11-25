@@ -93,6 +93,9 @@ class LiveBackend(context: Context, private val scope: CoroutineScope, private v
         }
         return session!!.getString("access_token")
     }
+    suspend fun industryRecords(command: JSONObject? = null) =
+        http(BuildConfig.API_URL, "/api/industry", if (command == null) "GET" else "POST", command, token())
+
     private suspend fun api(body:JSONObject?=null)=http(BuildConfig.API_URL,"/api/workspace",if(body==null)"GET" else "POST",body,token())
     private fun clear(){session=null;vault.write(null);vault.writePending(null);authenticated=false;hasBusiness=false;pending=null;store.clearLive();revision=0;slug="";role=""}
     fun start(){scope.launch {busy=true;try{session=vault.read();if(session!=null){pending=vault.readPending();authenticated=true;token();load()}}catch(e:Exception){error=if(e is BackendException)e.message?:"Could not reconnect." else "Connection unavailable. Please try again."}finally{ready=true;busy=false}}}

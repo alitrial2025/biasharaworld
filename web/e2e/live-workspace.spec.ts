@@ -111,3 +111,108 @@ test('unauthenticated workspace and customer portal stay private',async({page})=
  await page.goto('/dashboard');await expect(page).toHaveURL(/login/);
  await page.goto('/portal/6');await expect(page.locator('main [role="alert"]')).toContainText('Sign in');await expect(page.getByText('Mary Wambui')).toHaveCount(0);
 });
+
+test('onboarding shows sector tools and keeps other tools searchable', async ({ page }) => {
+ const email = `industry-ui-${randomUUID()}@biashara-test.invalid`;
+ const password = randomUUID() + 'Ab1!';
+ const created = await admin.auth.admin.createUser({ email, password, email_confirm: true });
+ if (created.error) throw created.error;
+ const id = created.data.user.id;
+ let business = '';
+ try {
+  const client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
+  const login = await client.auth.signInWithPassword({ email, password });
+  if (login.error) throw login.error;
+  const currentSession = login.data.session!;
+  await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: storageKey, value: JSON.stringify(currentSession) });
+  await page.goto('/onboarding');
+  await expect(page.getByLabel('Business type')).toHaveValue('');
+  expect(await page.getByLabel('Business type').locator('option').count()).toBeGreaterThan(15);
+  await page.getByLabel('Business name').fill('Workspace Insurance');
+  await page.getByLabel('Business type').selectOption('insurance');
+  await page.getByLabel('Location').fill('Nairobi');
+  const result = page.waitForResponse(response => response.url().endsWith('/api/workspace') && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Open workspace' }).click();
+  business = (await (await result).json()).workspace.businessId;
+  await expect(page).toHaveURL(/dashboard$/);
+  await expect(page.getByRole('link', { name: 'Claims', exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Business navigation' }).getByRole('link', { name: 'Inventory' })).toHaveCount(0);
+  await page.getByRole('button', { name: /Search anything/ }).click();
+  const dialog = page.getByRole('dialog', { name: 'Search workspace' });
+  await dialog.getByPlaceholder('Search tools, products or customers…').fill('inventory');
+  await dialog.getByRole('button', { name: 'Inventory', exact: true }).click();
+  await expect(page).toHaveURL(/dashboard\/inventory$/);
+  await page.goto('/dashboard');
+  await page.getByRole('link', { name: 'Policies', exact: true }).click();
+  await page.getByLabel('Policy number').fill('POL-UI-1');
+  await page.getByLabel('Policyholder name or reference').fill('Customer 100');
+  await page.getByLabel('Coverage', { exact: true }).fill('Building');
+  await page.getByLabel('Coverage start').fill('2026-01-01');
+  await page.getByLabel('Coverage end').fill('2027-01-01');
+  await page.getByLabel('Agreed premium (KES)').fill('318.75');
+  await page.getByRole('button', { name: 'Save record' }).click();
+  await expect(page.getByRole('heading', { name: 'POL-UI-1' })).toBeVisible();
+  await page.getByRole('button', { name: 'Mark as active' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Saved · Active' })).toBeVisible();
+  await page.goto('/dashboard/settings');
+  await expect(page.getByLabel('Business type')).toHaveValue('insurance');
+ } finally {
+  if (business) {
+   await admin.from('business_commands').delete().eq('business_id', business);
+   await admin.from('businesses').delete().eq('id', business);
+  }
+  await admin.auth.admin.deleteUser(id);
+ }
+});
+
+test('issued tickets download as guest-ready barcode images', async ({ page }, testInfo) => {
+ const client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
+ const login = await client.auth.signInWithPassword({ email, password });
+ if (login.error) throw login.error;
+ const ticketSession = login.data.session!;
+ const headers = { Authorization: 'Bearer ' + ticketSession.access_token, 'Content-Type': 'application/json' };
+ async function api(path: string, input?: unknown) {
+  const response = await fetch(base + path, { method: input ? 'POST' : 'GET', headers, body: input ? JSON.stringify(input) : undefined });
+  const data = await response.json();
+  expect(response.status, JSON.stringify(data)).toBe(200);
+  return data;
+ }
+ async function changeIndustry(type: string) {
+  const { workspace } = await api('/api/workspace');
+  await api('/api/workspace', { revision: workspace.revision, requestId: randomUUID(), command: { type: 'updateProfile', profile: { type } } });
+ }
+ const command = (input: Record<string, unknown>) => api('/api/industry', { ...input, sector: 'entertainment', requestId: randomUUID() });
+ async function add(module: string, name: string, values: Record<string, string | number>) {
+  await command({ action: 'create', module, name, values });
+  const { records } = await api('/api/industry');
+  return records.find((record: { name: string }) => record.name === name);
+ }
+ await changeIndustry('entertainment');
+ try {
+  const event = await add('events', 'Saturday concert', { venue: 'City hall' });
+  await command({ action: 'transition', id: event.id, from: event.status, status: 'Scheduled' });
+  const show = await add('showtimes', 'Concert showtime', {
+   event: event.id, start: new Date().toISOString(), end: new Date(Date.now() + 3600_000).toISOString(), room: 'Main stage',
+  });
+  const seat = await add('seats', 'A1', { show: show.id, section: 'Main floor' });
+  const ticket = await add('tickets', 'Guest booking 1', { seat: seat.id, guest: 'Guest ref 1', amount: 0 });
+  await command({ action: 'transition', id: ticket.id, from: ticket.status, status: 'Issued' });
+  await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: storageKey, value: JSON.stringify(ticketSession) });
+  await page.goto('/dashboard/industry?module=tickets');
+  const booking = page.getByRole('article').filter({ hasText: 'Guest booking 1' });
+  await expect(booking.getByText(ticket.code)).toBeVisible();
+  const downloadEvent = page.waitForEvent('download');
+  await booking.getByRole('button', { name: 'Download ticket' }).click();
+  const download = await downloadEvent;
+  expect(download.suggestedFilename()).toBe(`biashara-ticket-${ticket.code}.png`);
+  const file = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of file) chunks.push(chunk);
+  const png = Buffer.concat(chunks);
+  expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+  expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([920, 460]);
+  await testInfo.attach('Sample admission ticket', { body: png, contentType: 'image/png' });
+ } finally {
+  await changeIndustry('Retail shop');
+ }
+});

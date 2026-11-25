@@ -2,6 +2,9 @@ package com.biashara.app.ui
 
 enum class Screen {
     HOME,
+    SEARCH,
+    INDUSTRY,
+    TEAM,
     SALES,
     NEW_SALE,
     STOCK,

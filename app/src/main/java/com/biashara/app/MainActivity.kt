@@ -67,6 +67,10 @@ class MainActivity : ComponentActivity() {
 fun BiasharaApp(model: ShopViewModel = viewModel()) {
     val store = model.store
     val online = rememberDeviceOnline()
+    val catalog = rememberIndustryCatalog()
+    val industry = catalog.industry(store.liveState.optJSONObject("profile")?.optString("type").orEmpty())
+    val role = model.backend?.role.orEmpty()
+    var industryModule by rememberSaveable { mutableStateOf("") }
     var routes by rememberSaveable { mutableStateOf<List<String>>(listOf(Screen.HOME.name)) }
     var tool by rememberSaveable { mutableStateOf("scanner") }
     var supplier by rememberSaveable { mutableIntStateOf(0) }
@@ -75,7 +79,7 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
     val navigate: (Screen) -> Unit = { target ->
         routes =
             when {
-                target in listOf(Screen.HOME, Screen.SALES, Screen.STOCK, Screen.MORE) ->
+                target in listOf(Screen.HOME, Screen.SALES, Screen.STOCK, Screen.MORE, Screen.SEARCH) ->
                     arrayListOf(target.name)
                 target.name in routes -> ArrayList(routes.take(routes.indexOf(target.name) + 1))
                 else -> ArrayList(routes + target.name)
@@ -94,13 +98,41 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
             navigate(Screen.FEATURE)
         }
     }
+    val openWorkspace: (String, String) -> Unit = { slug, module ->
+        val destination = when (slug) {
+            "industry" -> Screen.INDUSTRY
+            "sales" -> Screen.SALES
+            "inventory" -> Screen.STOCK
+            "customers" -> Screen.CUSTOMERS
+            "suppliers" -> Screen.SUPPLIERS
+            "supplier-network" -> Screen.SUPPLIER_NETWORK
+            "expenses" -> Screen.EXPENSES
+            "reports" -> Screen.REPORTS
+            "team" -> Screen.TEAM
+            "settings" -> Screen.PROFILE
+            "verification" -> Screen.VERIFICATION
+            "company-verification" -> Screen.COMPANY_VERIFICATION
+            "payments" -> Screen.PAYMENT_SETTINGS
+            "payment-activity" -> Screen.PAYMENT_ACTIVITY
+            "settlements" -> Screen.SETTLEMENT_RECONCILIATION
+            "imports" -> Screen.BUSINESS_IMPORT
+            "financial-overview" -> Screen.FINANCIAL_OVERVIEW
+            "bookings" -> Screen.SERVICE_BOOKINGS
+            "customer-service" -> Screen.CUSTOMER_SERVICE
+            "assistant" -> Screen.ASSISTANT
+            "financing" -> Screen.FINANCE
+            else -> null
+        }
+        if (destination == Screen.INDUSTRY) industryModule = module
+        if (destination == null) openTool(if (slug == "orders") "compare" else slug) else navigate(destination)
+    }
     Box(Modifier.fillMaxSize().background(Canvas), contentAlignment = Alignment.TopCenter) {
         Scaffold(
             modifier = Modifier.widthIn(max = 600.dp).fillMaxSize(),
             containerColor = Canvas,
             contentWindowInsets =
                 WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-            bottomBar = { if (!focused) BottomBar(screen, navigate) },
+            bottomBar = { if (!focused) BottomBar(screen, navigate, store.real) },
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding)) {
                 val backend=model.backend
@@ -143,13 +175,23 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
                         label = "Screen transition",
                     ) { destination ->
                         when (destination) {
-                            Screen.HOME ->
-                                DashboardScreen(store, navigate, { openTool("branches") })
+                            Screen.HOME -> if (store.real) {
+                                LiveIndustryHome(store, catalog, industry, role, openWorkspace)
+                            } else DashboardScreen(store, navigate, { openTool("branches") })
+                            Screen.SEARCH -> WorkspaceSearchScreen(store, catalog, industry, role, openWorkspace)
+                            Screen.INDUSTRY -> model.backend?.let { backend ->
+                                key(industry.id, role, industryModule) {
+                                    LiveIndustryRecordsScreen(backend, industry, role, industryModule, back)
+                                }
+                            }
+                            Screen.TEAM -> LiveTeamScreen(store, back)
                             Screen.SALES -> SalesScreen(store, navigate)
                             Screen.NEW_SALE ->
                                 NewSaleScreen(store, back, { navigate(Screen.SALES) }, openTool)
                             Screen.STOCK -> InventoryScreen(store)
-                            Screen.MORE -> MoreScreen(store, navigate)
+                            Screen.MORE -> if (store.real) {
+                                LiveWorkspaceMore(store, role, openWorkspace)
+                            } else MoreScreen(store, navigate)
                             Screen.CUSTOMERS -> CustomersScreen(store, back)
                             Screen.SUPPLIERS ->
                                 if(store.real) LiveSuppliersScreen(store, back, { openTool("compare") }, { navigate(Screen.SUPPLIER_NETWORK) }) else SuppliersScreen(store, back) { i ->
@@ -215,19 +257,24 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
 }
 
 @Composable
-private fun BottomBar(screen: Screen, navigate: (Screen) -> Unit) {
+private fun BottomBar(screen: Screen, navigate: (Screen) -> Unit, live: Boolean) {
     val active =
         when (screen) {
             Screen.HOME -> Screen.HOME
             Screen.SALES -> Screen.SALES
             Screen.STOCK -> Screen.STOCK
-            else -> Screen.MORE
+            Screen.SEARCH -> Screen.SEARCH
+            Screen.MORE -> Screen.MORE
+            else -> if (live) screen else Screen.MORE
         }
     Column(Modifier.fillMaxWidth().background(Surface).navigationBarsPadding()) {
         HorizontalDivider(color = Line)
         Row(Modifier.fillMaxWidth().height(62.dp), verticalAlignment = Alignment.CenterVertically) {
-            val tabs =
-                listOf(
+            val tabs = if (live) listOf(
+                Triple("Home", Icons.Outlined.Home, Screen.HOME),
+                Triple("Search", Icons.Outlined.Search, Screen.SEARCH),
+                Triple("More", Icons.Outlined.MoreHoriz, Screen.MORE),
+            ) else listOf(
                     Triple("Home", Icons.Outlined.Home, Screen.HOME),
                     Triple("Sales", Icons.Outlined.ShoppingBag, Screen.SALES),
                     Triple("New sale", Icons.Outlined.Add, Screen.NEW_SALE),

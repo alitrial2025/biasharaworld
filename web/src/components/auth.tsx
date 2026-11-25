@@ -7,17 +7,12 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import {
   ArrowLeft,
-  ArrowRight,
-  Check,
   CheckCircle2,
   Eye,
   EyeOff,
-  Package,
   ShieldCheck,
   Sparkles,
   Store,
-  Users,
-  Wallet,
 } from "lucide-react";
 import {
   Brand,
@@ -29,6 +24,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { useDemo } from "@/lib/store";
+import { industries, industryFor } from "@/lib/industries";
 import { supabase } from "@/lib/supabase";
 
 export function AuthPage({
@@ -375,232 +371,56 @@ export function AuthPage({
 }
 
 export function OnboardingPage() {
-  return <OnboardingContent />;
-}
-function OnboardingContent() {
   const { state, store } = useDemo();
-  const [step, setStep] = useState(0);
-  const [goals, setGoals] = useState(["Sales & payments", "Inventory"]);
   const router = useRouter();
-  const [error,setError]=useState('');
-  async function submit(e:FormEvent<HTMLFormElement>) {
-    e.preventDefault();const d=new FormData(e.currentTarget);setError('');
+  const [error, setError] = useState("");
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    if (!store.authenticated) {
+      router.replace("/login");
+      return;
+    }
+    const data = new FormData(event.currentTarget);
+    const profile = { business: String(data.get("business")), type: String(data.get("type")), location: String(data.get("location")) };
+    if (!industries.some(industry => industry.id === profile.type)) {
+      setError("Choose your business type.");
+      return;
+    }
     try {
-      if(!store.authenticated){router.replace('/login');return;}
-      if(store.workspace) await store.updateProfile({business:String(d.get('business')),type:String(d.get('type')),location:String(d.get('location'))});
-      else {const {data:{user}}=await supabase().auth.getUser();await store.createBusiness({name:user?.user_metadata?.name||user?.email?.split('@')[0]||'Owner',business:String(d.get('business')),type:String(d.get('type')),location:String(d.get('location'))});}
-      setStep(1);
-    }catch(e){setError(e instanceof Error?e.message:'Could not save your business.');}
+      if (store.workspace) await store.updateProfile(profile);
+      else {
+        const { data: { user } } = await supabase().auth.getUser();
+        await store.createBusiness({ ...profile, name: user?.user_metadata?.name || user?.email?.split("@")[0] || "Owner" });
+      }
+      router.replace("/dashboard");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not save your business.");
+    }
   }
 
   return (
     <main id="main-content" className="onboarding-page">
-      <div className="container onboarding-top">
-        <Brand />
-        <Link href="/dashboard">
-          <T>Explore first</T>
-          <ArrowRight size={15} />
-        </Link>
-      </div>
+      <div className="container onboarding-top"><Brand /></div>
       <div className="onboarding-layout">
         <aside>
-          <span className="eyebrow">
-            <T>LET’S MAKE IT YOURS</T>
-          </span>
-          <h2>
-            <T>A good beginning</T>
-            <br />
-            <T>for a growing business.</T>
-          </h2>
-          <ol>
-            <T>
-              {[
-                "Your business",
-                "Your everyday tools",
-                "Ready for your next step",
-              ].map((s, i) => (
-                <li className={i <= step ? "current" : ""} key={s}>
-                  <span>
-                    <T>{i < step ? <Check size={15} /> : i + 1}</T>
-                  </span>
-                  <div>
-                    <strong>
-                      <T>{s}</T>
-                    </strong>
-                    <small>
-                      <T>
-                        {i === 0
-                          ? "A few familiar details"
-                          : i === 1
-                            ? "Choose what matters to you"
-                            : "Open your business workspace"}
-                      </T>
-                    </small>
-                  </div>
-                </li>
-              ))}
-            </T>
-          </ol>
-          <p>
-            <T>Progress, one little step at a time.</T>
-          </p>
+          <h2><T>Set up your business workspace</T></h2>
+          <p><T>Your business type determines which tools appear on your dashboard. You can find other tools through search.</T></p>
         </aside>
         <section className="onboarding-card">
-          {error&&<p role="alert" className="operation-error">{error}</p>}
-          <span className="step-count">
-            <T>STEP</T> <T>{step + 1}</T> <T>OF 3</T>
-          </span>
-
-          <T>
-            {step === 0 ? (
-              <>
-                <IconBox icon={Store} />
-                <h1>
-                  <T>Tell us about your business.</T>
-                </h1>
-                <p>
-                  <T>A few details to make your workspace feel like home.</T>
-                </p>
-                <form onSubmit={submit} key={state.profile.business}>
-                  <Field
-                    label="Business name"
-                    name="business"
-                    defaultValue={state.profile.business}
-                    required
-                  />
-                  <SelectField
-                    label="Business type"
-                    name="type"
-                    defaultValue={state.profile.type}
-                  >
-                    <option>
-                      <T>Retail shop</T>
-                    </option>
-                    <option>
-                      <T>Mini market</T>
-                    </option>
-                    <option>
-                      <T>Wholesale</T>
-                    </option>
-                    <option>
-                      <T>Service business</T>
-                    </option>
-                  </SelectField>
-                  <Field
-                    label="Location"
-                    name="location"
-                    defaultValue={state.profile.location}
-                    required
-                  />
-                  <div className="onboarding-currency">
-                    <span>
-                      <T>🇰🇪</T>
-                    </span>
-                    <div>
-                      <small>
-                        <T>BUSINESS CURRENCY</T>
-                      </small>
-                      <strong>
-                        <T>KES · Kenyan Shilling</T>
-                      </strong>
-                    </div>
-                    <CheckCircle2 size={18} />
-                  </div>
-                  <Button type="submit" disabled={store.busy} arrow>
-                    <T>Continue</T>
-                  </Button>
-                </form>
-              </>
-            ) : step === 1 ? (
-              <>
-                <IconBox icon={Sparkles} />
-                <h1>
-                  <T>What would make your day easier?</T>
-                </h1>
-                <p>
-                  <T>Choose a few tools to explore first.</T>
-                </p>
-                <div className="goal-options">
-                  <T>
-                    {[
-                      [Wallet, "Sales & payments"],
-                      [Package, "Inventory"],
-                      [Users, "Customers & balances"],
-                      [Sparkles, "Insights & reports"],
-                    ].map(([Icon, label]) => {
-                      const I = Icon as typeof Store;
-                      const text = label as string;
-                      return (
-                        <LocalButton
-                          key={text}
-                          className={goals.includes(text) ? "selected" : ""}
-                          onClick={() =>
-                            setGoals(
-                              goals.includes(text)
-                                ? goals.filter((g) => g !== text)
-                                : [...goals, text],
-                            )
-                          }
-                        >
-                          <I size={21} />
-                          <span>
-                            <T>{text}</T>
-                          </span>
-                          <span className="goal-check">
-                            <T>{goals.includes(text) && <Check size={13} />}</T>
-                          </span>
-                        </LocalButton>
-                      );
-                    })}
-                  </T>
-                </div>
-                <Button onClick={() => setStep(2)} arrow>
-                  <T>Looking good. Continue</T>
-                </Button>
-                <LocalButton className="text-button" onClick={() => setStep(0)}>
-                  <T>Back</T>
-                </LocalButton>
-              </>
-            ) : (
-              <>
-                <span className="ready-icon">
-                  <Check size={31} />
-                </span>
-                <h1>
-                  <T>Your space is ready.</T>
-                </h1>
-                <p>
-                  <T>
-                    We’ve prepared a sample shop so you can explore without
-                    starting from a blank page.
-                  </T>
-                </p>
-                <div className="ready-list">
-                  <T>
-                    {[
-                      "Products and shelves to explore",
-                      "Sample sales and customer balances",
-                      "A clear view of your everyday business",
-                    ].map((t) => (
-                      <span key={t}>
-                        <CheckCircle2 size={17} />
-                        <T>{t}</T>
-                      </span>
-                    ))}
-                  </T>
-                </div>
-                <div className="inline-note">
-                  <T>
-                    This is a demo workspace. Changes stay in this browser and
-                    no payment or supplier order is sent.
-                  </T>
-                </div>
-                <Button onClick={() => router.push("/dashboard")} arrow>
-                  <T>Welcome to your business</T>
-                </Button>
-              </>
-            )}
-          </T>
+          <IconBox icon={Store} />
+          <h1><T>Tell us about your business.</T></h1>
+          {error && <p role="alert" className="operation-error">{error}</p>}
+          <form onSubmit={submit} key={store.workspace?.businessId ?? "new"}>
+            <Field label="Business name" name="business" defaultValue={store.workspace ? state.profile.business : ""} required maxLength={100} />
+            <SelectField label="Business type" name="type" defaultValue={store.workspace ? industryFor(state.profile.type).id : ""} required>
+              <option value="" disabled>Choose your business type</option>
+              {industries.map(industry => <option key={industry.id} value={industry.id}>{industry.label}</option>)}
+            </SelectField>
+            <Field label="Location" name="location" defaultValue={store.workspace ? state.profile.location : ""} required maxLength={100} />
+            <Button type="submit" disabled={!store.ready || store.busy} arrow><T>Open workspace</T></Button>
+          </form>
         </section>
       </div>
     </main>

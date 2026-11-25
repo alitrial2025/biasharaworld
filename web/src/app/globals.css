@@ -10184,3 +10184,32 @@ input[type="number"] {
 }
 /* Prevent overlapping writes while the server confirms a command. */
 .saving-overlay {position:fixed;inset:0;z-index:1000;cursor:progress;background:transparent;}
+
+.industry-links, .industry-fields, .industry-records {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
+  gap: 12px;
+  margin: 12px 0 26px;
+}
+.industry-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+.industry-link svg:last-child { margin-left: auto; }
+.industry-page { display: grid; gap: 16px; }
+.industry-tabs, .industry-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.industry-tabs a { border-radius: 9px; padding: 8px 12px; border: 1px solid var(--line, #d9e2db); }
+.industry-tabs a[aria-current="page"] { background: #e4f2e8; color: #17442c; }
+.industry-form, .industry-record { padding: 16px; }
+.industry-form h2, .industry-record h3 { margin: 0 0 12px; }
+.industry-form .field { margin-bottom: 10px; }
+.industry-form .industry-fields { margin-bottom: 8px; }
+.industry-record header { display: flex; gap: 6px; flex-wrap: wrap; align-items: baseline; justify-content: space-between; }
+.industry-record dl { display: grid; gap: 8px; }
+.industry-record dt { font-size: .8rem; opacity: .8; }
+.industry-record dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.industry-barcode { display: flex; height: 54px; background: #fff; padding: 4px 14px; }
+.industry-barcode span { flex-basis: 0; }
+.industry-ticket { background: white; color: black; text-align: center; margin: 12px 0; padding: 4px; }

@@ -27,6 +27,7 @@ android {
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+    sourceSets.getByName("main").assets.srcDir(rootProject.file("web/src/lib/industry-catalog"))
     buildFeatures { compose = true; buildConfig = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -49,6 +50,7 @@ android {
 }
 
 dependencies {
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     implementation("androidx.datastore:datastore-preferences:1.1.7")
     testImplementation("org.json:json:20240303")
     implementation(platform("androidx.compose:compose-bom:2025.04.01"))

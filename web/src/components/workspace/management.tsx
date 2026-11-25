@@ -38,6 +38,7 @@ import {
 } from "@/components/ui";
 import { lowStock, money, salesTotal, today } from "@/lib/data";
 import { businessReport } from "@/lib/backend/reports";
+import { industries, industryFor } from "@/lib/industries";
 import { useDemo } from "@/lib/store";
 import { downloadCSV } from "@/lib/csv";
 
@@ -775,7 +776,7 @@ export function SettingsPage() {
       email: String(f.get("email")).trim(),
       phone: String(f.get("phone")),
       location: String(f.get("location")).trim(),
-      type: String(f.get("type")),
+      ...(store.workspace?.role === "Owner" ? { type: String(f.get("type")) } : {}),
     });
     toast("Business profile saved.");
   
@@ -882,25 +883,13 @@ export function SettingsPage() {
                       defaultValue={state.profile.location}
                       required
                     />
-                    <SelectField
-                      label="Business type"
-                      name="type"
-                      defaultValue={state.profile.type}
-                    >
-                      <T>
-                        {[
-                          "Retail shop",
-                          "Mini market",
-                          "Wholesale",
-                          "Service business",
-                          "Other",
-                        ].map((t) => (
-                          <option key={t}>
-                            <T>{t}</T>
-                          </option>
-                        ))}
-                      </T>
-                    </SelectField>
+                    {store.workspace?.role === "Owner" ? (
+                      <SelectField label="Business type" name="type" key={state.profile.type} defaultValue={industryFor(state.profile.type).id}>
+                        {industries.map(industry => <option key={industry.id} value={industry.id}>{industry.label}</option>)}
+                      </SelectField>
+                    ) : (
+                      <div className="settings-fixed-value"><span>Business type</span><strong>{industryFor(state.profile.type).label}</strong></div>
+                    )}
                   </div>
                   <div className="settings-fixed-value">
                     <span>

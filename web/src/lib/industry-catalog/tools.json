@@ -1,0 +1,72 @@
+[
+  [
+    "industry",
+    "Industry operations",
+    "records policies claims real estate properties leases rent events cinema tickets concerts showtimes seats scan bank sacco loans deposits"
+  ],
+  ["sales", "Sales", "pos checkout receipts"],
+  ["inventory", "Inventory", "stock products reorder"],
+  ["customers", "Customers", "clients contacts balances"],
+  [
+    "bookings",
+    "Services and bookings",
+    "appointments service calendar schedule"
+  ],
+  ["suppliers", "Suppliers", "vendors quotes"],
+  ["supplier-network", "Supplier network", "rfq sourcing b2b"],
+  ["orders", "Purchase orders", "procurement purchasing"],
+  [
+    "documents",
+    "Quotes and invoices",
+    "receivables estimates billing deposits quotations"
+  ],
+  ["expenses", "Expenses", "costs spending"],
+  ["reports", "Reports", "analytics reporting performance"],
+  [
+    "financial-overview",
+    "Financial overview",
+    "ageing finance receivables payables"
+  ],
+  [
+    "payment-activity",
+    "Payment activity",
+    "collections checkout Paystack receipts"
+  ],
+  ["payments", "Online payments", "Paystack bank settlement"],
+  ["settlements", "Settlement reconciliation", "bank statement CSV matching"],
+  ["online-shop", "Online shop", "storefront ecommerce website"],
+  ["customer-portal", "Customer portal", "orders account"],
+  ["deliveries", "Deliveries", "shipping fulfilment dispatch"],
+  ["customer-service", "Customer service notes", "support feedback crm"],
+  ["team", "Your team", "staff users invitations"],
+  ["imports", "Import business records", "csv opening balances products"],
+  [
+    "verification",
+    "Owner identity verification",
+    "Didit KYC verify legal structure"
+  ],
+  [
+    "company-verification",
+    "Company verification",
+    "Didit KYB verify registry CR12"
+  ],
+  ["financing", "Business financing", "capital credit funding eligibility"],
+  ["branches", "Branches", "locations warehouses"],
+  ["scanner", "Barcode scanner", "camera scan products SKU"],
+  ["baskets", "Held baskets", "cart"],
+  ["promotions", "Promotions", "discounts"],
+  ["split-payments", "Split payments", "tenders"],
+  ["register", "Cash register", "drawer float day close"],
+  ["returns", "Returns", "refunds"],
+  ["stocktakes", "Stocktakes", "count audit inventory"],
+  ["expiry", "Batches and expiry", "lot dates"],
+  ["variants", "Variants and bundles", "products kits"],
+  ["movements", "Stock movements", "ledger inventory history"],
+  ["transfers", "Branch transfers", "warehouse stock"],
+  ["compare", "Compare suppliers", "quotes"],
+  ["loyalty", "Loyalty", "points rewards"],
+  ["preferences", "Preferences", "language accessibility theme"],
+  ["sync", "Connection status", "offline retry sync"],
+  ["assistant", "BiasharaAI", "assistant"],
+  ["settings", "Settings", "business profile type industry"]
+]

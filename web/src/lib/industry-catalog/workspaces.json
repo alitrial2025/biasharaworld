@@ -1,0 +1,1201 @@
+[
+  {
+    "id": "retail",
+    "label": "Retail and kiosks",
+    "tools": [
+      "sales",
+      "inventory",
+      "customers"
+    ],
+    "modules": [],
+    "aliases": [
+      "Retail shop",
+      "Retail",
+      "Kiosk"
+    ]
+  },
+  {
+    "id": "supermarket",
+    "label": "Supermarkets",
+    "tools": [
+      "sales",
+      "inventory",
+      "customers",
+      "orders"
+    ],
+    "modules": [],
+    "aliases": [
+      "Mini market",
+      "Minimarket",
+      "Supermarket"
+    ]
+  },
+  {
+    "id": "wholesale",
+    "label": "Wholesale and distribution",
+    "tools": [
+      "orders",
+      "inventory",
+      "supplier-network"
+    ],
+    "modules": [],
+    "aliases": [
+      "Wholesale"
+    ]
+  },
+  {
+    "id": "online",
+    "label": "E-commerce",
+    "tools": [
+      "online-shop",
+      "deliveries",
+      "inventory"
+    ],
+    "modules": [],
+    "aliases": [
+      "Online store"
+    ]
+  },
+  {
+    "id": "services",
+    "label": "Professional services",
+    "tools": [
+      "bookings",
+      "customers"
+    ],
+    "modules": [],
+    "aliases": [
+      "Service business",
+      "Services"
+    ]
+  },
+  {
+    "id": "insurance",
+    "label": "Insurance",
+    "tools": [],
+    "modules": [
+      {
+        "id": "policies",
+        "label": "Policies",
+        "name": "Policy number",
+        "fields": [
+          {
+            "key": "holder",
+            "label": "Policyholder name or reference",
+            "type": "text"
+          },
+          {
+            "key": "coverage",
+            "label": "Coverage",
+            "type": "text"
+          },
+          {
+            "key": "start",
+            "label": "Coverage start",
+            "type": "date"
+          },
+          {
+            "key": "end",
+            "label": "Coverage end",
+            "type": "date"
+          },
+          {
+            "key": "premium",
+            "label": "Agreed premium (KES)",
+            "type": "money"
+          }
+        ],
+        "flow": {
+          "Draft": [
+            "Active",
+            "Cancelled"
+          ],
+          "Active": [
+            "Cancelled"
+          ],
+          "Cancelled": []
+        }
+      },
+      {
+        "id": "premiums",
+        "label": "Premiums",
+        "name": "Premium reference",
+        "fields": [
+          {
+            "key": "policy",
+            "label": "Policy",
+            "type": "reference",
+            "module": "policies"
+          },
+          {
+            "key": "due",
+            "label": "Due date",
+            "type": "date"
+          },
+          {
+            "key": "amount",
+            "label": "Premium amount (KES)",
+            "type": "money"
+          },
+          {
+            "key": "payment",
+            "label": "Payment reference",
+            "type": "text",
+            "optional": true
+          }
+        ],
+        "flow": {
+          "Due": [
+            "Received",
+            "Voided"
+          ],
+          "Received": [],
+          "Voided": []
+        }
+      },
+      {
+        "id": "renewals",
+        "label": "Renewals",
+        "name": "Renewal reference",
+        "fields": [
+          {
+            "key": "policy",
+            "label": "Policy",
+            "type": "reference",
+            "module": "policies"
+          },
+          {
+            "key": "end",
+            "label": "New coverage end",
+            "type": "date"
+          }
+        ],
+        "flow": {
+          "Proposed": [
+            "Renewed",
+            "Declined"
+          ],
+          "Renewed": [],
+          "Declined": []
+        }
+      },
+      {
+        "id": "claims",
+        "label": "Claims",
+        "name": "Claim reference",
+        "fields": [
+          {
+            "key": "policy",
+            "label": "Policy",
+            "type": "reference",
+            "module": "policies"
+          },
+          {
+            "key": "incident",
+            "label": "Incident date",
+            "type": "date"
+          },
+          {
+            "key": "amount",
+            "label": "Claimed amount (KES)",
+            "type": "money"
+          },
+          {
+            "key": "summary",
+            "label": "Claim summary",
+            "type": "text"
+          }
+        ],
+        "flow": {
+          "Filed": [
+            "In review",
+            "Withdrawn"
+          ],
+          "In review": [
+            "Approved",
+            "Declined",
+            "Withdrawn"
+          ],
+          "Approved": [
+            "Closed"
+          ],
+          "Declined": [],
+          "Withdrawn": [],
+          "Closed": []
+        }
+      }
+    ],
+    "aliases": []
+  },
+  {
+    "id": "real-estate",
+    "label": "Real estate and property management",
+    "tools": [],
+    "modules": [
+      {
+        "id": "properties",
+        "label": "Properties and units",
+        "name": "Property or unit name",
+        "fields": [
+          {
+            "key": "address",
+            "label": "Address",
+            "type": "text"
+          },
+          {
+            "key": "unit",
+            "label": "Unit reference",
+            "type": "text"
+          }
+        ],
+        "flow": {
+          "Available": [
+            "Inactive"
+          ],
+          "Inactive": [
+            "Available"
+          ]
+        }
+      },
+      {
+        "id": "tenants",
+        "label": "Tenants",
+        "name": "Tenant name",
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Tenant reference",
+            "type": "text"
+          }
+        ],
+        "flow": {
+          "Current": [
+            "Archived"
+          ],
+          "Archived": [
+            "Current"
+          ]
+        }
+      },
+      {
+        "id": "leases",
+        "label": "Leases",
+        "name": "Lease reference",
+        "fields": [
+          {
+            "key": "property",
+            "label": "Property or unit",
+            "type": "reference",
+            "module": "properties"
+          },
+          {
+            "key": "tenant",
+            "label": "Tenant",
+            "type": "reference",
+            "module": "tenants"
+          },
+          {
+            "key": "start",
+            "label": "Lease start",
+            "type": "date"
+          },
+          {
+            "key": "end",
+            "label": "Lease end",
+            "type": "date"
+          },
+          {
+            "key": "amount",
+            "label": "Monthly rent (KES)",
+            "type": "money"
+          }
+        ],
+        "flow": {
+          "Draft": [
+            "Active",
+            "Cancelled"
+          ],
+          "Active": [
+            "Ended"
+          ],
+          "Ended": [],
+          "Cancelled": []
+        }
+      },
+      {
+        "id": "rent",
+        "label": "Rent",
+        "name": "Rent reference",
+        "fields": [
+          {
+            "key": "lease",
+            "label": "Lease",
+            "type": "reference",
+            "module": "leases"
+          },
+          {
+            "key": "due",
+            "label": "Due date",
+            "type": "date"
+          },
+          {
+            "key": "amount",
+            "label": "Rent due (KES)",
+            "type": "money"
+          },
+          {
+            "key": "payment",
+            "label": "Payment reference",
+            "type": "text",
+            "optional": true
+          }
+        ],
+        "flow": {
+          "Due": [
+            "Received",
+            "Voided"
+          ],
+          "Received": [],
+          "Voided": []
+        }
+      },
+      {
+        "id": "maintenance",
+        "label": "Maintenance",
+        "name": "Maintenance request",
+        "fields": [
+          {
+            "key": "property",
+            "label": "Property or unit",
+            "type": "reference",
+            "module": "properties"
+          },
+          {
+            "key": "summary",
+            "label": "Issue and location",
+            "type": "text"
+          },
+          {
+            "key": "due",
+            "label": "Target date",
+            "type": "date"
+          }
+        ],
+        "flow": {
+          "Open": [
+            "In progress"
+          ],
+          "In progress": [
+            "Resolved"
+          ],
+          "Resolved": []
+        }
+      }
+    ],
+    "aliases": []
+  },
+  {
+    "id": "entertainment",
+    "label": "Concerts, cinemas and events",
+    "tools": [],
+    "modules": [
+      {
+        "id": "events",
+        "label": "Events and films",
+        "name": "Event or film name",
+        "fields": [
+          {
+            "key": "venue",
+            "label": "Venue",
+            "type": "text"
+          }
+        ],
+        "flow": {
+          "Draft": [
+            "Scheduled",
+            "Cancelled"
+          ],
+          "Scheduled": [
+            "Completed",
+            "Cancelled"
+          ],
+          "Completed": [],
+          "Cancelled": []
+        }
+      },
+      {
+        "id": "showtimes",
+        "label": "Showtimes",
+        "name": "Showtime name",
+        "fields": [
+          {
+            "key": "event",
+            "label": "Event or film",
+            "type": "reference",
+            "module": "events"
+          },
+          {
+            "key": "start",
+            "label": "Start (Kenya time)",
+            "type": "datetime"
+          },
+          {
+            "key": "end",
+            "label": "End (Kenya time)",
+            "type": "datetime"
+          },
+          {
+            "key": "room",
+            "label": "Hall or screen",
+            "type": "text"
+          }
+        ],
+        "flow": {
+          "Scheduled": [
+            "Admission open",
+            "Cancelled"
+          ],
+          "Admission open": [
+            "Finished",
+            "Cancelled"
+          ],
+          "Finished": [],
+          "Cancelled": []
+        }
+      },
+      {
+        "id": "seats",
+        "label": "Seat inventory",
+        "name": "Seat label",
+        "fields": [
+          {
+            "key": "show",
+            "label": "Showtime",
+            "type": "reference",
+            "module": "showtimes"
+          },
+          {
+            "key": "section",
+            "label": "Section or row",
+            "type": "text"
+          }
+        ],
+        "flow": {
+          "Available": [
+            "Blocked"
+          ],
+          "Blocked": [
+            "Available"
+          ]
+        }
+      },
+      {
+        "id": "tickets",
+        "label": "Tickets and reservations",
+        "name": "Booking reference",
+        "fields": [
+          {
+            "key": "seat",
+            "label": "Seat",
+            "type": "reference",
+            "module": "seats"
+          },
+          {
+            "key": "guest",
+            "label": "Guest name or reference",
+            "type": "text"
+          },
+          {
+            "key": "amount",
+            "label": "Ticket price (KES)",
+            "type": "money"
+          }
+        ],
+        "flow": {
+          "Reserved": [
+            "Issued",
+            "Cancelled"
+          ],
+          "Issued": [
+            "Cancelled"
+          ],
+          "Cancelled": [],
+          "Checked in": []
+        }
+      }
+    ],
+    "aliases": [
+      "Cinema",
+      "Concerts",
+      "Events"
+    ]
+  },
+  {
+    "id": "finance",
+    "label": "Banks and SACCOs",
+    "tools": [],
+    "modules": [
+      {
+        "id": "account-requests",
+        "label": "Account requests",
+        "name": "Application reference",
+        "fields": [
+          {
+            "key": "customer",
+            "label": "Customer reference",
+            "type": "text"
+          },
+          {
+            "key": "product",
+            "label": "Requested product",
+            "type": "text"
+          },
+          {
+            "key": "review",
+            "label": "Review case reference",
+            "type": "text"
+          }
+        ],
+        "flow": {
+          "Submitted": [
+            "In review",
+            "Withdrawn"
+          ],
+          "In review": [
+            "Approved",
+            "Declined"
+          ],
+          "Approved": [],
+          "Declined": [],
+          "Withdrawn": []
+        }
+      },
+      {
+        "id": "deposit-requests",
+        "label": "Deposit exceptions",
+        "name": "Deposit case reference",
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Provider transaction reference",
+            "type": "text"
+          },
+          {
+            "key": "amount",
+            "label": "Reported deposit (KES)",
+            "type": "money"
+          },
+          {
+            "key": "reported",
+            "label": "Reported date",
+            "type": "date"
+          }
+        ],
+        "flow": {
+          "Submitted": [
+            "In review",
+            "Withdrawn"
+          ],
+          "In review": [
+            "Approved",
+            "Declined"
+          ],
+          "Approved": [],
+          "Declined": [],
+          "Withdrawn": []
+        }
+      },
+      {
+        "id": "loan-reviews",
+        "label": "Loan reviews",
+        "name": "Loan application reference",
+        "fields": [
+          {
+            "key": "customer",
+            "label": "Customer reference",
+            "type": "text"
+          },
+          {
+            "key": "amount",
+            "label": "Requested loan (KES)",
+            "type": "money"
+          },
+          {
+            "key": "purpose",
+            "label": "Purpose and review reference",
+            "type": "text"
+          }
+        ],
+        "flow": {
+          "Submitted": [
+            "In review",
+            "Withdrawn"
+          ],
+          "In review": [
+            "Approved",
+            "Declined"
+          ],
+          "Approved": [],
+          "Declined": [],
+          "Withdrawn": []
+        }
+      }
+    ],
+    "aliases": [
+      "Bank",
+      "Banking",
+      "SACCO"
+    ]
+  },
+  {
+    "id": "restaurant",
+    "label": "Restaurants and catering",
+    "tools": [
+      "sales",
+      "inventory"
+    ],
+    "modules": [
+      {
+        "id": "tables",
+        "label": "Tables",
+        "name": "Table name",
+        "fields": [
+          {
+            "key": "capacity",
+            "label": "Seats",
+            "type": "count"
+          }
+        ],
+        "flow": {
+          "Available": [
+            "Inactive"
+          ],
+          "Inactive": [
+            "Available"
+          ]
+        }
+      },
+      {
+        "id": "kitchen",
+        "label": "Kitchen queue",
+        "name": "Order reference",
+        "fields": [
+          {
+            "key": "table",
+            "label": "Table",
+            "type": "reference",
+            "module": "tables"
+          },
+          {
+            "key": "items",
+            "label": "Items and quantities",
+            "type": "text"
+          }
+        ],
+        "flow": {
+          "Queued": [
+            "Preparing"
+          ],
+          "Preparing": [
+            "Ready"
+          ],
+          "Ready": [
+            "Served"
+          ],
+          "Served": []
+        }
+      }
+    ],
+    "aliases": []
+  },
+  {
+    "id": "hospitality",
+    "label": "Hotels and guesthouses",
+    "tools": [],
+    "modules": [
+      {
+        "id": "rooms",
+        "label": "Rooms",
+        "name": "Room name",
+        "fields": [
+          {
+            "key": "capacity",
+            "label": "Guest capacity",
+            "type": "count"
+          },
+          {
+            "key": "rate",
+            "label": "Nightly rate (KES)",
+            "type": "money"
+          }
+        ],
+        "flow": {
+          "Available": [
+            "Out of service"
+          ],
+          "Out of service": [
+            "Available"
+          ]
+        }
+      },
+      {
+        "id": "stays",
+        "label": "Reservations",
+        "name": "Reservation reference",
+        "fields": [
+          {
+            "key": "room",
+            "label": "Room",
+            "type": "reference",
+            "module": "rooms"
+          },
+          {
+            "key": "guest",
+            "label": "Guest reference",
+            "type": "text"
+          },
+          {
+            "key": "start",
+            "label": "Check-in date",
+            "type": "date"
+          },
+          {
+            "key": "end",
+            "label": "Check-out date",
+            "type": "date"
+          }
+        ],
+        "flow": {
+          "Reserved": [
+            "Checked in",
+            "Cancelled"
+          ],
+          "Checked in": [
+            "Checked out"
+          ],
+          "Checked out": [],
+          "Cancelled": []
+        }
+      }
+    ],
+    "aliases": []
+  },
+  {
+    "id": "manufacturing",
+    "label": "Manufacturing",
+    "tools": [
+      "inventory",
+      "orders"
+    ],
+    "modules": [
+      {
+        "id": "batches",
+        "label": "Production orders",
+        "name": "Batch reference",
+        "fields": [
+          {
+            "key": "product",
+            "label": "Product and specification",
+            "type": "text"
+          },
+          {
+            "key": "quantity",
+            "label": "Batch quantity",
+            "type": "count"
+          },
+          {
+            "key": "due",
+            "label": "Target date",
+            "type": "date"
+          }
+        ],
+        "flow": {
+          "Planned": [
+            "In production"
+          ],
+          "In production": [
+            "Quality check"
+          ],
+          "Quality check": [
+            "Released"
+          ],
+          "Released": []
+        }
+      }
+    ],
+    "aliases": []
+  },
+  {
+    "id": "logistics",
+    "label": "Transport and logistics",
+    "tools": [
+      "expenses"
+    ],
+    "modules": [
+      {
+        "id": "dispatch",
+        "label": "Dispatch jobs",
+        "name": "Job reference",
+        "fields": [
+          {
+            "key": "pickup",
+            "label": "Pickup location",
+            "type": "text"
+          },
+          {
+            "key": "dropoff",
+            "label": "Delivery location",
+            "type": "text"
+          },
+          {
+            "key": "due",
+            "label": "Scheduled date",
+            "type": "date"
+          },
+          {
+            "key": "proof",
+            "label": "Proof of delivery reference",
+            "type": "text",
+            "optional": true
+          }
+        ],
+        "flow": {
+          "Scheduled": [
+            "Dispatched",
+            "Cancelled"
+          ],
+          "Dispatched": [
+            "Delivered",
+            "Exception"
+          ],
+          "Exception": [
+            "Dispatched",
+            "Cancelled"
+          ],
+          "Delivered": [],
+          "Cancelled": []
+        }
+      }
+    ],
+    "aliases": []
+  },
+  {
+    "id": "construction",
+    "label": "Construction and trades",
+    "tools": [
+      "orders",
+      "expenses"
+    ],
+    "modules": [
+      {
+        "id": "projects",
+        "label": "Projects",
+        "name": "Project name",
+        "fields": [
+          {
+            "key": "site",
+            "label": "Site",
+            "type": "text"
+          },
+          {
+            "key": "budget",
+            "label": "Budget (KES)",
+            "type": "money"
+          },
+          {
+            "key": "due",
+            "label": "Target date",
+            "type": "date"
+          }
+        ],
+        "flow": {
+          "Planned": [
+            "Active"
+          ],
+          "Active": [
+            "Completed"
+          ],
+          "Completed": []
+        }
+      },
+      {
+        "id": "jobs",
+        "label": "Work orders",
+        "name": "Work order reference",
+        "fields": [
+          {
+            "key": "project",
+            "label": "Project",
+            "type": "reference",
+            "module": "projects"
+          },
+          {
+            "key": "summary",
+            "label": "Work description",
+            "type": "text"
+          },
+          {
+            "key": "due",
+            "label": "Due date",
+            "type": "date"
+          }
+        ],
+        "flow": {
+          "Planned": [
+            "In progress"
+          ],
+          "In progress": [
+            "Complete"
+          ],
+          "Complete": []
+        }
+      }
+    ],
+    "aliases": []
+  },
+  {
+    "id": "agriculture",
+    "label": "Agriculture and farming",
+    "tools": [
+      "inventory",
+      "orders"
+    ],
+    "modules": [
+      {
+        "id": "growing",
+        "label": "Growing cycles",
+        "name": "Cycle name",
+        "fields": [
+          {
+            "key": "crop",
+            "label": "Crop",
+            "type": "text"
+          },
+          {
+            "key": "plot",
+            "label": "Plot reference",
+            "type": "text"
+          },
+          {
+            "key": "start",
+            "label": "Planting date",
+            "type": "date"
+          },
+          {
+            "key": "end",
+            "label": "Expected harvest date",
+            "type": "date"
+          }
+        ],
+        "flow": {
+          "Planned": [
+            "Planted"
+          ],
+          "Planted": [
+            "Harvested"
+          ],
+          "Harvested": []
+        }
+      }
+    ],
+    "aliases": []
+  },
+  {
+    "id": "education",
+    "label": "Education and training",
+    "tools": [
+      "customers"
+    ],
+    "modules": [
+      {
+        "id": "courses",
+        "label": "Courses",
+        "name": "Course name",
+        "fields": [
+          {
+            "key": "start",
+            "label": "Start date",
+            "type": "date"
+          },
+          {
+            "key": "end",
+            "label": "End date",
+            "type": "date"
+          },
+          {
+            "key": "capacity",
+            "label": "Class capacity",
+            "type": "count"
+          }
+        ],
+        "flow": {
+          "Planned": [
+            "Open",
+            "Cancelled"
+          ],
+          "Open": [
+            "Closed"
+          ],
+          "Closed": [],
+          "Cancelled": []
+        }
+      },
+      {
+        "id": "enrolments",
+        "label": "Enrolments",
+        "name": "Enrolment reference",
+        "fields": [
+          {
+            "key": "course",
+            "label": "Course",
+            "type": "reference",
+            "module": "courses"
+          },
+          {
+            "key": "student",
+            "label": "Learner reference",
+            "type": "text"
+          }
+        ],
+        "flow": {
+          "Enrolled": [
+            "Completed",
+            "Withdrawn"
+          ],
+          "Completed": [],
+          "Withdrawn": []
+        }
+      }
+    ],
+    "aliases": []
+  },
+  {
+    "id": "healthcare",
+    "label": "Healthcare administration",
+    "tools": [
+      "bookings",
+      "customers"
+    ],
+    "modules": [
+      {
+        "id": "appointments",
+        "label": "Appointments",
+        "name": "Appointment reference",
+        "fields": [
+          {
+            "key": "client",
+            "label": "Client reference",
+            "type": "text"
+          },
+          {
+            "key": "start",
+            "label": "Start (Kenya time)",
+            "type": "datetime"
+          },
+          {
+            "key": "service",
+            "label": "Service or department",
+            "type": "text"
+          }
+        ],
+        "flow": {
+          "Scheduled": [
+            "Arrived",
+            "Cancelled"
+          ],
+          "Arrived": [
+            "Completed"
+          ],
+          "Completed": [],
+          "Cancelled": []
+        }
+      }
+    ],
+    "aliases": []
+  },
+  {
+    "id": "nonprofit",
+    "label": "Nonprofits and community groups",
+    "tools": [
+      "expenses"
+    ],
+    "modules": [
+      {
+        "id": "programmes",
+        "label": "Programmes",
+        "name": "Programme name",
+        "fields": [
+          {
+            "key": "budget",
+            "label": "Budget (KES)",
+            "type": "money"
+          },
+          {
+            "key": "due",
+            "label": "Reporting date",
+            "type": "date"
+          }
+        ],
+        "flow": {
+          "Planned": [
+            "Active"
+          ],
+          "Active": [
+            "Completed"
+          ],
+          "Completed": []
+        }
+      },
+      {
+        "id": "donations",
+        "label": "Donations",
+        "name": "Donation reference",
+        "fields": [
+          {
+            "key": "programme",
+            "label": "Programme",
+            "type": "reference",
+            "module": "programmes"
+          },
+          {
+            "key": "donor",
+            "label": "Donor reference",
+            "type": "text"
+          },
+          {
+            "key": "amount",
+            "label": "Donation (KES)",
+            "type": "money"
+          },
+          {
+            "key": "date",
+            "label": "Recorded date",
+            "type": "date"
+          }
+        ],
+        "flow": {
+          "Pledged": [
+            "Received",
+            "Withdrawn"
+          ],
+          "Received": [],
+          "Withdrawn": []
+        }
+      }
+    ],
+    "aliases": []
+  },
+  {
+    "id": "general",
+    "label": "Other businesses",
+    "tools": [
+      "bookings",
+      "customers"
+    ],
+    "modules": [],
+    "aliases": [
+      "Other",
+      "General"
+    ]
+  }
+]

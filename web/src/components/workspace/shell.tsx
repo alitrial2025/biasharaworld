@@ -1,63 +1,122 @@
 "use client";
-import { T, LocalButton, LocalSelect } from "@/components/locale";
 
 import Link from "next/link";
-import { ConnectionBanner } from "@/components/connection-banner";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   ArrowRight,
   BarChart3,
-  Bell,
+  Building2,
+  CalendarDays,
   ChevronDown,
-  CircleHelp,
+  ClipboardList,
   Command,
+  FileText,
   LayoutDashboard,
   Menu,
   Package,
   Search,
   Settings,
   ShoppingBag,
-  ShoppingCart,
-  Smartphone,
-  Sparkles,
-  Sprout,
-  Store,
   Truck,
   Users,
-  UsersRound,
   Wallet,
   X,
-  Grid2X2,
 } from "lucide-react";
+import { T, LocalButton, LocalSelect } from "@/components/locale";
+import { ConnectionBanner } from "@/components/connection-banner";
+import { Avatar, Brand, Button, Modal, SearchField } from "@/components/ui";
 import {
-  Avatar,
-  Badge,
-  Brand,
-  Button,
-  Modal,
-  ProductArt,
-  SearchField,
-} from "@/components/ui";
+  industryFor,
+  searchWorkspace,
+  workspaceCanUse,
+  workspaceLabel,
+  workspaceTools,
+} from "@/lib/industries";
 import { useDemo } from "@/lib/store";
-import { lowStock } from "@/lib/data";
 
-const mainLinks = [
-  ["Overview", "/dashboard", LayoutDashboard],
-  ["Sales", "/dashboard/sales", ShoppingBag],
-  ["Inventory", "/dashboard/inventory", Package],
-  ["Customers", "/dashboard/customers", Users],
-  ["Suppliers", "/dashboard/suppliers", Truck],
-] as const;
-const tools = [
-  ["All business tools", "/dashboard/tools", Grid2X2],
-  ["Purchase orders", "/dashboard/orders", ShoppingCart],
-  ["Expenses", "/dashboard/expenses", Wallet],
-  ["Reports", "/dashboard/reports", BarChart3],
-  ["BiasharaAI", "/dashboard/assistant", Sparkles],
-  ["Financing", "/dashboard/financing", Sprout],
-  ["Your team", "/dashboard/team", UsersRound],
-] as const;
+const icons: Record<string, typeof Package> = {
+  industry: ClipboardList,
+  reports: BarChart3,
+  sales: ShoppingBag,
+  inventory: Package,
+  customers: Users,
+  suppliers: Truck,
+  bookings: CalendarDays,
+  documents: FileText,
+  expenses: Wallet,
+  orders: ClipboardList,
+};
+
+export function IndustryHome() {
+  const { state, store } = useDemo();
+  const industry = industryFor(state.profile.type);
+  const role = store.workspace?.role ?? "";
+  return (
+    <>
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">{industry.label}</p>
+          <h1>
+            <T>Hi</T> {state.profile.name.split(" ")[0]}
+          </h1>
+          <p>{state.profile.business}</p>
+        </div>
+      </div>
+      {workspaceCanUse("industry", industry, role) && role !== "Cashier" && (
+        <section aria-label={industry.label}>
+          <h2>{industry.label}</h2>
+          <div className="industry-links">
+            {industry.modules.map((module) => (
+              <Link
+                className="card industry-link"
+                href={`/dashboard/industry?module=${module.id}`}
+                key={module.id}
+              >
+                <ClipboardList size={20} />
+                <strong>{module.label}</strong>
+                <ArrowRight size={16} />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+      <section aria-label="Workspace tools">
+        <h2>
+          <T>Workspace tools</T>
+        </h2>
+        <div className="industry-links">
+          {workspaceTools(industry)
+            .filter(
+              (slug) =>
+                workspaceCanUse(slug, industry, role) &&
+                (slug !== "industry" || role === "Cashier"),
+            )
+            .map((slug) => {
+              const Icon = icons[slug] ?? LayoutDashboard;
+              return (
+                <Link
+                  className="card industry-link"
+                  href={`/dashboard/${slug}`}
+                  key={slug}
+                >
+                  <Icon size={20} />
+                  <strong>
+                    <T>
+                      {slug === "industry"
+                        ? "Ticket admission"
+                        : workspaceLabel(slug)}
+                    </T>
+                  </strong>
+                  <ArrowRight size={16} />
+                </Link>
+              );
+            })}
+        </div>
+      </section>
+    </>
+  );
+}
 
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const { state, store } = useDemo();
@@ -66,54 +125,77 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   const [mobile, setMobile] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [alerts, setAlerts] = useState(false);
   useEffect(() => {
-    function shortcut(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setSearchOpen((v) => !v);
+    function shortcut(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setSearchOpen((open) => !open);
       }
-      if (e.key === "Escape") setMobile(false);
+      if (event.key === "Escape") setMobile(false);
     }
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
   }, []);
-  useEffect(()=>{
-    if(!store.ready)return;
-    if(!store.authenticated)router.replace('/login');
-    else if(!store.workspace&&!store.error)router.replace('/onboarding');
-  },[store.ready,store.authenticated,store.workspace,store.error,router]);
-  if(!store.ready||!store.authenticated||!store.workspace)return <main id="main-content" className="container section"><Brand/><h1>{store.error?'Could not load your business':'Opening your workspace…'}</h1>{store.error&&<><p role="alert">{store.error}</p><Button onClick={()=>void store.hydrate()}>Retry connection</Button><Button href="/login">Sign in</Button></>}</main>;
-  const active = (href: string) =>
-    href === "/dashboard" ? pathname === href : pathname.startsWith(href);
+  useEffect(() => {
+    if (!store.ready) return;
+    if (!store.authenticated) router.replace("/login");
+    else if (!store.workspace && !store.error) router.replace("/onboarding");
+  }, [store.ready, store.authenticated, store.workspace, store.error, router]);
+  if (!store.ready || !store.authenticated || !store.workspace) {
+    return (
+      <main id="main-content" className="container section">
+        <Brand />
+        <h1>
+          {store.error
+            ? "Could not load your business"
+            : "Opening your workspace…"}
+        </h1>
+        {store.error && (
+          <>
+            <p role="alert">{store.error}</p>
+            <Button onClick={() => void store.hydrate()}>
+              Retry connection
+            </Button>
+            <Button href="/login">Sign in</Button>
+          </>
+        )}
+      </main>
+    );
+  }
+  const role = store.workspace.role;
+  const industry = industryFor(state.profile.type);
+  const links = workspaceTools(industry).filter((slug) =>
+    workspaceCanUse(slug, industry, role),
+  );
+  const results = searchWorkspace(industry, role, query);
+  const term = query.trim().toLowerCase();
+  const products = term
+    ? state.products
+        .filter((product) => product.name.toLowerCase().includes(term))
+        .slice(0, 4)
+    : [];
+  const customers = term
+    ? state.customers
+        .filter((customer) => customer.name.toLowerCase().includes(term))
+        .slice(0, 4)
+    : [];
+
   function go(href: string) {
     setMobile(false);
     setSearchOpen(false);
-    setAlerts(false);
+    setQuery("");
     router.push(href);
   }
-  const matchingProducts = query
-    ? state.products
-        .filter((p) => p.name.toLowerCase().includes(query.toLowerCase()))
-        .slice(0, 4)
-    : [];
-  const matchingCustomers = query
-    ? state.customers
-        .filter((c) => c.name.toLowerCase().includes(query.toLowerCase()))
-        .slice(0, 3)
-    : [];
+
   return (
     <div className="workspace">
-      <T>
-        {mobile && (
-          <LocalButton
-            className="sidebar-scrim"
-            aria-label="Close navigation"
-            onClick={() => setMobile(false)}
-          />
-        )}
-      </T>
-
+      {mobile && (
+        <LocalButton
+          className="sidebar-scrim"
+          aria-label="Close navigation"
+          onClick={() => setMobile(false)}
+        />
+      )}
       <aside className={`workspace-sidebar ${mobile ? "sidebar-open" : ""}`}>
         <div className="sidebar-logo">
           <Brand />
@@ -131,112 +213,65 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           onClick={() => setMobile(false)}
         >
           <span>
-            <Store size={19} />
+            <Building2 size={19} />
           </span>
           <div>
-            <strong>
-              <T>{state.profile.business}</T>
-            </strong>
-            <small>
-              <T>Business workspace</T>
-            </small>
+            <strong>{state.profile.business}</strong>
+            <small>{industry.label}</small>
           </div>
-          <ChevronDown size={14} />
         </Link>
-        <div className="sidebar-section-label">
-          <T>YOUR BUSINESS</T>
-        </div>
         <nav aria-label="Business navigation">
-          <T>
-            {mainLinks.map(([label, href, Icon]) => (
+          <Link
+            href="/dashboard"
+            className={pathname === "/dashboard" ? "active" : ""}
+            onClick={() => setMobile(false)}
+          >
+            <LayoutDashboard size={19} />
+            <span>
+              <T>Overview</T>
+            </span>
+          </Link>
+          {links.map((slug) => {
+            const href = `/dashboard/${slug}`;
+            const Icon = icons[slug] ?? LayoutDashboard;
+            return (
               <Link
-                onClick={() => setMobile(false)}
-                className={active(href) ? "active" : ""}
+                key={slug}
                 href={href}
-                key={href}
+                className={pathname === href ? "active" : ""}
+                onClick={() => setMobile(false)}
               >
                 <Icon size={19} />
                 <span>
-                  <T>{label}</T>
+                  <T>
+                    {slug === "industry" && role === "Cashier"
+                      ? "Ticket admission"
+                      : workspaceLabel(slug)}
+                  </T>
                 </span>
-
-                <T>
-                  {href === "/dashboard/inventory" &&
-                    lowStock(state).length > 0 && (
-                      <small>
-                        <T>{lowStock(state).length}</T>
-                      </small>
-                    )}
-                </T>
               </Link>
-            ))}
-          </T>
-        </nav>
-        <div className="sidebar-section-label">
-          <T>ROOM TO GROW</T>
-        </div>
-        <nav aria-label="Business tools">
-          <T>
-            {tools.map(([label, href, Icon]) => (
-              <Link
-                onClick={() => setMobile(false)}
-                className={active(href) ? "active" : ""}
-                href={href}
-                key={href}
-              >
-                <Icon size={19} />
-                <span>
-                  <T>{label}</T>
-                </span>
-
-                <T>
-                  {label === "BiasharaAI" && <span className="ai-nav-dot" />}
-                </T>
-              </Link>
-            ))}
-          </T>
+            );
+          })}
         </nav>
         <div className="sidebar-bottom">
-          <Link className="sidebar-app-link" href="/download">
-            <Smartphone size={20} />
-            <div>
-              <strong>
-                <T>Your shop, in your pocket.</T>
-              </strong>
-              <span>
-                <T>Meet the Android preview</T>
-                <ArrowRight size={11} />
-              </span>
-            </div>
-          </Link>
           <nav>
             <Link
-              className={active("/dashboard/settings") ? "active" : ""}
               href="/dashboard/settings"
+              className={pathname === "/dashboard/settings" ? "active" : ""}
               onClick={() => setMobile(false)}
             >
               <Settings size={18} />
-              <T>Settings</T>
-            </Link>
-            <Link href="/help">
-              <CircleHelp size={18} />
-              <T>Help & support</T>
-              <ArrowRight size={13} />
+              <span>
+                <T>Settings</T>
+              </span>
             </Link>
           </nav>
           <div className="sidebar-person">
             <Avatar name={state.profile.name} small />
             <div>
-              <strong>
-                <T>{state.profile.name}</T>
-              </strong>
-              <small>
-                <T>Business owner</T>
-              </small>
+              <strong>{state.profile.name}</strong>
+              <small>{role}</small>
             </div>
-            <Badge tone="gray">
-              <T>{store.workspace.role}</T>
-            </Badge>
           </div>
         </div>
       </aside>
@@ -258,47 +293,32 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
               <T>Search anything…</T>
             </span>
             <kbd>
-              <Command size={11} />
-              <T>K</T>
+              <Command size={11} />K
             </kbd>
           </LocalButton>
           <div className="topbar-right">
-            <LocalSelect
-              className="branch-top-select"
-              aria-label="Active branch"
-              value={state.operations.activeBranch}
-              onChange={async (e) =>
-                await store.command({ type: "branch", id: e.target.value })
-              }
-            >
-              <T>
-                {state.operations.branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    <T>{b.name}</T>
+            {state.operations.branches.length > 1 && (
+              <LocalSelect
+                className="branch-top-select"
+                aria-label="Active branch"
+                value={state.operations.activeBranch}
+                onChange={(event) =>
+                  void store
+                    .command({ type: "branch", id: event.target.value })
+                    .catch(() => {})
+                }
+              >
+                {state.operations.branches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
                   </option>
                 ))}
-              </T>
-            </LocalSelect>
-            <Link
-              href="/help"
-              className="icon-button help-top"
-              aria-label="Help centre"
-            >
-              <CircleHelp size={20} />
-            </Link>
-            <LocalButton
-              className="icon-button notification-button"
-              aria-label="View notifications"
-              onClick={() => setAlerts(true)}
-            >
-              <Bell size={20} />
-              <T>{lowStock(state).length > 0 && <span />}</T>
-            </LocalButton>
-            <div className="topbar-divider" />
+              </LocalSelect>
+            )}
             <Link href="/dashboard/settings" className="topbar-profile">
               <Avatar name={state.profile.name} small />
               <span>
-                <T>{state.profile.name.split(" ")[0]}</T>
+                {state.profile.name.split(" ")[0]}
                 <small>
                   <T>Account</T>
                 </small>
@@ -308,167 +328,104 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <ConnectionBanner />
-        {store.busy&&<div role="status" className="connection-banner">Saving to your business…</div>}
-        {store.error&&<div role="alert" className="operation-error">{store.error} {store.hasPending?<button onClick={()=>void store.retry().catch(()=>{})}>Retry saved request</button>:<button onClick={()=>void store.hydrate()}>Refresh records</button>}</div>}
-        {store.busy&&<div className="saving-overlay" aria-label="Saving changes"/>}
-
-        <T>
-          {store.storageWarning && (
-            <div className="operation-error">
-              <T>{store.storageWarning}</T>
+        {store.busy && (
+          <>
+            <div role="status" className="connection-banner">
+              Saving to your business…
             </div>
-          )}
-        </T>
-
-        <div className="demo-bar">
-          <span>
-            <span className="status-dot" />
-            <T>Your private workspace · Changes saved securely.</T>
-          </span>
-          <Link href="/help">
-            <T>How it works</T>
-            <ArrowUpRightIcon />
-          </Link>
-        </div>
+            <div className="saving-overlay" aria-label="Saving changes" />
+          </>
+        )}
+        {store.error && (
+          <div role="alert" className="operation-error">
+            {store.error}{" "}
+            {store.hasPending ? (
+              <button onClick={() => void store.retry().catch(() => {})}>
+                Retry saved request
+              </button>
+            ) : (
+              <button onClick={() => void store.hydrate()}>
+                Refresh records
+              </button>
+            )}
+          </div>
+        )}
+        {store.storageWarning && (
+          <div className="operation-error">{store.storageWarning}</div>
+        )}
         <main className="workspace-main" id="main-content">
           <T>{children}</T>
         </main>
         <footer className="workspace-footer">
-          <span>
-            <T>BiasharaOS · A little less juggling. A lot more growing.</T>
-          </span>
-          <span>
-            <button onClick={async()=>{
- try {
-await store.signOut();router.replace("/login")
- } catch { /* The shared connection banner retains the server error and retry action. */ }
-}}>Sign out</button>
-          </span>
+          <Link href="/help">
+            <T>Help & support</T>
+          </Link>
+          <button
+            onClick={() =>
+              void store
+                .signOut()
+                .then(() => router.replace("/login"))
+                .catch(() => {})
+            }
+          >
+            <T>Sign out</T>
+          </button>
         </footer>
       </div>
       <Modal
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
-        title="A little shortcut to anywhere."
-        description="Search your products, people and business tools."
+        title="Search workspace"
+        description="Find tools, products and customers."
       >
         <SearchField
           value={query}
           onChange={setQuery}
-          placeholder="Search products or customers…"
+          placeholder="Search tools, products or customers…"
         />
         <div className="search-results">
-          <T>
-            {!query &&
-              [...mainLinks, ...tools]
-                .slice(0, 9)
-                .map(([label, href, Icon]) => (
-                  <LocalButton key={href} onClick={() => go(href)}>
-                    <Icon size={17} />
-                    <span>
-                      <T>{label}</T>
-                    </span>
-                    <ArrowRight size={14} />
-                  </LocalButton>
-                ))}
-          </T>{" "}
-          <T>
-            {matchingProducts.map((p) => (
-              <LocalButton
-                key={p.id}
-                onClick={() =>
-                  go(`/dashboard/inventory?q=${encodeURIComponent(p.name)}`)
-                }
-              >
-                <ProductArt art={p.art} name={p.name} small />
-                <span>
-                  <strong>
-                    <T>{p.name}</T>
-                  </strong>
-                  <small>
-                    <T>{p.stock}</T> <T>in stock ·</T> <T>{p.category}</T>
-                  </small>
-                </span>
-                <ArrowRight size={14} />
-              </LocalButton>
-            ))}
-          </T>{" "}
-          <T>
-            {matchingCustomers.map((c) => (
-              <LocalButton
-                key={c.id}
-                onClick={() =>
-                  go(`/dashboard/customers?q=${encodeURIComponent(c.name)}`)
-                }
-              >
-                <Avatar name={c.name} color={c.color} small />
-                <span>
-                  <T>{c.name}</T>
-                </span>
-                <ArrowRight size={14} />
-              </LocalButton>
-            ))}
-          </T>{" "}
-          <T>
-            {query && !matchingProducts.length && !matchingCustomers.length && (
-              <p className="search-empty">
-                <T>No matches yet. Try a product or customer name.</T>
-              </p>
-            )}
-          </T>
-        </div>
-      </Modal>
-      <Modal
-        open={alerts}
-        onClose={() => setAlerts(false)}
-        title="A few shelves need attention."
-        description="Sample stock alerts from your demo business."
-      >
-        <div className="alert-list">
-          <T>
-            {lowStock(state).map((p) => (
-              <LocalButton
-                key={p.id}
-                onClick={() =>
-                  go(`/dashboard/inventory?q=${encodeURIComponent(p.name)}`)
-                }
-              >
-                <ProductArt art={p.art} name={p.name} />
-                <div>
-                  <strong>
-                    <T>{p.name}</T>
-                  </strong>
-                  <span>
-                    <T>
-                      {p.stock === 0
-                        ? "Out of stock"
-                        : `${p.stock} left · time to restock`}
-                    </T>
-                  </span>
-                </div>
-                <Badge tone={p.stock === 0 ? "red" : "amber"}>
-                  <T>{p.stock}</T> <T>left</T>
-                </Badge>
-              </LocalButton>
-            ))}
-          </T>{" "}
-          <T>
-            {!lowStock(state).length && (
-              <p className="inline-note">
-                <T>All your products are above their reorder points.</T>
-              </p>
-            )}
-          </T>
-        </div>
-        <div className="modal-actions">
-          <Button href="/dashboard/inventory" arrow>
-            <T>Open inventory</T>
-          </Button>
+          {results.map(({ slug, label }) => (
+            <LocalButton key={slug} onClick={() => go(`/dashboard/${slug}`)}>
+              <Search size={16} />
+              <span>
+                <T>{label}</T>
+              </span>
+              <ArrowRight size={14} />
+            </LocalButton>
+          ))}
+          {products.map((product) => (
+            <LocalButton
+              key={product.id}
+              onClick={() =>
+                go(`/dashboard/inventory?q=${encodeURIComponent(product.name)}`)
+              }
+            >
+              <Package size={16} />
+              <span>{product.name}</span>
+              <ArrowRight size={14} />
+            </LocalButton>
+          ))}
+          {customers.map((customer) => (
+            <LocalButton
+              key={customer.id}
+              onClick={() =>
+                go(
+                  `/dashboard/customers?q=${encodeURIComponent(customer.name)}`,
+                )
+              }
+            >
+              <Users size={16} />
+              <span>{customer.name}</span>
+              <ArrowRight size={14} />
+            </LocalButton>
+          ))}
+          {!results.length && !products.length && !customers.length && (
+            <p className="search-empty">
+              <T>No matches found.</T>
+            </p>
+          )}
         </div>
       </Modal>
     </div>
   );
-}
-function ArrowUpRightIcon() {
-  return <ArrowRight size={12} style={{ transform: "rotate(-35deg)" }} />;
 }

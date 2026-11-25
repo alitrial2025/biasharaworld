@@ -175,6 +175,10 @@ fun MoreScreen(store: DemoStore, navigate: (Screen) -> Unit) {
 
 @Composable
 fun ProfileScreen(store: DemoStore, onBack: () -> Unit) {
+    val catalog = rememberIndustryCatalog()
+    val canChangeIndustry = store.backend?.role == "Owner"
+    val canEdit = !store.real || store.backend?.role in listOf("Owner", "Manager")
+    var industry by rememberSaveable { mutableStateOf(catalog.industry(store.liveState.optJSONObject("profile")?.optString("type").orEmpty()).id) }
     var name by rememberSaveable { mutableStateOf(store.ownerName) }
     var business by rememberSaveable { mutableStateOf(store.businessName) }
     var location by rememberSaveable { mutableStateOf(store.location) }
@@ -229,6 +233,7 @@ fun ProfileScreen(store: DemoStore, onBack: () -> Unit) {
             shape = RoundedCornerShape(16.dp),
             singleLine = true,
         )
+        if (store.real && canChangeIndustry) ToolSelect("Business type", industry, catalog.options) { industry = it; saved = false }
         SurfaceCard {
             Eyebrow("Your currency")
             AppText(
@@ -240,13 +245,23 @@ fun ProfileScreen(store: DemoStore, onBack: () -> Unit) {
         PrimaryButton(
             if (saved) "Changes saved ✓" else "Save changes",
             {
-                if(store.real){store.backend?.action{store.backend?.command(json("type" to "updateProfile","profile" to json("name" to name.trim(),"business" to business.trim(),"location" to location.trim())));saved=true};return@PrimaryButton}
+                if (store.real) {
+                    store.backend?.let { backend ->
+                        backend.action {
+                            val profile = json("name" to name.trim(), "business" to business.trim(), "location" to location.trim())
+                            if (canChangeIndustry) profile.put("type", industry)
+                            backend.command(json("type" to "updateProfile", "profile" to profile))
+                            saved = true
+                        }
+                    }
+                    return@PrimaryButton
+                }
                 store.ownerName = name.trim()
                 store.businessName = business.trim()
                 store.location = location.trim()
                 saved = true
             },
-            enabled = name.isNotBlank() && business.isNotBlank() && location.isNotBlank(),
+            enabled = canEdit && name.isNotBlank() && business.isNotBlank() && location.isNotBlank(),
             icon = Icons.Outlined.Check,
         )
         AppText("Confirmed changes are shared with your website.", fontSize = 11.sp, color = Muted)

@@ -1,3 +1,4 @@
+import { IndustryPage } from "@/components/workspace/industry-page";
 import { ToolPage } from "@/components/tools/tool-page";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -21,6 +22,7 @@ import {
   SettingsPage,
 } from "@/components/workspace/management";
 const titles: Record<string, string> = {
+  industry: "Industry operations",
   sales: "Sales",
   inventory: "Inventory",
   customers: "Customers",
@@ -55,11 +57,13 @@ export default async function Page({
   searchParams,
 }: {
   params: Promise<{ section: string }>;
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; module?: string }>;
 }) {
   const { section } = await params;
-  const { q } = await searchParams;
+  const { q, module } = await searchParams;
   switch (section) {
+    case "industry":
+      return <IndustryPage moduleId={module} />;
     case "sales":
       return <SalesPage />;
     case "inventory":

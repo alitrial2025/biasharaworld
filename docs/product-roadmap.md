@@ -10,6 +10,7 @@ This roadmap distinguishes work implemented in the branch, work needed for a pro
 | --- | --- | --- |
 | 1 · Kenyan merchant pilot | In progress | Owner and company activation gates and Paystack card and M-Pesa checkout are deployed on Vercel and Supabase. Provider credentials, real sandbox tests, reviewer assignment, physical-device acceptance and pilot settlement remain open. |
 | 2–3 · Business operations, suppliers and Kenyan payments | In progress | Web and Android support invoice deposits, service bookings, customer service notes, opening data imports, financial reports, supplier exchange and stock receipt, and settlement statement matching. Paystack bank transfer is wired behind an enablement setting. |
+| Sector workspaces | Implemented locally | Web and Android onboarding offer 19 business types. The dashboard shows industry tools and shared essentials. Workspace search opens additional tools. Sector records share the Supabase backend. Staging rollout and physical-device acceptance remain open. |
 
 See completed local checks and the evidence required before release. [Release checklist](backend-implementation-plan.md) · [Kenya pilot runbook](kenya-pilot-runbook.md)
 
@@ -45,21 +46,31 @@ See completed local checks and the evidence required before release. [Release ch
 
 - Open **Suppliers → Supplier network**. Publish a listing from a verified business, or find a verified supplier and request a quote. At delivery, confirm receipt and record goods against the buyer's active inventory branch. Only the buyer and supplier can view their exchange. Buyer inventory mappings stay in the buyer workspace.
 - Open **Reports → Financial overview** for recorded movements and amounts due. Open **Payment activity → Reconcile settlements** to import provider payout and deposit CSVs with headings `date,reference,amount_kes`. Match normalized references and amounts in KES. An owner can discard an incorrect imported line with a recorded reason and reimport it.
-- Open **Documents** to record an invoice amount already received. Open **Import business records** in web Settings or Android More to download a CSV template and bring in opening data.
-- Open **Services and bookings** in web Settings or Android More to schedule a service against a customer and a team member. Use **Customer service notes** under web Customers or Android More for restricted follow-up notes. Customers manage promotional email preferences in their portal.
+- Open **Documents** to record an invoice amount already received. Open **Import business records** in web Settings or through Android Search to download a CSV template and bring in opening data.
+- Open **Services and bookings** in web Settings or through Android Search to schedule a service against a customer and a team member. Use **Customer service notes** under web Customers or through Android Search for restricted follow-up notes. Customers manage promotional email preferences in their portal.
 - Enable additional payment channels only after qualifying the provider's accounts, settlement route and originating-bank coverage. [Kenyan payment setup](kenya-payments.md)
 
-## Sector development
+## Sector workspaces
 
-| Sector | First useful workflow | Later or partner-dependent work |
+Owners select their primary business type during onboarding and can change it in the business profile. Existing business type labels such as Retail shop and Mini market map to the new workspaces. Sector records stay with the business when the owner switches type. The home screen keeps quotes and invoices, expenses and reports accessible. Other tools are accessible through search.
+
+| Sector | Workflows available in the branch | Work still open |
 | --- | --- | --- |
-| Retail, grocery and e-commerce | Sell online and in person, stock by location, accept payment and handle returns | Multiple outlets, shared catalogues, delivery integrations, subscriptions and retention tools |
-| Service businesses and professionals | Quote, book, complete a job, invoice and collect | Project schedules, resource bookings, timesheets, milestones, recurring work and client approvals |
-| Restaurants and hospitality | Menu, modifiers, order queue, table or takeaway service and shift close | Kitchen display, reservations, ingredient usage and property integrations |
-| Wholesalers, suppliers and distributors | Price lists, RFQs, purchase orders, partial fulfilment, goods receipt and invoices | Dealer terms, bulk orders, warehouse transfers, distribution routes and B2B integrations |
-| Manufacturers and producers | Components, production orders, batches, quality checks and stock movement | Production planning, yield, landed cost, traceability and distribution |
-| Banks, SACCOs and other financial institutions | Start with business tools for teams, purchasing, invoicing and reports. Pilot a separate bank partner integration for collections, statements or merchant settlement. | Partner-led accounts, credit or financing require separate discovery, provider agreements and applicable compliance review. Core banking, deposit taking and custody are outside the current roadmap. |
-| Other regulated businesses | Run approved general business workflows with restricted permissions and data access | Add sector-specific records and integrations after validating the workflow, privacy obligations and applicable approvals. |
+| Insurance | Policies, premium receipts, renewals and claims review | Insurer integrations, customer policy and claims portals, scheduled notices and payouts |
+| Real estate and property management | Units, tenants, leases, rent receipts and maintenance requests | Lease signing, recurring rent collection, tenant portal and contractor dispatch |
+| Concerts, cinemas and events | Events, showtimes, seats, timed reservations, shareable tickets and single-use barcode admission | Public ticket sales, online checkout, automated delivery, refunds and high-volume venue testing |
+| Banks and SACCOs | Internal account requests, deposit exceptions and lending reviews submitted by a manager and decided by the owner | Core banking, collection and settlement integrations, regulated accounts, deposits, lending and transactions depend on partner arrangements and applicable approvals |
+| Retail and kiosks, supermarkets, wholesale and distribution, e-commerce | Sector shortcuts for checkout, inventory, purchasing, supplier sourcing, online shops and fulfilment | Advanced stock and fulfilment integrations |
+| Professional services and other businesses | Service bookings, customers, quotes, invoices, expenses and reports | Public booking and approvals |
+| Restaurants and catering | Tables and kitchen queue | Menu modifiers, ingredient consumption and customer ordering |
+| Hotels and guesthouses | Room inventory and reservations | Channel management and online bookings |
+| Manufacturing | Production orders | Bills of materials, capacity planning and yield |
+| Transport and logistics | Dispatch jobs and delivery proof references | Carrier integration, routing and digital proof attachments |
+| Construction and trades | Projects and work orders | Progress billing and subcontractor management |
+| Agriculture and farming | Growing cycles | Input planning, yield reporting and traceability |
+| Education and training | Courses, enrolment and capacity | Learning delivery, attendance and student portals |
+| Healthcare administration | Administrative appointments | Clinical information systems and provider integrations |
+| Nonprofits and community groups | Programmes and donation records | Donor self-service, recurring giving and fund restrictions |
 
 ## Platform work across every phase
 
