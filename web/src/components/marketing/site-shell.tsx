@@ -10,7 +10,6 @@ import {
   ChevronDown,
   CircleHelp,
   HeartHandshake,
-  Laptop,
   Menu,
   Package,
   ShoppingBag,
@@ -21,6 +20,8 @@ import {
   X,
 } from "lucide-react";
 import { Brand, Button } from "@/components/ui";
+import { useDemo } from "@/lib/store";
+import type { ComponentProps } from "react";
 
 const menus = {
   Product: [
@@ -41,12 +42,6 @@ const menus = {
       icon: Smartphone,
       title: "Web + Android",
       text: "Your business, wherever you are",
-    },
-    {
-      href: "/dashboard",
-      icon: Laptop,
-      title: "Explore the demo",
-      text: "Take a look around a sample shop",
     },
   ],
   Solutions: [
@@ -103,9 +98,39 @@ const menus = {
   ],
 };
 
+function useWorkspaceEntry() {
+  const { store } = useDemo();
+  const authenticated = store.authenticated;
+  const setup = authenticated && store.ready && !store.workspace && !store.error;
+  return {
+    store,
+    authenticated,
+    href: setup ? "/onboarding" : "/dashboard",
+    label: setup ? "Finish setup" : "Open workspace",
+  };
+}
+
+export function WorkspaceCTA({
+  signedOutLabel = "Get started",
+  signedOutHref = "/signup",
+  ...props
+}: Omit<ComponentProps<typeof Button>, "href" | "children"> & {
+  signedOutLabel?: string;
+  signedOutHref?: string;
+}) {
+  const entry = useWorkspaceEntry();
+  return (
+    <Button {...props} href={entry.authenticated ? entry.href : signedOutHref}>
+      <T>{entry.authenticated ? entry.label : signedOutLabel}</T>
+    </Button>
+  );
+}
+
 export function SiteHeader() {
+  const entry = useWorkspaceEntry();
   const [open, setOpen] = useState<string | null>(null);
   const [mobile, setMobile] = useState(false);
+  const [sessionError, setSessionError] = useState("");
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     function close(e: MouseEvent) {
@@ -127,6 +152,21 @@ export function SiteHeader() {
       document.removeEventListener("keydown", escape);
     };
   }, []);
+  async function signOut() {
+    setSessionError("");
+    try {
+      await entry.store.signOut();
+      setMobile(false);
+    } catch (error) {
+      setSessionError(error instanceof Error ? error.message : "Could not sign out. Please try again.");
+    }
+  }
+  const signOutButton = (
+    <LocalButton className="nav-link site-signout" onClick={() => void signOut()}>
+      <T>Sign out</T>
+    </LocalButton>
+  );
+
   return (
     <header className="site-header" ref={ref}>
       <div className="container nav-inner">
@@ -190,21 +230,13 @@ export function SiteHeader() {
             <T>Pricing</T>
           </Link>
           <div className="mobile-auth">
-            <Button href="/login" variant="secondary">
-              <T>Log in</T>
-            </Button>
-            <Button href="/signup" arrow>
-              <T>Get started</T>
-            </Button>
+            {entry.authenticated ? signOutButton : <Button href="/login" variant="secondary"><T>Log in</T></Button>}
+            <WorkspaceCTA arrow />
           </div>
         </nav>
         <div className="nav-auth">
-          <Link href="/login">
-            <T>Log in</T>
-          </Link>
-          <Button href="/signup" size="small" arrow>
-            <T>Get started</T>
-          </Button>
+          {entry.authenticated ? signOutButton : <Link href="/login"><T>Log in</T></Link>}
+          <WorkspaceCTA size="small" arrow />
         </div>
         <LocalButton
           className="mobile-menu icon-button"
@@ -218,6 +250,7 @@ export function SiteHeader() {
           <T>{mobile ? <X size={23} /> : <Menu size={23} />}</T>
         </LocalButton>
       </div>
+      {sessionError && <div role="alert" className="operation-error site-session-error">{sessionError}</div>}
     </header>
   );
 }
@@ -292,9 +325,6 @@ export function SiteFooter() {
             <Link href="/terms">
               <T>Terms</T>
             </Link>
-            <span className="footer-demo">
-              <T>UI preview</T>
-            </span>
           </div>
         </div>
       </div>
@@ -324,11 +354,9 @@ export function CTABanner({
           </p>
         </div>
         <div>
-          <Button href="/signup" variant="white" size="large" arrow>
-            <T>Let’s get started</T>
-          </Button>
-          <Link href="/dashboard">
-            <T>Or take the demo for a spin</T>
+          <WorkspaceCTA variant="white" size="large" signedOutLabel="Let’s get started" arrow />
+          <Link href="/features">
+            <T>Explore features</T>
             <ArrowRight size={14} />
           </Link>
         </div>

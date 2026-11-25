@@ -28,7 +28,7 @@ import {
   ProductArt,
   SalesChart,
 } from "@/components/ui";
-import { CTABanner } from "./site-shell";
+import { CTABanner, WorkspaceCTA } from "./site-shell";
 import { faqs } from "@/lib/data";
 
 export function MiniDashboard({ large = false }: { large?: boolean }) {
@@ -42,7 +42,7 @@ export function MiniDashboard({ large = false }: { large?: boolean }) {
           <T>BiasharaOS workspace</T>
         </div>
         <Badge tone="green" dot>
-          <T>Demo store</T>
+          <T>Sample activity</T>
         </Badge>
       </div>
       <div className="mini-content">
@@ -161,11 +161,9 @@ export function HomePage() {
               </T>
             </p>
             <div className="button-row">
-              <Button href="/signup" size="large" arrow>
-                <T>Start your next chapter</T>
-              </Button>
-              <Button href="/dashboard" size="large" variant="secondary">
-                <T>Explore the demo</T>
+              <WorkspaceCTA size="large" signedOutLabel="Start your next chapter" arrow />
+              <Button href="/features" size="large" variant="secondary">
+                <T>See features</T>
                 <ArrowUpRight size={17} />
               </Button>
             </div>
@@ -222,7 +220,7 @@ export function HomePage() {
                   <T>Another sale. Another step.</T>
                 </strong>
                 <small>
-                  <T>KES 1,250 · Demo M-Pesa payment</T>
+                  <T>KES 1,250 · Sample M-Pesa payment</T>
                 </small>
               </div>
               <Sparkles size={16} />
@@ -334,7 +332,7 @@ export function HomePage() {
               </div>
               <div className="mini-pay">
                 <CheckCircle2 size={15} />
-                <T>Demo payment complete</T>
+                <T>Payment complete</T>
                 <strong>
                   <T>KES 710</T>
                 </strong>
@@ -440,7 +438,7 @@ export function HomePage() {
               <ArrowUpRight size={14} />
             </div>
             <small>
-              <T>Sample insights in the demo.</T>
+              <T>Example sales insights.</T>
             </small>
           </Link>
         </div>
@@ -476,8 +474,7 @@ export function HomePage() {
             />
             <p className="quiet-note">
               <T>
-                This preview uses separate demo data on each platform.
-                Keep your records together across your devices.
+                Sign in with the same account to keep your business records together on web and Android.
               </T>
             </p>
             <Button href="/download" variant="secondary" arrow>
@@ -570,7 +567,7 @@ export function HomePage() {
             height={1536}
           />
           <span>
-            <T>MEET YOUR DEMO STORE</T>
+            <T>MEET THE PEOPLE BEHIND THE COUNTER</T>
           </span>
         </div>
         <div className="story-copy">

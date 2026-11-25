@@ -1,0 +1,177 @@
+.workspace-body {
+  --workspace-gutter: clamp(16px, 3.5vw, 40px);
+  --workspace-section-gap: clamp(16px, 2.4vw, 26px);
+  --workspace-panel-inset: clamp(14px, 2.5vw, 26px);
+  min-inline-size: 0;
+}
+
+.workspace-body :is(.workspace-topbar, .workspace-footer) {
+  padding-inline: var(--workspace-gutter);
+}
+
+.workspace-body .workspace-main {
+  display: flow-root;
+  min-inline-size: 0;
+  padding: var(--workspace-section-gap) var(--workspace-gutter) calc(var(--workspace-section-gap) * 1.45);
+}
+
+.workspace-main .page-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px var(--workspace-section-gap);
+  align-items: flex-start;
+  margin: 0 0 var(--workspace-section-gap);
+}
+
+.workspace-main .page-heading > *,
+.workspace-main :where(.panel, .form-grid, .settings-layout, .table-scroll),
+.workspace-topbar .global-search {
+  min-inline-size: 0;
+}
+
+.workspace-main .page-heading :is(h1, p) {
+  overflow-wrap: anywhere;
+}
+
+.workspace-main .page-heading h1 {
+  font-size: clamp(1.75rem, 3.5vw, 2.55rem);
+}
+
+.workspace-main .page-heading p {
+  color: var(--muted);
+  font-size: .95rem;
+  line-height: 1.55;
+  margin-block-start: 6px;
+}
+
+.workspace-main .page-heading p.eyebrow {
+  margin-block-start: 0;
+  font-size: .75rem;
+}
+
+.workspace-main .page-heading .heading-actions {
+  margin-block-start: 0;
+}
+
+.workspace-main :where(.panel, .card) {
+  border-color: var(--line);
+}
+
+.workspace-main :where(.panel-heading) {
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-inline: var(--workspace-panel-inset);
+}
+
+.workspace-main :where(.panel-heading) p {
+  color: var(--muted);
+}
+
+.workspace-main > .settings-panel + .settings-panel,
+.workspace-main > .panel + .panel {
+  margin-block-start: var(--workspace-section-gap);
+}
+
+.workspace-main .settings-panel {
+  min-block-size: 0;
+  padding: var(--workspace-panel-inset);
+}
+
+.workspace-main .settings-panel > .panel-heading {
+  padding: 0 0 var(--workspace-panel-inset);
+}
+
+.workspace-main :is(.settings-panel, .shop-builder-panel) > :is(h2, h3) + *,
+.workspace-main :is(.settings-panel, .record-note) > form + * {
+  margin-block-start: 12px;
+}
+
+.workspace-main .record-note {
+  padding: var(--workspace-panel-inset);
+  margin-block-start: 12px;
+  overflow-wrap: anywhere;
+}
+
+.workspace-main .record-note > p + * {
+  margin-block-start: 6px;
+}
+
+.workspace-main .settings-panel > form > .field:first-child {
+  margin-block-start: 10px;
+}
+
+.workspace-main .table-scroll {
+  max-inline-size: 100%;
+  overflow-x: auto;
+}
+
+.workspace .workspace-footer {
+  gap: 12px;
+  border-color: var(--line);
+  color: var(--muted);
+  font-size: .86rem;
+}
+
+.workspace-footer :is(a, button) {
+  align-self: center;
+  color: inherit;
+}
+
+.workspace-footer button {
+  font: inherit;
+  background: transparent;
+  border: 0;
+  min-block-size: 44px;
+}
+
+.workspace :where(input, textarea, select) {
+  color: var(--ink);
+  accent-color: var(--green);
+}
+
+.workspace :where(input, textarea)::placeholder {
+  color: var(--muted);
+}
+
+[data-theme="dark"] .workspace :where(.card, .tool-card, .record-note, .shop-builder-steps button) {
+  background-color: var(--surface);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .workspace :where(.industry-tabs a[aria-current="page"], .shop-builder-steps button[aria-current="step"], .shop-template-list label:has(input:checked)) {
+  background: var(--mint);
+  border-color: var(--green);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .workspace :where(.shop-template-example) {
+  background-color: var(--line);
+}
+
+[data-theme="dark"] .workspace :where(.data-table th, .table-foot, .settings-fixed-value > span, .shop-template-list small) {
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .workspace-body {
+    --workspace-gutter: 14px;
+    --workspace-section-gap: 16px;
+  }
+
+  .workspace-body .workspace-topbar { gap: 8px; }
+  .workspace-topbar .global-search { flex: 1; }
+  .workspace-main .page-heading :is(.btn, .local-button) { min-block-size: 42px; }
+  .workspace-main .settings-layout { grid-template-columns: minmax(0, 1fr); }
+}
+
+.site-session-error {
+  position: relative;
+  margin: 6px auto 0;
+  max-inline-size: min(calc(100% - 28px), 560px);
+  z-index: 1;
+}
+
+@media (max-width: 900px) {
+  .nav-auth > .site-signout { display: none; }
+}

@@ -18,7 +18,7 @@ class BusinessStore {
  private savePending=()=>{if(this.pending)sessionStorage.setItem(this.pendingKey(),JSON.stringify(this.pending));else sessionStorage.removeItem(this.pendingKey())};
  setupError=(message:string)=>{this.session('');this.error=message;this.emit()};
  session=(id:string)=>{
-  if(id===this.userId&&this.ready)return;
+  if(id===this.userId&&(id||this.ready))return;
   this.generation++;this.userId=id;this.authenticated=!!id;this.workspace=null;this.pending=null;this.error='';this.state=emptyBusiness();this.ready=!id;this.emit();
   if(id)void this.hydrate();
  };
@@ -86,7 +86,7 @@ class BusinessStore {
   return this.state.sales.find(s=>s.id===result.id)??null;
  };
  reset=()=>{throw new Error('Real business records cannot be reset to sample data.')};
- signOut=async()=>{if(this.busy||this.pending)throw new Error('Finish or retry the pending request before signing out.');await supabase().auth.signOut();this.session('')};
+ signOut=async()=>{if(this.busy||this.pending)throw new Error('Finish or retry the pending request before signing out.');const {error}=await supabase().auth.signOut();if(error){this.error=error.message;this.emit();throw error}this.session('')};
 }
 const StoreContext=createContext<BusinessStore|null>(null);
 export function DemoProvider({children}:{children:ReactNode}){

@@ -103,7 +103,7 @@ export function FeaturesPage() {
             id: "sales",
             eyebrow: "SELL WITH CONFIDENCE",
             title: "Keep the line moving.\nKeep the details clear.",
-            text: "Find a product, build a basket and review a payment method in a few simple steps. Every demo sale updates stock and appears in your sales history.",
+            text: "Find a product, build a basket and review a payment method in a few simple steps. Recorded sales update stock and appear in your sales history.",
             checks: [
               "Cash, card and M-Pesa checkout previews",
               "Searchable transactions and clear receipts",
@@ -134,7 +134,7 @@ export function FeaturesPage() {
             text: "The small expenses matter, too. Keep transport, utilities and supplies beside the bigger picture of your sales and customer balances.",
             checks: [
               "A simple expense ledger with categories",
-              "Customer credit and demo repayments",
+              "Customer credit and repayments",
               "Sales, profit and expense report previews",
             ],
             image: "app-dashboard",
@@ -148,7 +148,7 @@ export function FeaturesPage() {
             text: "Keep your customers, suppliers and team organised. Prepare restock orders and give everyone a clearer view of the work ahead.",
             checks: [
               "Customer profiles and outstanding balances",
-              "Supplier listings and demo purchase orders",
+              "Supplier listings and purchase orders",
               "Web staff directory and role previews",
             ],
             image: "app-inventory",
@@ -163,7 +163,7 @@ export function FeaturesPage() {
             checks: [
               "Readable sales and product performance charts",
               "A conversational assistant interface",
-              "Local insights based on your demo shop",
+              "Insights based on your business records",
             ],
             image: "app-assistant",
             icon: Sparkles,
@@ -194,7 +194,7 @@ export function FeaturesPage() {
               </p>
               <CheckList items={item.checks} />
               <Link href="/dashboard" className="text-link">
-                <T>Try it in the demo</T>
+                <T>Open workspace</T>
                 <ArrowRight size={16} />
               </Link>
             </div>
@@ -340,8 +340,8 @@ export function SolutionPage({ slug }: { slug: string }) {
             <Button href="/signup" arrow>
               <T>Make it yours</T>
             </Button>
-            <Button href="/dashboard" variant="secondary">
-              <T>Try the demo</T>
+            <Button href="/features" variant="secondary">
+              <T>See features</T>
             </Button>
           </div>
         </div>
@@ -667,7 +667,7 @@ export function AboutPage() {
             [
               ShieldCheck,
               "Clear from the beginning",
-              "Good relationships start with honesty. We keep demo features, proposed plans and future integrations clearly identified.",
+              "Good relationships start with honesty. We identify proposed plans and upcoming integrations.",
             ],
           ].map(([Icon, title, text]) => {
             const I = Icon as typeof Store;
@@ -850,7 +850,7 @@ export function HelpPage() {
       <PageIntro
         eyebrow="A LITTLE HELP GOES A LONG WAY"
         title="Let’s find your answer."
-        text="Get comfortable with the basics, explore the demo, and find a clearer way forward."
+        text="Find answers about setting up your business and using your workspace."
       >
         <SearchField
           value={query}
@@ -916,7 +916,7 @@ export function HelpPage() {
               </h3>
               <p>
                 <T>
-                  Try “demo”, “stock” or “payments”, or explore the workspace.
+                  Try “stock”, “payments” or “account”.
                 </T>
               </p>
               <Button variant="secondary" onClick={() => setQuery("")}>
@@ -1038,7 +1038,7 @@ export function ArticlePage({ slug }: { slug: string }) {
             <p>
               <T>
                 Explore these ideas with sample products and customer balances
-                in the BiasharaOS demo.
+                in your BiasharaOS workspace.
               </T>
             </p>
             <Button href="/dashboard" size="small" arrow>

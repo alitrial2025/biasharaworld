@@ -105,7 +105,40 @@ test('real sign-in, product creation and sign-out',async({page})=>{
  await page.goto('/login');await page.getByLabel('Email address').fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Continue to workspace'}).click();await expect(page.locator('.workspace-main h1')).toContainText('Browser',{timeout:20000});
  await page.goto('/dashboard/inventory');await page.getByRole('button',{name:'Add product',exact:true}).click();const dialog=page.getByRole('dialog');await dialog.getByLabel('Product name').fill('Actual inventory');await dialog.getByLabel('Pack size').fill('1 unit');await dialog.getByLabel('Selling price (KES)').fill('100');await dialog.getByLabel('Cost price (KES)').fill('60');await dialog.getByLabel('Stock quantity').fill('5');await dialog.getByRole('button',{name:'Add product',exact:true}).click();await expect(dialog).not.toBeVisible({timeout:20000});await expect(page.locator('tbody')).toContainText('Actual inventory');
  await page.reload();await expect(page.locator('tbody')).toContainText('5 units');
- await page.getByRole('button',{name:'Sign out',exact:true}).click();await expect(page).toHaveURL(/login/);await page.goto('/dashboard');await expect(page).toHaveURL(/login/);
+ await page.goto('/dashboard/preferences');
+ await page.getByLabel('Appearance').selectOption('dark');
+ await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+ await page.getByRole('link', { name: 'BiasharaOS home' }).click();
+ await expect(page).toHaveURL('/');
+ const header = page.locator('.site-header');
+ await expect(header.getByRole('link', { name: 'Open workspace', exact: true })).toBeVisible();
+ await expect(header.getByRole('link', { name: 'Log in', exact: true })).toHaveCount(0);
+ await expect(page.getByText(/explore the demo|take the demo for a spin/i)).toHaveCount(0);
+ await page.reload();
+ await expect(header.getByRole('link', { name: 'Open workspace', exact: true })).toBeVisible();
+ await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+ await page.setViewportSize({ width: 320, height: 720 });
+ await header.getByRole('link', { name: 'Open workspace', exact: true }).click();
+ await expect(page).toHaveURL('/dashboard');
+ await page.goto('/dashboard/customer-service');
+ await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+ const notesPanel = page.locator('.workspace-main .settings-panel').first();
+ await expect(notesPanel).toBeVisible();
+ expect(await notesPanel.evaluate(panel => Number.parseFloat(getComputedStyle(panel).paddingInlineStart))).toBeGreaterThanOrEqual(14);
+ expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(321);
+
+ await page.goto('/dashboard/preferences');
+ await page.getByLabel('Appearance').selectOption('light');
+ await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+ await page.setViewportSize({ width: 1050, height: 820 });
+ await page.goto('/');
+ await header.getByRole('button', { name: 'Sign out', exact: true }).click();
+ await expect(header.getByRole('link', { name: 'Log in', exact: true })).toBeVisible();
+ await page.reload();
+ await expect(header.getByRole('link', { name: 'Log in', exact: true })).toBeVisible();
+ await page.goto('/dashboard');
+ await expect(page).toHaveURL(/login/);
 });
 test('unauthenticated workspace and customer portal stay private',async({page})=>{
  await page.goto('/dashboard');await expect(page).toHaveURL(/login/);

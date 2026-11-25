@@ -189,7 +189,7 @@ fun ProfileScreen(store: DemoStore, onBack: () -> Unit) {
             Modifier.align(Alignment.CenterHorizontally)
                 .padding(top = 15.dp)
                 .size(90.dp)
-                .background(Color(0xFFEAE0C8), CircleShape),
+                .background(Sand, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             AppText(

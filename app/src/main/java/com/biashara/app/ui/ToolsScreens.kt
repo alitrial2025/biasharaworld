@@ -2091,38 +2091,61 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                     }
                 }
             }
-            "storefront" -> {
-                NativeShopPreview(
-                    store,
-                    { action, values -> run(action, values) },
-                    onOpen,
-                    { it -> form = it },
-                )
-            }
-            "customer-portal" -> {
-                RecordCard(
-                    "A clearer view from their side.",
-                    "Preview a sample customer’s orders, invoices, balance and rewards. No account authentication is active.",
-                    BlueMist,
-                )
-                store.customers.forEach { c ->
+            "storefront", "customer-portal", "portal" -> {
+                if (store.real) {
+                    val openUri = LocalUriHandler.current
+                    val host = BuildConfig.API_URL.trimEnd('/').ifBlank { "https://biasharaworld.vercel.app" }
+                    val businessSlug = store.backend?.slug.orEmpty()
+                    val isShop = slug == "storefront"
+                    val published = o.objectAt("shop").optBoolean("published")
                     RecordCard(
-                        c.name,
-                        "Balance ${money(c.balance)} KES · ${o.objectAt("loyalty").optInt(c.name)} points",
+                        if (isShop) "Online shop" else "Customer portal",
+                        if (isShop && !published) "Publish your shop from Shop builder to make it available to customers."
+                        else if (isShop) "Open the shop your customers see."
+                        else "Customers sign in with their confirmed email to view their own orders and invoices.",
+                        Mint,
                     ) {
                         PrimaryButton(
-                            "Preview as customer",
+                            if (isShop) "Open online shop" else "Open customer portal",
                             {
-                                run("basket", mapOf("customer" to c.name, "redeem" to "0"))
-                                onOpen("portal")
+                                val route = if (isShop) "shop" else "portal"
+                                openUri.openUri("$host/$route/$businessSlug")
                             },
+                            enabled = businessSlug.isNotBlank() && (!isShop || published),
                             tone = Green,
                         )
                     }
+                } else when (slug) {
+                    "storefront" -> NativeShopPreview(
+                        store,
+                        { action, values -> run(action, values) },
+                        onOpen,
+                        { form = it },
+                    )
+                    "portal" -> NativeCustomerPreview(store, onOpen)
+                    else -> {
+                        RecordCard(
+                            "A clearer view from their side.",
+                            "Preview a sample customer’s orders, invoices, balance and rewards.",
+                            BlueMist,
+                        )
+                        store.customers.forEach { customer ->
+                            RecordCard(
+                                customer.name,
+                                "Balance ${money(customer.balance)} KES · ${o.objectAt("loyalty").optInt(customer.name)} points",
+                            ) {
+                                PrimaryButton(
+                                    "Preview as customer",
+                                    {
+                                        run("basket", mapOf("customer" to customer.name, "redeem" to "0"))
+                                        onOpen("portal")
+                                    },
+                                    tone = Green,
+                                )
+                            }
+                        }
+                    }
                 }
-            }
-            "portal" -> {
-                NativeCustomerPreview(store, onOpen)
             }
             "sync" -> {
                 RecordCard(

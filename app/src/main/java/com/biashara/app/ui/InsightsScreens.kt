@@ -41,7 +41,7 @@ fun ReportsScreen(store: DemoStore, onBack: () -> Unit) {
         PageTitle("Business Reports", onBack = onBack)
         Row(
             Modifier.fillMaxWidth()
-                .background(Color.White, RoundedCornerShape(16.dp))
+                .background(Surface, RoundedCornerShape(16.dp))
                 .padding(15.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -127,7 +127,7 @@ fun ReportsScreen(store: DemoStore, onBack: () -> Unit) {
             SurfaceCard(Modifier.weight(1f)) {
                 IconTile(
                     Icons.AutoMirrored.Outlined.TrendingUp,
-                    background = Color(0xFFF5EEDC),
+                    background = Sand,
                     color = Amber,
                     size = 36,
                 )
@@ -193,7 +193,7 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
         Modifier.fillMaxSize()
             .background(
                 androidx.compose.ui.graphics.Brush.verticalGradient(
-                    listOf(Color.White, Color(0xFFF4F6FF))
+                    listOf(Canvas, BlueMist)
                 )
             )
             .padding(horizontal = 18.dp)
@@ -274,8 +274,8 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
                             Spacer(Modifier.height(15.dp))
                             listOf(
                                     Triple("Total sales", "KES 12,450", Mint),
-                                    Triple("Profit", "KES 3,890", Color(0xFFECF5FF)),
-                                    Triple("Expenses", "KES 2,300", Color(0xFFFFF3DF)),
+                                    Triple("Profit", "KES 3,890", BlueMist),
+                                    Triple("Expenses", "KES 2,300", Sand),
                                 )
                                 .forEachIndexed { i, (label, value, bg) ->
                                     Row(
@@ -343,7 +343,7 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
                 .forEach { q ->
                     Row(
                         Modifier.fillMaxWidth()
-                            .background(Color(0xFFEAECFB), RoundedCornerShape(20.dp))
+                            .background(BlueMist, RoundedCornerShape(20.dp))
                             .clickable { store.reply(q) }
                             .padding(horizontal = 13.dp, vertical = 9.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -367,7 +367,7 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
             Modifier.fillMaxWidth()
                 .padding(bottom = 14.dp)
                 .navigationBarsPadding()
-                .background(Color.White, RoundedCornerShape(22.dp))
+                .background(Surface, RoundedCornerShape(22.dp))
                 .border(1.dp, Line, RoundedCornerShape(22.dp))
                 .padding(6.dp),
             verticalAlignment = Alignment.CenterVertically,

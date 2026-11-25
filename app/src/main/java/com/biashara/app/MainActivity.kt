@@ -24,6 +24,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.core.view.WindowCompat
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,6 +54,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             val model: ShopViewModel = viewModel()
             BiasharaTheme(model.store.operations.state.objectAt("preferences")) {
+                val lightBackground = MaterialTheme.colorScheme.background.luminance() > 0.5f
+                SideEffect {
+                    WindowCompat.getInsetsController(window, window.decorView).apply {
+                        isAppearanceLightStatusBars = lightBackground
+                        isAppearanceLightNavigationBars = lightBackground
+                    }
+                }
                 val backend=model.backend
                 when {
                     backend!=null&&!backend.ready->Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){CircularProgressIndicator(color=Green)}
@@ -134,7 +143,7 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
                 WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
             bottomBar = { if (!focused) BottomBar(screen, navigate, store.real) },
         ) { padding ->
-            Column(Modifier.fillMaxSize().padding(padding)) {
+            Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
                 val backend=model.backend
                 if(backend!=null){
                     Row(Modifier.fillMaxWidth().background(if(backend.error.isBlank())Mint else RoseMist).padding(8.dp),verticalAlignment=Alignment.CenterVertically){
@@ -269,7 +278,7 @@ private fun BottomBar(screen: Screen, navigate: (Screen) -> Unit, live: Boolean)
         }
     Column(Modifier.fillMaxWidth().background(Surface).navigationBarsPadding()) {
         HorizontalDivider(color = Line)
-        Row(Modifier.fillMaxWidth().height(62.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 62.dp), verticalAlignment = Alignment.CenterVertically) {
             val tabs = if (live) listOf(
                 Triple("Home", Icons.Outlined.Home, Screen.HOME),
                 Triple("Search", Icons.Outlined.Search, Screen.SEARCH),

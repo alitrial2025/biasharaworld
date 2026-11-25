@@ -534,30 +534,30 @@ export const faqs = [
   ],
   [
     "Can I use it without downloading an app?",
-    "Yes. The responsive web workspace works in your browser on a laptop, tablet or phone. You can explore it now with the demo store.",
+    "Yes. The responsive web workspace works in your browser on a laptop, tablet or phone. Sign in to open your workspace.",
   ],
   [
     "Is this connected to real M-Pesa payments?",
-    "Not in this UI preview. Checkout records a demo sale and updates sample stock. No payment request is sent and no money is collected.",
+    "You can record M-Pesa payments in your workspace. Online collection is available when your business is verified and its payment provider is configured.",
   ],
   [
-    "Will my demo changes be saved?",
-    "Web demo changes are saved in this browser’s local storage. They are not synced to another device or to the Android preview. Reset the demo from Settings whenever you want a fresh start.",
+    "Will my records stay in sync?",
+    "Confirmed business records are saved to your account. Sign in with the same account on the web and Android to open them.",
   ],
   [
     "Are the prices on the pricing page final?",
-    "The plans are proposed launch pricing for review. Billing is not connected, and choosing a demo plan will not charge you.",
+    "The plans are proposed launch pricing for review. Billing is not connected. Signing up does not start a paid subscription.",
   ],
   [
     "Can I place a real supplier order?",
-    "You can prepare a sample purchase order and explore receiving it in the demo. It is not sent to a supplier. Live ordering will be connected in a later phase.",
+    "Verified businesses can request quotes and send orders through the supplier network.",
   ],
   [
-    "Does the preview work offline?",
-    "There is no offline web mode yet. The Android preview uses in-memory sample data. Offline support and cross-device sync need additional implementation.",
+    "Can I work offline?",
+    "An internet connection is needed to sign in and confirm changes to your shared records.",
   ],
   [
-    "Is BiasharaAI a live AI service?",
-    "This preview uses local sample responses informed by your demo stock and customer balances. No question is sent to an external AI service.",
+    "What insights can I see?",
+    "Your workspace can summarise recorded sales, stock and customer balances.",
   ],
 ];

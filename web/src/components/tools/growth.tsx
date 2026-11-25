@@ -900,7 +900,7 @@ export function PortalTool() {
     <div className="tool-two-columns">
       <ToolPanel title="A little clarity, from their side.">
         <SelectField
-          label="Preview as customer"
+          label="Customer record"
           value={customer}
           onChange={setCustomer}
         >
@@ -926,10 +926,10 @@ export function PortalTool() {
                 </T>
               </p>
               <Button href={`/portal/${store.workspace?.slug||""}`} icon={Globe}>
-                <T>Open customer preview</T>
+                <T>Open customer portal</T>
               </Button>
               <Badge tone="amber">
-                <T>Sample access · no authentication</T>
+                <T>Confirmed email required</T>
               </Badge>
             </div>
           )}
@@ -937,8 +937,7 @@ export function PortalTool() {
 
         <p className="quiet-note">
           <T>
-            This is a merchant preview of sample customer data. Secure portal
-            access is available after signing in with a confirmed email.
+            Customers sign in with their confirmed email to view their own orders and invoices.
           </T>
         </p>
       </ToolPanel>
@@ -1706,7 +1705,7 @@ export function CustomerPortal({ id }: { id: number }) {
                           <EmptyState
                             icon={ShoppingBag}
                             title="Your next order is waiting to happen."
-                            description="Explore the demo shop and place a local sample order using this customer’s name."
+                            description="Customers can place orders from the published shop."
                           >
                             <Button href={`/shop/${store.workspace?.slug||""}`}>
                               <T>Explore the shop</T>

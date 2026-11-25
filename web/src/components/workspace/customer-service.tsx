@@ -71,7 +71,7 @@ function NotesPanel({ owner }: { owner: boolean }) {
         if (retry.current?.body !== note || retry.current.customer !== customer) retry.current = { id: crypto.randomUUID(), customer, body: note };
         void save({ action: "add", id: retry.current.id, customer: Number(customer), body: note }, "Note saved.");
       }}>
-        <label>Service note<textarea value={body} onChange={event => setBody(event.target.value)} rows={4} maxLength={2000} required /></label>
+        <label className="field">Service note<textarea className="input" value={body} onChange={event => setBody(event.target.value)} rows={4} maxLength={2000} required /></label>
         <Button type="submit" disabled={busy || !body.trim()}>Save note</Button>
       </form>}
       {notice && <p role="status">{notice}</p>}
@@ -81,7 +81,7 @@ function NotesPanel({ owner }: { owner: boolean }) {
       <h2>Note history</h2>
       {!data && !error && <p role="status">Loading notes…</p>}
       {data && !data.notes.length && <p>No notes for this customer.</p>}
-      {data?.notes.map(note => <article key={note.id} className="panel">
+      {data?.notes.map(note => <article key={note.id} className="panel record-note">
         <p>{note.body ?? "Note content removed"}</p>
         <p>{note.recorded_at.slice(0, 10)}{note.redact_reason ? ` · ${note.redact_reason}` : ""}</p>
         {owner && note.body && <Button variant="secondary" disabled={busy} onClick={() => setRedact(note.id)}>Redact note</Button>}

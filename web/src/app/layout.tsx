@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { ToastProvider } from "@/components/ui";
 import "./globals.css";
 import "./tools.css";
+import "./workspace-polish.css";
 import "./storefront.css";
 import { DemoProvider } from "@/lib/store";
 import { LocaleProvider } from "@/components/locale";

@@ -746,7 +746,7 @@ export function FinancingPage() {
           </h3>
           <p>
             <T>
-              Your demo reports are a useful place to explore sales, expenses
+              Your reports are a useful place to explore sales, expenses
               and stock before planning your next step.
             </T>
           </p>
@@ -1033,7 +1033,7 @@ export function SettingsPage() {
                     </h3>
                     <p>
                       <T>
-                        Export your demo products, customers, sales and expenses
+                        Export your products, customers, sales and expenses
                         as separate CSV files from their pages.
                       </T>
                     </p>

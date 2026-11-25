@@ -98,6 +98,66 @@ private fun type(
         fontFeatureSettings = "tnum",
     )
 
+private val LightScheme = lightColorScheme(
+    primary = Color(0xFF007759),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFE4F7ED),
+    onPrimaryContainer = Color(0xFF183C2C),
+    secondary = Color(0xFF486758),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFE0F1E5),
+    onSecondaryContainer = Color(0xFF23392C),
+    tertiary = Color(0xFF5464AD),
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFF0EEF9),
+    onTertiaryContainer = Color(0xFF343258),
+    background = Color(0xFFF8FAFC),
+    onBackground = Color(0xFF17242F),
+    surface = Color.White,
+    onSurface = Color(0xFF17242F),
+    surfaceVariant = Color(0xFFEAF7F0),
+    onSurfaceVariant = Color(0xFF5F6C7B),
+    surfaceContainer = Color(0xFFF4F7F6),
+    surfaceContainerHigh = Color(0xFFEAF1EE),
+    surfaceContainerHighest = Color(0xFFE3ECE7),
+    outline = Color(0xFF74857C),
+    outlineVariant = Color(0xFFE9EEF2),
+    error = Color(0xFFAA3D44),
+    onError = Color.White,
+    errorContainer = Color(0xFFFCF0EF),
+    onErrorContainer = Color(0xFF7B2329),
+)
+
+private val DarkScheme = darkColorScheme(
+    primary = Color(0xFF78D8AE),
+    onPrimary = Color(0xFF0A3523),
+    primaryContainer = Color(0xFF214C38),
+    onPrimaryContainer = Color(0xFFC9F4DE),
+    secondary = Color(0xFFB1CEBC),
+    onSecondary = Color(0xFF1D3628),
+    secondaryContainer = Color(0xFF34483E),
+    onSecondaryContainer = Color(0xFFD7E8DD),
+    tertiary = Color(0xFFB6C6F0),
+    onTertiary = Color(0xFF232E59),
+    tertiaryContainer = Color(0xFF383148),
+    onTertiaryContainer = Color(0xFFE2DEF6),
+    background = Color(0xFF14251D),
+    onBackground = Color(0xFFEDF4EE),
+    surface = Color(0xFF1B3025),
+    onSurface = Color(0xFFEDF4EE),
+    surfaceVariant = Color(0xFF2B4136),
+    onSurfaceVariant = Color(0xFFAFC0B5),
+    surfaceContainer = Color(0xFF21362B),
+    surfaceContainerHigh = Color(0xFF293E33),
+    surfaceContainerHighest = Color(0xFF34483E),
+    outline = Color(0xFF82998B),
+    outlineVariant = Color(0xFF34483E),
+    error = Color(0xFFF0ACB1),
+    onError = Color(0xFF571E26),
+    errorContainer = Color(0xFF4A3034),
+    onErrorContainer = Color(0xFFFFDADE),
+)
+
 @Composable
 fun BiasharaTheme(preferences: JSONObject = JSONObject(), content: @Composable () -> Unit) {
     val dark =
@@ -116,31 +176,7 @@ fun BiasharaTheme(preferences: JSONObject = JSONObject(), content: @Composable (
             Density(density.density, density.fontScale * preferences.optInt("textSize", 100) / 100f)
     ) {
         MaterialTheme(
-            colorScheme =
-                if (dark)
-                    darkColorScheme(
-                        primary = Color(0xFF78D8AE),
-                        background = Color(0xFF14251D),
-                        surface = Color(0xFF1B3025),
-                        onSurface = Color(0xFFEDF4EE),
-                        onBackground = Color(0xFFEDF4EE),
-                        outline = Color(0xFF34483E),
-                        error = Color(0xFFF0ACB1),
-                    )
-                else
-                    lightColorScheme(
-                        primary = Green,
-                        onPrimary = Color.White,
-                        primaryContainer = Lime,
-                        secondary = Green,
-                        background = Canvas,
-                        onBackground = Ink,
-                        surface = Color.White,
-                        onSurface = Ink,
-                        surfaceVariant = Mint,
-                        outline = Line,
-                        error = Coral,
-                    ),
+            colorScheme = if (dark) DarkScheme else LightScheme,
             typography =
                 Typography(
                     displayLarge = type(48, FontWeight.ExtraBold, 54, true),

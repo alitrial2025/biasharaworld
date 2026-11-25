@@ -15,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -31,7 +30,7 @@ fun CustomersScreen(store: DemoStore, onBack: () -> Unit) {
     var email by remember { mutableStateOf("") }
     var balance by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf<Customer?>(null) }
-    val avatarColors = listOf(Mint, Color(0xFFF7E6D4), Lavender, Color(0xFFE5EFCB))
+    val avatarColors = listOf(Mint, Sand, Lavender, BlueMist)
     Page {
         PageTitle("Customers", onBack = onBack)
         SearchBox(query, { query = it }, "Search customers…")
@@ -215,7 +214,7 @@ fun SuppliersScreen(store: DemoStore, onBack: () -> Unit, openSupplier: (Int) ->
                         Box(
                             Modifier.size(49.dp)
                                 .background(
-                                    listOf(Color(0xFFF0E0BE), Mint, Lavender)[i],
+                                    listOf(Sand, Mint, Lavender)[i],
                                     RoundedCornerShape(15.dp),
                                 ),
                             contentAlignment = Alignment.Center,

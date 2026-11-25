@@ -10201,7 +10201,7 @@ input[type="number"] {
 .industry-page { display: grid; gap: 16px; }
 .industry-tabs, .industry-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .industry-tabs a { border-radius: 9px; padding: 8px 12px; border: 1px solid var(--line, #d9e2db); }
-.industry-tabs a[aria-current="page"] { background: #e4f2e8; color: #17442c; }
+.industry-tabs a[aria-current="page"] { background: var(--mint); color: var(--ink); }
 .industry-form, .industry-record { padding: 16px; }
 .industry-form h2, .industry-record h3 { margin: 0 0 12px; }
 .industry-form .field { margin-bottom: 10px; }
@@ -10218,7 +10218,7 @@ input[type="number"] {
 .shop-builder-status, .shop-builder-steps { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
 .shop-builder-status strong { overflow-wrap: anywhere; }
 .shop-builder-steps button { display: inline-flex; align-items: center; gap: 4px; background: transparent; color: inherit; border: 1px solid #dce4dd; border-radius: 8px; padding: 8px 11px; cursor: pointer; }
-.shop-builder-steps button[aria-current=step] { background: #e5efe7; color: #163a26; font-weight: 700; }
+.shop-builder-steps button[aria-current=step] { background: var(--mint); color: var(--ink); font-weight: 700; }
 .shop-builder-steps button:disabled { opacity: .55; cursor: default; }
 .shop-builder-panel { padding: clamp(14px,3vw,28px); }
 .shop-builder-panel > .button-row { margin-top: 15px; }

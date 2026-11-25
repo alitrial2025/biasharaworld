@@ -17,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -217,7 +216,7 @@ fun NewSaleScreen(
             ) {
                 listOf("Cash", "Card", "More").forEach { m ->
                     Row(
-                        Modifier.background(Color(0xFFF2F6F5), RoundedCornerShape(9.dp))
+                        Modifier.background(Mint, RoundedCornerShape(9.dp))
                             .clickable {
                                 if (store.itemCount > 0) {
                                     method = if (m == "More") "M-Pesa" else m

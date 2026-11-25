@@ -17,7 +17,7 @@ export function ExpandedTools() {
             <p>
               <T>
                 From your next sale to your next branch. Explore every tool with
-                local sample data.
+                your business records.
               </T>
             </p>
           </div>

@@ -42,7 +42,7 @@ fun Page(content: @Composable ColumnScope.() -> Unit) {
         Modifier.fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 18.dp)
-            .padding(top = 12.dp, bottom = 22.dp),
+            .padding(top = 18.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         content = content,
     )
@@ -70,8 +70,9 @@ fun PageTitle(
             Box(
                 modifier =
                     Modifier.padding(end = 10.dp)
-                        .size(36.dp)
-                        .background(Color(0xFFF3F5F7), CircleShape)
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                         .clickable(onClick = onBack),
                 contentAlignment = Alignment.Center,
             ) {
@@ -162,6 +163,7 @@ fun PrimaryButton(
                 containerColor = Color.Transparent,
                 contentColor = Color.White,
                 disabledContainerColor = Color.Transparent,
+                disabledContentColor = Muted,
             ),
     ) {
         if (icon != null) AppIcon(icon, null, Modifier.padding(end = 10.dp).size(20.dp))
@@ -213,8 +215,8 @@ fun FilterPills(items: List<String>, selected: String, onSelect: (String) -> Uni
             val active = item == selected
             Box(
                 Modifier.clip(RoundedCornerShape(50))
-                    .background(if (active) Green else Color(0xFFF3F5F8))
-                    .border(1.dp, if (active) Green else Color(0xFFF3F5F8), RoundedCornerShape(50))
+                    .background(if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .border(1.dp, if (active) MaterialTheme.colorScheme.primary else Line, RoundedCornerShape(50))
                     .clickable { onSelect(item) }
                     .padding(horizontal = 13.dp, vertical = 8.dp)
             ) {
@@ -222,7 +224,7 @@ fun FilterPills(items: List<String>, selected: String, onSelect: (String) -> Uni
                     item,
                     fontSize = 12.sp,
                     fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
-                    color = if (active) Color.White else Muted,
+                    color = if (active) MaterialTheme.colorScheme.onPrimary else Ink,
                 )
             }
         }
@@ -230,7 +232,7 @@ fun FilterPills(items: List<String>, selected: String, onSelect: (String) -> Uni
 }
 
 @Composable
-fun IconTile(icon: ImageVector, color: Color = Forest, background: Color = Mint, size: Int = 44) {
+fun IconTile(icon: ImageVector, color: Color = Green, background: Color = Mint, size: Int = 44) {
     Box(
         Modifier.size(size.dp).background(background, RoundedCornerShape(14.dp)),
         contentAlignment = Alignment.Center,

@@ -19,7 +19,6 @@ import {
   Button,
   Field,
   IconBox,
-  Modal,
   SelectField,
   useToast,
 } from "@/components/ui";
@@ -39,7 +38,6 @@ export function AuthPage({
 }) {
   const [show, setShow] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [social, setSocial] = useState(false);
   const router = useRouter();
   const { store } = useDemo();
   const toast = useToast();
@@ -204,22 +202,6 @@ export function AuthPage({
                   )}
                 </T>
 
-                <LocalButton
-                  className="google-button"
-                  disabled
-                  title="Google sign-in is not configured yet"
-                  onClick={() => setSocial(true)}
-                >
-                  <span>
-                    <T>G</T>
-                  </span>
-                  <T>Continue with Google</T>
-                </LocalButton>
-                <div className="auth-divider">
-                  <span />
-                  <T>or continue with email</T>
-                  <span />
-                </div>
                 <form onSubmit={submit}>
                   <T>
                     {mode === "signup" && (
@@ -354,24 +336,6 @@ export function AuthPage({
           </Link>
         </div>
       </section>
-      <Modal
-        open={social}
-        onClose={() => setSocial(false)}
-        title="Google sign-in preview"
-        description="Google sign-in is not available yet. Use your email to continue."
-      >
-        <p className="muted">
-          <T>
-            For now, explore the web workspace with sample data. No Google
-            account is accessed.
-          </T>
-        </p>
-        <div className="modal-actions">
-          <Button href="/dashboard" arrow>
-            <T>Explore the demo</T>
-          </Button>
-        </div>
-      </Modal>
     </main>
   );
 }
