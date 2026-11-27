@@ -100,6 +100,7 @@ try {
   await expect(buyer, supplierPath, quote, 409);
   const race = await Promise.all([call(supplier, supplierPath, quote), call(supplier, supplierPath, { ...quote, requestId: randomUUID() })]);
   assert.deepEqual(race.map(result => result.status).sort(), [200, 409]);
+  assert.match(race.find(result => result.status === 409).body.error, /Reload it before trying again/);
   const quoteView = await expect(buyer, detail);
   assert.equal(quoteView.exchange.quote_minor, 4400);
   assert.deepEqual(quoteView.exchange.actions, ["accept", "cancel"]);

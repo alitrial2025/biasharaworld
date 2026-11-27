@@ -142,6 +142,8 @@ try {
   const outsider = owner === first ? second : first;
   let shop = attempts.find((result) => result.status === 200).data;
   assert.equal(shop.username, username);
+  const stale = await expect(owner, route, save, 409);
+  assert.match(stale.error, /Reload and review your draft/);
   assert.equal(
     (await expect(outsider, route + "?username=" + username)).available,
     false,

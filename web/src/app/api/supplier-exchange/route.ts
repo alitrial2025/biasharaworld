@@ -131,7 +131,7 @@ export async function POST(request: Request) {
     });
     if (error?.code === "P0002") throw new ApiError("This exchange or supplier listing is unavailable.", 404);
     if (error?.code === "42501") throw new ApiError("Check your team access and both businesses’ verification before confirming a new purchase.", 403);
-    if (error?.code === "40001" || error?.code === "23505") throw new ApiError("This exchange changed. Reload it before trying again.", 409);
+    if (error && ["40001", "23505", "PT409"].includes(error.code)) throw new ApiError("This exchange changed. Reload it before trying again.", 409);
     if (error?.code === "22023") throw new ApiError("This action is unavailable at the current exchange status.", 409);
     if (error) throw new ApiError("Could not save this exchange. Retry the same request.", 503);
     return json({ id, version: data });

@@ -203,7 +203,7 @@ export async function POST(request: Request) {
         "This username has already been published and is permanent.",
         409,
       );
-    if (response.error?.code === "40001")
+    if (response.error && ["40001", "PT409"].includes(response.error.code))
       throw new ApiError(
         "Shop details changed. Reload and review your draft.",
         409,

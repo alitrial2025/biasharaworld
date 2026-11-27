@@ -50,6 +50,6 @@ export async function receiveSupplierStock(
     p_result: { message: "Supplier stock recorded." }, p_input: { command: input },
   });
   if (saved.error?.code === "23505") throw new ApiError("Stock from this supplier order was already recorded.", 409);
-  if (saved.data?.conflict || saved.error?.code === "40001") throw new ApiError("The order or stock records changed. Reload before trying again.", 409);
+  if (saved.data?.conflict || (saved.error && ["40001", "PT409"].includes(saved.error.code))) throw new ApiError("The order or stock records changed. Reload before trying again.", 409);
   if (saved.error) throw new ApiError("Could not record supplier stock. Retry the same request.", 503);
 }
