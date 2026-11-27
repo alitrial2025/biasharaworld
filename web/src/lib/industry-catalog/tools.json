@@ -4,6 +4,7 @@
     "Industry operations",
     "records policies claims real estate properties leases rent events cinema tickets concerts showtimes seats scan bank sacco loans deposits"
   ],
+  ["sales/new", "Record a sale", "pos checkout new sale sell"],
   ["sales", "Sales", "pos checkout receipts"],
   ["inventory", "Inventory", "stock products reorder"],
   ["customers", "Customers", "clients contacts balances"],
@@ -37,6 +38,7 @@
   ["online-shop", "Shop builder", "online shop storefront ecommerce website username"],
   ["customer-portal", "Customer portal", "orders account"],
   ["deliveries", "Deliveries", "shipping fulfilment dispatch"],
+  ["customer-access", "Customer access", "publish appointments public events ticketing tenant rent reminders receipts"],
   ["customer-service", "Customer service notes", "support feedback crm"],
   ["team", "Your team", "staff users invitations"],
   ["imports", "Import business records", "csv opening balances products"],

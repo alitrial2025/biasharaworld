@@ -8,7 +8,13 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import {
+  dailyActions,
+  dailyActionPath,
+  industryQueueMatcher,
+} from "@/lib/workspace-activity";
 import { Badge, Button, Field, SelectField } from "@/components/ui";
+import { BankCaseDecision } from "./bank-case-decision";
 import { TicketCamera } from "./ticket-camera";
 import {
   industryActionReference,
@@ -44,9 +50,23 @@ type Command =
       status: string;
       reference?: string;
     }
-  | { action: "admit"; code: string };
+  | { action: "admit"; code: string }
+  | {
+      action: "createSeats";
+      show: string;
+      section: string;
+      row: string;
+      first: number;
+      count: number;
+    };
 
-export function IndustryPage({ moduleId }: { moduleId?: string }) {
+export function IndustryPage({
+  moduleId,
+  attention,
+}: {
+  moduleId?: string;
+  attention: boolean;
+}) {
   const { state, store } = useDemo();
   const industry = industryFor(state.profile.type);
   const role = store.workspace?.role ?? "";
@@ -68,6 +88,7 @@ export function IndustryPage({ moduleId }: { moduleId?: string }) {
       industry={industry}
       role={role}
       moduleId={moduleId}
+      attention={attention}
     />
   );
 }
@@ -76,17 +97,21 @@ function IndustryRecords({
   industry,
   role,
   moduleId,
+  attention,
 }: {
   industry: Industry;
   role: string;
   moduleId?: string;
+  attention: boolean;
 }) {
   const [data, setData] = useState<Records>();
+  const [loadedAt, setLoadedAt] = useState(() => Date.now());
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [next, setNext] = useState<{ record: RecordView; status: string }>();
   const [filter, setFilter] = useState("");
+  const [limit, setLimit] = useState(30);
   const inflight = useRef(false);
   const pending = useRef<{ signature: string; requestId: string } | null>(null);
   const selectedModule =
@@ -102,6 +127,7 @@ function IndustryRecords({
       if (result.sector !== industry.id)
         throw new Error("Your business type changed. Refresh the workspace.");
       setData(result);
+      setLoadedAt(Date.now());
     },
     [industry.id],
   );
@@ -128,6 +154,7 @@ function IndustryRecords({
       const result = await workspaceRequest<{
         status?: string;
         duplicate?: boolean;
+        created?: number;
       }>("/api/industry", {
         ...command,
         sector: industry.id,
@@ -139,7 +166,9 @@ function IndustryRecords({
           ? "Change already saved."
           : command.action === "admit"
             ? "Ticket accepted. Guest checked in."
-            : `Saved · ${result.status}`,
+            : command.action === "createSeats"
+              ? `Seats added: ${result.created}`
+              : `Saved · ${result.status}`,
       );
     } catch (issue) {
       setError(
@@ -190,6 +219,21 @@ function IndustryRecords({
     }
   }
 
+  async function createSeats(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const fields = new FormData(form);
+    const saved = await save({
+      action: "createSeats",
+      show: String(fields.get("show")),
+      section: String(fields.get("section")),
+      row: String(fields.get("row")),
+      first: Number(fields.get("first")),
+      count: Number(fields.get("count")),
+    });
+    if (saved) form.reset();
+  }
+
   const records = data?.records ?? [];
   function downloadTicket(ticket: RecordView) {
     const seat = records.find((record) => record.id === ticket.values.seat);
@@ -220,14 +264,22 @@ function IndustryRecords({
     }
   }
 
+  const names = new Map(records.map((record) => [record.id, record.name]));
   const nameOf = (value: string | number) =>
-    records.find((record) => record.id === value)?.name ?? String(value);
+    names.get(String(value)) ?? String(value);
+  const action = dailyActions(industry.id, role)?.find(
+    (item) => item.queue?.module === selectedModule.id,
+  );
+  const matchQueue =
+    attention && action?.queue ? industryQueueMatcher(action.queue) : null;
+  const term = filter.trim().toLowerCase();
   const matches = records.filter(
     (record) =>
       record.module === selectedModule.id &&
+      (!matchQueue || matchQueue(record)) &&
       `${record.name} ${record.status} ${Object.values(record.values).map(nameOf).join(" ")}`
         .toLowerCase()
-        .includes(filter.trim().toLowerCase()),
+        .includes(term),
   );
 
   return (
@@ -237,8 +289,8 @@ function IndustryRecords({
           <h1>{industry.label}</h1>
           {industry.id === "finance" && (
             <p>
-              Managers submit cases and the owner reviews them. Case decisions
-              are internal records.
+              Managers submit cases. A different owner reviewer records the
+              decision with an authenticator code and a reason.
             </p>
           )}
         </div>
@@ -253,6 +305,14 @@ function IndustryRecords({
           Refresh
         </Button>
       </div>
+      {data?.manage &&
+        ["entertainment", "real-estate"].includes(industry.id) && (
+          <Link className="text-link" href="/dashboard/customer-access">
+            {industry.id === "entertainment"
+              ? "Public ticketing"
+              : "Rent receipts and reminders"}
+          </Link>
+        )}
       {error && (
         <p role="alert" className="operation-error">
           {error}
@@ -310,6 +370,7 @@ function IndustryRecords({
                 }
                 onClick={() => {
                   setFilter("");
+                  setLimit(30);
                   setNext(undefined);
                 }}
               >
@@ -317,7 +378,70 @@ function IndustryRecords({
               </Link>
             ))}
           </nav>
-          {!(industry.id === "finance" && role === "Owner") && (
+          {selectedModule.id === "seats" && (
+            <details className="card industry-form">
+              <summary>Add numbered seats</summary>
+              <form onSubmit={createSeats} className="industry-seat-form">
+                <p>Create up to 250 seats in one row, such as A-1 to A-50.</p>
+                <div className="industry-fields">
+                  <SelectField
+                    name="show"
+                    label="Showtime for seat range"
+                    required
+                    defaultValue=""
+                  >
+                    <option value="">Choose a showtime</option>
+                    {records
+                      .filter(
+                        (record) =>
+                          record.module === "showtimes" &&
+                          record.status === "Scheduled" &&
+                          Date.parse(String(record.values.end)) > loadedAt,
+                      )
+                      .map((show) => (
+                        <option value={show.id} key={show.id}>
+                          {show.name}
+                        </option>
+                      ))}
+                  </SelectField>
+                  <Field
+                    name="section"
+                    label="Section for seat range"
+                    required
+                    maxLength={240}
+                  />
+                  <Field
+                    name="row"
+                    label="Row name"
+                    required
+                    pattern="[A-Za-z0-9\-]{1,16}"
+                    maxLength={16}
+                  />
+                  <Field
+                    name="first"
+                    label="First seat number"
+                    type="number"
+                    required
+                    min={1}
+                    max={9999}
+                    defaultValue={1}
+                  />
+                  <Field
+                    name="count"
+                    label="Number of seats"
+                    type="number"
+                    required
+                    min={1}
+                    max={250}
+                  />
+                </div>
+                <Button type="submit" disabled={busy}>
+                  Create seat range
+                </Button>
+              </form>
+            </details>
+          )}
+          {!matchQueue && !(industry.id === "finance" && role === "Owner") && (
             <form
               className="card industry-form"
               key={selectedModule.id}
@@ -347,7 +471,10 @@ function IndustryRecords({
                         .filter((record) => record.module === field.module)
                         .map((record) => (
                           <option value={record.id} key={record.id}>
-                            {record.name} · {record.status}
+                            {record.name}
+                            {record.module === "seats" &&
+                              ` · ${record.values.section} · ${nameOf(record.values.show)}`}{" "}
+                            · {record.status}
                           </option>
                         ))}
                     </SelectField>
@@ -378,15 +505,34 @@ function IndustryRecords({
               </Button>
             </form>
           )}
+          {action && (
+            <nav className="industry-tabs" aria-label="Record view">
+              <Link
+                href={`/dashboard/${dailyActionPath(action)}`}
+                aria-current={attention ? "page" : undefined}
+              >
+                {action.label}
+              </Link>
+              <Link
+                href={`/dashboard/industry?module=${selectedModule.id}`}
+                aria-current={!attention ? "page" : undefined}
+              >
+                All records
+              </Link>
+            </nav>
+          )}
           <Field
             label={`Search ${selectedModule.label.toLowerCase()}`}
             name="record-search"
             value={filter}
-            onChange={(event) => setFilter(event.target.value)}
+            onChange={(event) => {
+              setFilter(event.target.value);
+              setLimit(30);
+            }}
           />
           <div className="industry-records">
             {!matches.length && <p className="muted">No matching records.</p>}
-            {matches.map((record) => (
+            {matches.slice(0, limit).map((record) => (
               <article className="card industry-record" key={record.id}>
                 <header>
                   <h3>{record.name}</h3>
@@ -450,6 +596,25 @@ function IndustryRecords({
                       <code>{record.code}</code>
                     </div>
                   )}
+                {!!record.history?.length && (
+                  <details className="industry-history">
+                    <summary>Activity history</summary>
+                    <ol>
+                      {[...record.history].reverse().map((entry, index) => (
+                        <li key={index}>
+                          <strong>{entry.status}</strong>
+                          <span>
+                            {entry.role} ·{" "}
+                            <time dateTime={entry.at}>
+                              {showtimeLabel(entry.at)} EAT
+                            </time>
+                          </span>
+                          {entry.note && <p>{entry.note}</p>}
+                        </li>
+                      ))}
+                    </ol>
+                  </details>
+                )}
                 <div className="industry-actions">
                   {record.code && record.status === "Issued" && (
                     <Button
@@ -495,14 +660,14 @@ function IndustryRecords({
                       );
                     })}
                 </div>
-                {next?.record.id === record.id && (
-                  <form
-                    className="industry-form"
-                    onSubmit={async (event) => {
-                      event.preventDefault();
-                      const reference = String(
-                        new FormData(event.currentTarget).get("reference"),
-                      );
+                {next?.record.id === record.id &&
+                industry.id === "finance" &&
+                ["Approved", "Declined"].includes(next.status) ? (
+                  <BankCaseDecision
+                    key={next.status}
+                    busy={busy}
+                    cancel={() => setNext(undefined)}
+                    save={async (reference) => {
                       if (
                         await save({
                           action: "transition",
@@ -514,33 +679,60 @@ function IndustryRecords({
                       )
                         setNext(undefined);
                     }}
-                  >
-                    <Field
-                      label={industryActionReference(
-                        selectedModule.id,
-                        next.status,
-                        record.values,
-                      )}
-                      name="reference"
-                      maxLength={240}
-                      required
-                    />
-                    <div className="industry-actions">
-                      <Button type="submit" disabled={busy}>
-                        Confirm
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        onClick={() => setNext(undefined)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
+                  />
+                ) : (
+                  next?.record.id === record.id && (
+                    <form
+                      className="industry-form"
+                      onSubmit={async (event) => {
+                        event.preventDefault();
+                        const reference = String(
+                          new FormData(event.currentTarget).get("reference"),
+                        );
+                        if (
+                          await save({
+                            action: "transition",
+                            id: record.id,
+                            from: record.status,
+                            status: next.status,
+                            reference,
+                          })
+                        )
+                          setNext(undefined);
+                      }}
+                    >
+                      <Field
+                        label={industryActionReference(
+                          selectedModule.id,
+                          next.status,
+                          record.values,
+                        )}
+                        name="reference"
+                        maxLength={240}
+                        required
+                      />
+                      <div className="industry-actions">
+                        <Button type="submit" disabled={busy}>
+                          Confirm
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={() => setNext(undefined)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </form>
+                  )
                 )}
               </article>
             ))}
           </div>
+          {matches.length > limit && (
+            <Button variant="secondary" onClick={() => setLimit(limit + 30)}>
+              Show more records
+            </Button>
+          )}
         </>
       )}
     </div>

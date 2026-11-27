@@ -1,4 +1,6 @@
 "use client";
+
+import { expiryReviewLimit } from "@/lib/workspace-activity";
 import { T, LocalButton, LocalInput } from "@/components/locale";
 import { useState } from "react";
 import {
@@ -233,17 +235,16 @@ export function ExpiryTool() {
   const [writeOff, setWriteOff] = useState<number | null>(null);
   const [add, setAdd] = useState(false);
   const [date, setDate] = useState("");
-  const soon = new Date();
-  soon.setDate(soon.getDate() + 14);
-  const limit = soon.toISOString().slice(0, 10);
+  const day = localDate();
+  const limit = expiryReviewLimit(day);
   const rows = op.batches.filter(
     (b) =>
       b.branch === op.activeBranch &&
       b.quantity > 0 &&
       (filter === "All batches" ||
         (filter === "Expired"
-          ? b.expires < localDate()
-          : b.expires >= localDate() && b.expires <= limit)) &&
+          ? b.expires < day
+          : b.expires >= day && b.expires <= limit)) &&
       (!date || b.expires === date),
   );
   return (
@@ -275,7 +276,7 @@ export function ExpiryTool() {
                   (b) =>
                     b.branch === op.activeBranch &&
                     b.quantity > 0 &&
-                    b.expires >= localDate() &&
+                    b.expires >= day &&
                     b.expires <= limit,
                 ).length
               }
@@ -291,7 +292,7 @@ export function ExpiryTool() {
               {op.batches
                 .filter(
                   (b) =>
-                    b.branch === op.activeBranch && b.expires < localDate(),
+                    b.branch === op.activeBranch && b.expires < day,
                 )
                 .reduce((s, b) => s + b.quantity, 0)}
             </T>
@@ -333,7 +334,7 @@ export function ExpiryTool() {
               const p = state.products.find((p) => p.id === b.productId);
               return (
                 <article
-                  className={`batch-card ${b.expires < localDate() ? "expired" : ""}`}
+                  className={`batch-card ${b.expires < day ? "expired" : ""}`}
                   key={b.id}
                 >
                   <div>
@@ -348,7 +349,7 @@ export function ExpiryTool() {
                     </span>
                     <Badge
                       tone={
-                        b.expires < localDate()
+                        b.expires < day
                           ? "red"
                           : b.expires <= limit
                             ? "amber"
@@ -356,7 +357,7 @@ export function ExpiryTool() {
                       }
                     >
                       <T>
-                        {b.expires < localDate()
+                        {b.expires < day
                           ? "Expired"
                           : b.expires <= limit
                             ? "Expiring soon"

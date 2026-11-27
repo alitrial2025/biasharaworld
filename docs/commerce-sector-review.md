@@ -1,0 +1,53 @@
+# Kenya commerce workflows and release priorities
+
+**26 November 2026**
+
+This review covers the first four business types in the industry rollout. The shared workspace starts with the daily work of each role. Search exposes secondary tools and add-ons as the business needs them. Merchant verification and provider acceptance follow the [Kenya pilot runbook](kenya-pilot-runbook.md).
+
+## Why a business would choose BiasharaWorld
+
+- **Retail and kiosks.** Loyverse already provides POS, purchase orders and stock management. BiasharaWorld’s pitch is to run tills and customer credit from a phone, find verified suppliers as stock runs low, and keep store sales and collections traceable. Prove this with a shop that restocks and closes the till without keeping a separate notebook. [Loyverse advanced inventory](https://loyverse.com/advanced-inventory)
+- **Supermarkets.** Loyverse and Odoo establish the bar for multi-location inventory and replenishment. BiasharaWorld should win by making shift checkout fast for cashiers and making expiry, counts and incoming transfers clear to branch supervisors. Test the handoff between a cashier and a supervisor during a busy return and closing shift. [Loyverse advanced inventory](https://loyverse.com/advanced-inventory) · [Odoo Inventory](https://www.odoo.com/app/inventory)
+- **Wholesale and distribution.** Odoo covers quotes and warehouse operations. BiasharaWorld’s opportunity is a Kenyan trade workflow that follows a sourcing request through price comparison, receiving, invoicing and collections in one account. Ask buyers and sales reps to complete a real purchasing and delivery cycle and identify where they still resort to WhatsApp or spreadsheets. [Odoo Sales](https://www.odoo.com/app/sales) · [Odoo Inventory](https://www.odoo.com/app/inventory)
+- **E-commerce.** Shopify offers storefronts and unified in-person inventory. Kenyan merchants can also consider tools like tappi for WhatsApp-based customer engagement. BiasharaWorld’s proposition is a branded shop with a shareable link, shared branch stock, Android fulfilment and traceable Kenyan payments. Prove this with a merchant who fulfils an order from Android and reconciles the payment to their own bank statement. [Shopify POS](https://www.shopify.com/pos) · [Shopify online store](https://www.shopify.com/online) · [tappi](https://tappi.app/) · [Paystack payment channels](https://paystack.com/docs/payments/payment-channels/)
+
+These are hypotheses for merchant interviews and observed use. Customer satisfaction, conversion and support turnaround still need pilot data.
+
+## What each business needs from setup to close
+
+| Stage | Retail and kiosks | Supermarkets | Wholesale and distribution | E-commerce |
+| --- | --- | --- | --- | --- |
+| Setup and staff | Phone-first signup, individual or registered-business verification, owner and cashier access, opening floats and balances | Locations, tills and shift access, bulk catalogue migration, branch permissions | Company verification, warehouses, buyers and approvers, supplier and customer opening balances | Brand, username, template, product photos, owner verification, fulfilment branch and first publish |
+| Catalogue and stock | SKU/barcode, selling price, reorder point, adjustments and receipts | Barcode variants, promotions, batches and expiry, counts, transfers and pricing by branch | Carton-to-unit conversion, price tiers, minimums, warehouse inventory and reservations | Variants, collection browsing, coverage and fees, stock visibility, checkout reservation |
+| Buy and fulfil | Compare suppliers, create an internal purchase order, receive goods and check stock | Partial receiving, discrepancies, batch capture and replenishment | RFQs, supplier orders, partial and backorder receiving, picking, route planning and proof of delivery | Order confirmation, packing, dispatch, delivery or pickup, customer tracking and returns |
+| Collect and close | Cash, M-Pesa, split receipts, drawer variance, credit repayment, tax invoice and daily export | Register close, returns with approvals, channel reconciliation, tax invoices and finance summaries | Quotes, invoice instalments, statements, aged debt, allocations and bank reconciliation | Card and M-Pesa, receipts, refunds and disputes, provider fees and bank settlement matching |
+| Keep customers | Customer history, loyalty and support from the phone | Regular-basket offers, customer desk and fast returns | Account terms and statements, repeat ordering, issue history | Customer order visibility, status updates, retention and payment support |
+
+## Implemented in this pass
+
+| Sector | Daily view |
+| --- | --- |
+| Retail and kiosks | Sale, products at their configured on-hand reorder level, and cash register. Viewers can see register-independent sales history and stock. |
+| Supermarkets | Managers see positive-quantity batches due within 14 days or already expired, draft stocktakes and transfers dispatched to the active branch. Cashiers see sale, register and inventory. |
+| Wholesale and distribution | Buyers with manager or owner access see draft purchase orders, issued invoices with outstanding balances and the supplier network. Android opens purchase orders directly. |
+| E-commerce | Staff see the active branch’s fulfilment queue and reorder count. Owners also see Shop builder, which opens the web editor on Android. Delivered and cancelled orders remain in the history. |
+
+Web and Android use the same shortcut catalogue. BiasharaAI offers questions from the merchant’s daily view, reads confirmed records loaded in the workspace, and links to the relevant tool. Branch sales and operational counts name their branch. Customer balances and spending identify their business-wide scope. These summaries use rules. The support link opens the existing contact form, which stores a private inquiry and returns a reference.
+
+## Release order and acceptance
+
+1. **Close the kiosk loop.** Run barcode checkout, cash and manual M-Pesa receipts, split payments, a return, a customer credit repayment, register close and next-day restock on Android and web. Measure time to the first sale and to close a shift. Confirm the stock and ledger effects under a network interruption and a safe retry. Add KRA eTIMS integration for merchants that need it and validate issue, retry and credit-note flows against the relevant KRA method. Internal receipts and invoices are present today. [KRA eTIMS](https://www.kra.go.ke/online-services/etims)
+2. **Qualify supermarkets at shift and branch scale.** Barcode checkout, batches, draft counts and transfers exist. Pilot parallel tills, barcode hardware, a failed stocktake, an inter-branch transfer and a return approval. Prioritise branch-scoped staff access, register identity by shift or device, discrepancy approvals, partial stock receipts and purchase order matching. Require each return and receiving discrepancy to resolve to a named branch, original record and operator.
+3. **Complete the wholesale trade cycle.** Supplier listings, requests for quotes, internal purchase orders, bulk imports and ageing exist. Separate unit/case conversion and account pricing from free-text pack sizes. Add partial receipts, backorders, replenishment approvals and customer credit limits. Exercise a supplier account that quotes and receives a request and a buyer who handles a short delivery, invoice instalment and reconciliation. Add route planning and proof of delivery once the pilot verifies the stock and settlement path.
+4. **Complete the e-commerce customer cycle.** Branded storefronts, order placement, Android fulfilment and checkout for delivered orders exist. Require real provider acceptance for card and M-Pesa before enabling live collection. Add merchant media uploads, pickup scheduling, customer notifications and an operator path for refunds and disputes. Test prepayment separately with reservation expiry, cancellations, duplicate callbacks and matched settlements. Verify provider coverage before claiming bank availability. [Kenyan payments](kenya-payments.md)
+5. **Operate support and optional AI.** Assign first-line support and a payment escalation owner, provide visible inquiry status and measure time to first human response and resolution. Pilot merchants should have a documented way to report a blocked sale or payment and supply a safe reference. For the next assistant upgrade, run policy-controlled model trials with aggregate business metrics and links to records. Evaluate response grounding, branch and role scope, Kiswahili coverage, provider downtime, latency and cost before rollout. Keep operational changes subject to existing role checks and explicit merchant actions.
+
+## Pilot evidence and scalability
+
+- Observe at least two merchants per commerce type across successive pilots if recruitment allows. Capture the checkout, close, receiving or fulfilment task relevant to the merchant. Track unassisted completion, errors, time to first completed transaction, week-two repeat use and a post-task rating. Ask what still requires a separate tool.
+- Proposed pilot targets are first sale under ten minutes after catalogue setup, cashier checkout under 30 seconds after item entry starts, and no duplicate receipts or unexplained settlement differences across enabled payment channels. Set a one-business-day first response target after assigning support coverage. Record failures and time spent fixing them.
+- Report refunds now look up receipts by ID on both platforms. A local Node fixture with 40,000 receipts and 8,000 returns measured 527 ms before indexing and 8 ms after, using the median of seven runs. Both runs returned the same total. Measure full loads and mutations separately. The workspace currently transfers a whole state snapshot, leaving payload size and concurrent edits to qualify.
+- Load-test a 10,000-SKU catalogue, 100,000 receipts, five branches and simultaneous tills. Record p95 workspace load and command confirmation, response bytes, conflicts, retries and memory impact on a mid-range Android device. If the pilot outgrows snapshot reads, migrate history and catalogue views to paged, indexed records and verify that reconciliation, atomic stock updates and idempotency survive the migration.
+- Professional services, insurance, and real estate and property management follow this commerce batch. The next batch uses the same workflow audit, role-focused workspace and merchant acceptance evidence. [Professional services, insurance and property management](service-insurance-property-review.md)
+
+[Next release roadmap](next-release-roadmap.md)

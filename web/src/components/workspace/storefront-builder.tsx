@@ -6,10 +6,13 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Badge, Button, Field, SelectField } from "@/components/ui";
 import { StorefrontDesign } from "@/components/public-shop";
 import { available, cash } from "@/lib/operations";
+import { supabase } from "@/lib/supabase";
 import { useDemo } from "@/lib/store";
 import {
   storefrontDraft,
   storefrontIssues,
+  storefrontPublication,
+  storefrontMediaPath,
   storefrontPalettes,
   storefrontTemplates,
   storefrontUsername,
@@ -110,6 +113,48 @@ export function StorefrontBuilder() {
     }
   }
 
+  function updateProduct(key: "image" | "description", value: string) {
+    setDraft(
+      (current) =>
+        current && {
+          ...current,
+          productDetails: {
+            ...current.productDetails,
+            [detailsId]: {
+              ...(current.productDetails[detailsId] ?? {
+                image: "",
+                description: "",
+              }),
+              [key]: value,
+            },
+          },
+        },
+    );
+  }
+
+  function uploadImage(file: File, apply: (path: string) => void) {
+    void execute(async () => {
+      if (file.size > 2_500_000)
+        throw new Error("Choose an image under 2.5 MB.");
+      const {
+        data: { session },
+      } = await supabase().auth.getSession();
+      if (!session) throw new Error("Sign in again to upload an image.");
+      const form = new FormData();
+      form.set("image", file);
+      const response = await fetch("/api/storefront-media", {
+        method: "POST",
+        body: form,
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.error || "Could not upload the image.");
+      apply(result.path);
+      setNotice("Image added to your draft. Save or publish to apply it.");
+    });
+  }
+
   async function save() {
     if (!setup || !draft) throw new Error("Load your shop first.");
     const username = storefrontUsername.safeParse(name);
@@ -178,10 +223,18 @@ export function StorefrontBuilder() {
     });
   }
 
-  const live = Boolean(
-    setup?.live && setup.published && setup.verification === "verified",
+  const publicationState = setup ? storefrontPublication(setup) : null;
+  const publicPath = publicationState?.publicPath;
+  const live = Boolean(setup?.live && publicPath);
+  const draftPath = setup?.username ? `/${setup.username}` : "";
+  const draftIssues = draft ? storefrontIssues(draft) : [];
+  const previewReady = !!draft?.template && !!draft?.name?.trim();
+  const pendingChanges = Boolean(
+    setup?.live &&
+      draft &&
+      JSON.stringify(storefrontDraft.parse(setup.live)) !==
+        JSON.stringify(draft),
   );
-  const url = setup?.username ? `/${setup.username}` : "";
   const selectedProducts = draft
     ? state.products.filter(
         (product) =>
@@ -189,6 +242,10 @@ export function StorefrontBuilder() {
           (draft.catalog === "selected" && draft.products.includes(product.id)),
       )
     : [];
+  const details = draft?.productDetails[detailsId] ?? {
+    image: "",
+    description: "",
+  };
   const preview: ShopCatalog = {
     name: draft?.name || "",
     description: draft?.description || "",
@@ -227,7 +284,7 @@ export function StorefrontBuilder() {
         </div>
         {live && (
           <div className="button-row">
-            <Button href={url} variant="secondary" icon={ExternalLink}>
+            <Button href={draftPath} variant="secondary" icon={ExternalLink}>
               View live shop
             </Button>
           </div>
@@ -260,17 +317,25 @@ export function StorefrontBuilder() {
       {owner && setup && draft && (
         <>
           <div className="shop-builder-status">
-            <Badge tone={live ? "green" : "gray"}>
-              {live ? "Live" : "Draft"}
+            <Badge tone={publicPath ? "green" : "gray"}>
+              {publicationState?.status ?? "Draft"}
             </Badge>
-            {url && <strong>biasharaworld.vercel.app{url}</strong>}
-            {live && (
+            {publicPath && <strong>{publicPath}</strong>}
+            {draftPath && draftPath !== publicPath && (
+              <span>
+                Draft address <strong>{draftPath}</strong>
+              </span>
+            )}
+            {pendingChanges && <Badge tone="amber">Unpublished edits</Badge>}
+            {publicPath && (
               <Button
                 variant="ghost"
                 icon={Copy}
                 onClick={() =>
                   void execute(async () => {
-                    await navigator.clipboard.writeText(location.origin + url);
+                    await navigator.clipboard.writeText(
+                      location.origin + publicPath,
+                    );
                     setNotice("Shop link copied.");
                   })
                 }
@@ -441,19 +506,25 @@ export function StorefrontBuilder() {
                     }
                   />
                 </label>
-                <Field
+                <ShopImageField
                   label="Logo image URL"
-                  type="url"
+                  uploadLabel="Upload logo"
                   value={draft.logo}
-                  onChange={(event) => update("logo", event.target.value)}
-                  hint="Optional HTTPS image link."
+                  busy={busy}
+                  edit={(value) => update("logo", value)}
+                  upload={(file) =>
+                    uploadImage(file, (path) => update("logo", path))
+                  }
                 />
-                <Field
+                <ShopImageField
                   label="Cover image URL"
-                  type="url"
+                  uploadLabel="Upload cover image"
                   value={draft.cover}
-                  onChange={(event) => update("cover", event.target.value)}
-                  hint="Optional HTTPS image link."
+                  busy={busy}
+                  edit={(value) => update("cover", value)}
+                  upload={(file) =>
+                    uploadImage(file, (path) => update("cover", path))
+                  }
                 />
               </div>
             )}
@@ -538,49 +609,34 @@ export function StorefrontBuilder() {
                     </SelectField>
                     {selectedProducts.some(
                       (product) => String(product.id) === detailsId,
-                    ) &&
-                      (() => {
-                        const details = draft.productDetails[detailsId] ?? {
-                          image: "",
-                          description: "",
-                        };
-                        const updateProduct = (
-                          key: "image" | "description",
-                          value: string,
-                        ) =>
-                          update("productDetails", {
-                            ...draft.productDetails,
-                            [detailsId]: { ...details, [key]: value },
-                          });
-                        return (
-                          <div className="shop-builder-fields">
-                            <Field
-                              label="Product photo URL"
-                              type="url"
-                              value={details.image}
-                              onChange={(event) =>
-                                updateProduct("image", event.target.value)
-                              }
-                              hint="Use an HTTPS link to this product’s photo."
-                            />
-                            <label className="field shop-builder-full">
-                              Product description
-                              <textarea
-                                className="input"
-                                rows={3}
-                                maxLength={800}
-                                value={details.description}
-                                onChange={(event) =>
-                                  updateProduct(
-                                    "description",
-                                    event.target.value,
-                                  )
-                                }
-                              />
-                            </label>
-                          </div>
-                        );
-                      })()}
+                    ) && (
+                      <div className="shop-builder-fields">
+                        <ShopImageField
+                          label="Product photo URL"
+                          uploadLabel="Upload product photo"
+                          value={details.image}
+                          busy={busy}
+                          edit={(value) => updateProduct("image", value)}
+                          upload={(file) =>
+                            uploadImage(file, (path) =>
+                              updateProduct("image", path),
+                            )
+                          }
+                        />
+                        <label className="field shop-builder-full">
+                          Product description
+                          <textarea
+                            className="input"
+                            rows={3}
+                            maxLength={800}
+                            value={details.description}
+                            onChange={(event) =>
+                              updateProduct("description", event.target.value)
+                            }
+                          />
+                        </label>
+                      </div>
+                    )}
                   </fieldset>
                 )}
                 <p>
@@ -677,9 +733,43 @@ export function StorefrontBuilder() {
             )}
             {step === 5 && (
               <>
-                {!!storefrontIssues(draft).length && (
+                <section
+                  className="shop-publication-checklist"
+                  aria-label="Publication checklist"
+                >
+                  <h3>Publication checklist</h3>
                   <ul>
-                    {storefrontIssues(draft).map((issue) => (
+                    <li>
+                      <span>Shop details</span>
+                      <strong>
+                        {draftIssues.length ? "Needs attention" : "Ready"}
+                      </strong>
+                    </li>
+                    <li>
+                      <span>Store preview</span>
+                      <strong>
+                        {previewReady ? "Ready" : "Choose a design and name"}
+                      </strong>
+                    </li>
+                    <li>
+                      <span>Merchant verification</span>
+                      <strong>
+                        {publicationState?.verified ? "Verified" : "Required"}
+                      </strong>
+                    </li>
+                    <li>
+                      <span>Public link</span>
+                      <strong>
+                        {publicationState?.publicPath
+                          ? "Open to customers"
+                          : "Private"}
+                      </strong>
+                    </li>
+                  </ul>
+                </section>
+                {!!draftIssues.length && (
+                  <ul>
+                    {draftIssues.map((issue) => (
                       <li key={issue}>{issue}</li>
                     ))}
                   </ul>
@@ -701,8 +791,14 @@ export function StorefrontBuilder() {
                       type="button"
                       onClick={() =>
                         void execute(async () => {
-                          accept(
-                            await workspaceRequest<Setup>("/api/storefront"),
+                          const refreshed =
+                            await workspaceRequest<Setup>("/api/storefront");
+                          setSetup(
+                            (current) =>
+                              current && {
+                                ...current,
+                                verification: refreshed.verification,
+                              },
                           );
                         })
                       }
@@ -749,7 +845,7 @@ export function StorefrontBuilder() {
                     disabled={
                       busy ||
                       setup.verification !== "verified" ||
-                      !!storefrontIssues(draft).length
+                      !!draftIssues.length
                     }
                     onClick={() => publish("publish")}
                   >
@@ -770,6 +866,58 @@ export function StorefrontBuilder() {
           </form>
         </>
       )}
+    </div>
+  );
+}
+
+function ShopImageField({
+  label,
+  uploadLabel,
+  value,
+  edit,
+  upload,
+  busy,
+}: {
+  label: string;
+  uploadLabel: string;
+  value: string;
+  edit: (value: string) => void;
+  upload: (file: File) => void;
+  busy: boolean;
+}) {
+  const present = storefrontMediaPath.test(value) || /^https:\/\//i.test(value);
+  return (
+    <div className="shop-image-field">
+      {present && (
+        <div
+          className="shop-image-field-preview"
+          role="img"
+          aria-label={label + " preview"}
+          style={{ backgroundImage: `url(${JSON.stringify(value)})` }}
+        />
+      )}
+      <label className="field">
+        {uploadLabel}
+        <input
+          className="input"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          disabled={busy}
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            event.currentTarget.value = "";
+            if (file) upload(file);
+          }}
+        />
+        <small>JPEG, PNG or WebP up to 2.5 MB</small>
+      </label>
+      <Field
+        label={label}
+        inputMode="url"
+        value={value}
+        onChange={(event) => edit(event.target.value)}
+        hint="You can also paste an HTTPS image link."
+      />
     </div>
   );
 }

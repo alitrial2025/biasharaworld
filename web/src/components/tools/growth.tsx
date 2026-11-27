@@ -1,4 +1,7 @@
 "use client";
+
+import { orderFulfillment, orderStatusLabel } from "@/lib/order-progress";
+import { deliveryInFulfilment } from "@/lib/workspace-activity";
 import { T, LocalInput, LocalButton } from "@/components/locale";
 import Link from "next/link";
 import Image from "next/image";
@@ -37,7 +40,7 @@ export function CompareTool() {
   });
   const [result, setResult] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
-  const offers = (state.suppliers??[]).map((supplier) => {
+  const offers = (state.suppliers ?? []).map((supplier) => {
     const items = state.products
       .filter((p) => quantities[p.id] > 0 && !p.components)
       .map((p) => ({
@@ -49,14 +52,20 @@ export function CompareTool() {
       (s, p) => s + Math.round(p.cost * 100) * p.quantity,
       0,
     );
-    const delivery = Math.round((supplier.deliveryFee??0)*100);
+    const delivery = Math.round((supplier.deliveryFee ?? 0) * 100);
     return { supplier, items, subtotal, delivery, total: subtotal + delivery };
   });
   return (
     <>
       <OperationError message={error} />
-      <p className="quiet-note">Comparisons use your recorded supplier quotes and delivery fees. Product cost is used where no quote has been entered. Confirm prices with the supplier.</p>
-      <Button href="/dashboard/suppliers" variant="secondary">Manage suppliers and quotes</Button>
+      <p className="quiet-note">
+        Comparisons use your recorded supplier quotes and delivery fees. Product
+        cost is used where no quote has been entered. Confirm prices with the
+        supplier.
+      </p>
+      <Button href="/dashboard/suppliers" variant="secondary">
+        Manage suppliers and quotes
+      </Button>
       <div className="tool-two-columns compare-layout">
         <ToolPanel title="The same basket. A clearer comparison.">
           <div className="bundle-picker">
@@ -254,22 +263,42 @@ export function CompareTool() {
 }
 export function DeliveriesTool() {
   const { op, store, act, error } = useOperations();
-  const [filter, setFilter] = useState("All orders");
+  const canFulfil = ["Owner", "Manager", "Cashier"].includes(
+    store.workspace?.role ?? "",
+  );
+  const [filter, setFilter] = useState("In fulfilment");
   const [selected, setSelected] = useState<number | null>(null);
-  const order = op.deliveries.find((o) => o.id === selected);
+  const branchOrders = op.deliveries.filter(
+    (order) => order.branch === op.activeBranch,
+  );
+  const rows = branchOrders.filter(
+    (order) =>
+      filter === "All orders" ||
+      (filter === "In fulfilment"
+        ? deliveryInFulfilment(order.status)
+        : order.status === filter),
+  );
+  const order = branchOrders.find((order) => order.id === selected);
   return (
     <>
       <OperationError message={error} />
       <ToolPanel
-        title="A good order, from start to doorstep."
+        title="Customer orders"
         action={
-          <Button href={`/shop/${store.workspace?.slug||""}`} variant="secondary" icon={ShoppingBag}>
-            <T>Preview customer shop</T>
-          </Button>
+          store.workspace?.role === "Owner" && (
+            <Button
+              href="/dashboard/online-shop"
+              variant="secondary"
+              icon={ShoppingBag}
+            >
+              <T>Shop builder</T>
+            </Button>
+          )
         }
       >
         <Tabs
           items={[
+            "In fulfilment",
             "All orders",
             "New",
             "Confirmed",
@@ -283,57 +312,64 @@ export function DeliveriesTool() {
         />
         <div className="delivery-board">
           <T>
-            {op.deliveries
-              .filter(
-                (o) =>
-                  o.branch === op.activeBranch &&
-                  (filter === "All orders" || o.status === filter),
-              )
-              .map((o) => (
-                <LocalButton key={o.id} onClick={() => setSelected(o.id)}>
-                  <div>
-                    <Badge
-                      tone={
-                        o.status === "Delivered"
-                          ? "green"
-                          : o.status === "Cancelled"
-                            ? "gray"
-                            : "amber"
-                      }
-                    >
-                      <T>{o.status}</T>
-                    </Badge>
-                    <strong>
-                      <T>Order #</T> <T>{o.id}</T>
-                    </strong>
-                  </div>
-                  <h3>
-                    <T>{o.customer}</T>
-                  </h3>
-                  <p>
-                    <T>{o.address}</T>
-                  </p>
-                  <div>
-                    <span>
-                      <T>{o.lines.reduce((s, l) => s + l.quantity, 0)}</T>{" "}
-                      <T>items ·</T>{" "}
-                      <T>{o.paid ? "Recorded as paid" : "Unpaid"}</T>
-                    </span>
-                    <strong>
-                      <T>{cash(o.total)}</T>
-                    </strong>
-                  </div>
-                </LocalButton>
-              ))}
+            {rows.map((o) => (
+              <LocalButton key={o.id} onClick={() => setSelected(o.id)}>
+                <div>
+                  <Badge
+                    tone={
+                      o.status === "Delivered"
+                        ? "green"
+                        : o.status === "Cancelled"
+                          ? "gray"
+                          : "amber"
+                    }
+                  >
+                    <T>
+                      {orderStatusLabel(
+                        o.status,
+                        orderFulfillment(o) === "pickup",
+                      )}
+                    </T>
+                  </Badge>
+                  <strong>
+                    <T>Order #</T> <T>{o.id}</T>
+                  </strong>
+                </div>
+                <h3>
+                  <T>{o.customer}</T>
+                </h3>
+                <p>
+                  <T>{o.address}</T>
+                </p>
+                <div>
+                  <span>
+                    <T>{o.lines.reduce((s, l) => s + l.quantity, 0)}</T>{" "}
+                    <T>items ·</T>{" "}
+                    <T>{o.paid ? "Recorded as paid" : "Unpaid"}</T>
+                  </span>
+                  <strong>
+                    <T>{cash(o.total)}</T>
+                  </strong>
+                </div>
+              </LocalButton>
+            ))}
           </T>
         </div>
 
         <T>
-          {!op.deliveries.some((o) => o.branch === op.activeBranch) && (
+          {rows.length === 0 && (
             <EmptyState
               icon={Truck}
-              title="Your next delivery starts with an order."
-              description="Place a local demo order through your shopfront and follow it here."
+              title={
+                branchOrders.length
+                  ? "No orders match this view"
+                  : "No customer orders for this branch"
+              }
+              description={
+                branchOrders.length
+                  ? "Choose another status to see more orders."
+                  : "Orders placed through your shop appear here when this branch fulfils them."
+              }
             />
           )}
         </T>
@@ -358,7 +394,7 @@ export function DeliveriesTool() {
                   </span>
                 </div>
                 <Badge tone={order.paid ? "green" : "amber"}>
-                  <T>{order.paid ? "Paid locally" : "Unpaid"}</T>
+                  <T>{order.paid ? "Paid" : "Unpaid"}</T>
                 </Badge>
               </div>
               <div className="packing-list">
@@ -367,7 +403,7 @@ export function DeliveriesTool() {
                     <label key={l.productId}>
                       <LocalInput
                         type="checkbox"
-                        disabled={order.status !== "Packing"}
+                        disabled={!canFulfil || order.status !== "Packing"}
                         checked={order.packed.includes(l.productId)}
                         onChange={async () =>
                           await act(
@@ -425,71 +461,75 @@ export function DeliveriesTool() {
               </div>
               <div className="button-row">
                 <T>
-                  {!["Delivered", "Cancelled"].includes(order.status) && (
-                    <Button
-                      onClick={async () =>
-                        await act({
-                          type: "orderStatus",
-                          id: order.id,
-                          status: (
-                            {
-                              New: "Confirmed",
-                              Confirmed: "Packing",
-                              Packing: "Dispatched",
-                              Dispatched: "Delivered",
-                            } as Record<string, CustomerOrder["status"]>
-                          )[order.status],
-                        })
-                      }
-                    >
-                      <T>
-                        {
-                          (
-                            {
-                              New: "Confirm & reserve stock",
-                              Confirmed: "Start packing",
-                              Packing: "Dispatch order",
-                              Dispatched: "Mark delivered",
-                            } as Record<string, string>
-                          )[order.status]
+                  {canFulfil &&
+                    !["Delivered", "Cancelled"].includes(order.status) && (
+                      <Button
+                        onClick={async () =>
+                          await act({
+                            type: "orderStatus",
+                            id: order.id,
+                            status: (
+                              {
+                                New: "Confirmed",
+                                Confirmed: "Packing",
+                                Packing: "Dispatched",
+                                Dispatched: "Delivered",
+                              } as Record<string, CustomerOrder["status"]>
+                            )[order.status],
+                          })
                         }
-                      </T>
-                    </Button>
-                  )}
+                      >
+                        <T>
+                          {
+                            (
+                              {
+                                New: "Confirm & reserve stock",
+                                Confirmed: "Start packing",
+                                Packing:
+                                  orderFulfillment(order) === "pickup"
+                                    ? "Mark ready for pickup"
+                                    : "Dispatch order",
+                                Dispatched:
+                                  orderFulfillment(order) === "pickup"
+                                    ? "Confirm pickup"
+                                    : "Mark delivered",
+                              } as Record<string, string>
+                            )[order.status]
+                          }
+                        </T>
+                      </Button>
+                    )}
                 </T>{" "}
                 <T>
-                  {!order.paid && order.status === "Delivered" && (
+                  {canFulfil && !order.paid && order.status === "Delivered" && (
                     <Button
                       variant="secondary"
-                      onClick={async () => await act({ type: "orderPaid", id: order.id })}
+                      onClick={async () =>
+                        await act({ type: "orderPaid", id: order.id })
+                      }
                     >
                       <T>Record cash received</T>
                     </Button>
                   )}
                 </T>{" "}
                 <T>
-                  {["New", "Confirmed", "Packing"].includes(order.status) && (
-                    <Button
-                      variant="danger"
-                      onClick={async () =>
-                        await act({
-                          type: "orderStatus",
-                          id: order.id,
-                          status: "Cancelled",
-                        })
-                      }
-                    >
-                      <T>Cancel order</T>
-                    </Button>
-                  )}
+                  {canFulfil &&
+                    ["New", "Confirmed", "Packing"].includes(order.status) && (
+                      <Button
+                        variant="danger"
+                        onClick={async () =>
+                          await act({
+                            type: "orderStatus",
+                            id: order.id,
+                            status: "Cancelled",
+                          })
+                        }
+                      >
+                        <T>Cancel order</T>
+                      </Button>
+                    )}
                 </T>
               </div>
-              <p className="quiet-note">
-                <T>
-                  Local fulfilment preview. No driver, customer or payment
-                  service is contacted.
-                </T>
-              </p>
             </>
           )}
         </T>
@@ -779,8 +819,14 @@ export function OnlineShopTool() {
             </Badge>
           }
         >
-          <p className="quiet-note">The shop is public only while the owner’s identity is verified.</p>
-          {store.workspace?.role === "Owner" && <Link href="/dashboard/verification">Owner identity verification</Link>}
+          <p className="quiet-note">
+            The shop is public only while the owner’s identity is verified.
+          </p>
+          {store.workspace?.role === "Owner" && (
+            <Link href="/dashboard/verification">
+              Owner identity verification
+            </Link>
+          )}
           <form
             onSubmit={async (e) => {
               e.preventDefault();
@@ -838,18 +884,21 @@ export function OnlineShopTool() {
                   await act({ type: "shop", published: !op.shop.published })
                 }
               >
-                <T>
-                  {op.shop.published ? "Unpublish shop" : "Publish shop"}
-                </T>
+                <T>{op.shop.published ? "Unpublish shop" : "Publish shop"}</T>
               </Button>
             </div>
           </form>
           <p className="quiet-note">
             <T>
-              Publishing makes your selected products, prices and availability public. Customer orders are saved to your business.
+              Publishing makes your selected products, prices and availability
+              public. Customer orders are saved to your business.
             </T>
           </p>
-          <Button href={`/shop/${store.workspace?.slug||""}`} variant="dark" icon={Globe}>
+          <Button
+            href={`/shop/${store.workspace?.slug || ""}`}
+            variant="dark"
+            icon={Globe}
+          >
             <T>Open your online shop</T>
           </Button>
         </ToolPanel>
@@ -925,7 +974,10 @@ export function PortalTool() {
                   Orders, invoices, balance and rewards in a familiar place.
                 </T>
               </p>
-              <Button href={`/portal/${store.workspace?.slug||""}`} icon={Globe}>
+              <Button
+                href={`/portal/${store.workspace?.slug || ""}`}
+                icon={Globe}
+              >
                 <T>Open customer portal</T>
               </Button>
               <Badge tone="amber">
@@ -937,7 +989,8 @@ export function PortalTool() {
 
         <p className="quiet-note">
           <T>
-            Customers sign in with their confirmed email to view their own orders and invoices.
+            Customers sign in with their confirmed email to view their own
+            orders and invoices.
           </T>
         </p>
       </ToolPanel>
@@ -1086,7 +1139,9 @@ export function SyncTool() {
                       <Button
                         size="small"
                         variant="secondary"
-                        onClick={async () => await act({ type: "retrySync", id: e.id })}
+                        onClick={async () =>
+                          await act({ type: "retrySync", id: e.id })
+                        }
                       >
                         <T>Review / retry</T>
                       </Button>
@@ -1118,7 +1173,10 @@ export function PreferencesTool() {
             label="Language / Lugha"
             value={op.preferences.language}
             onChange={async (language) =>
-              await act({ type: "preferences", language: language as "en" | "sw" })
+              await act({
+                type: "preferences",
+                language: language as "en" | "sw",
+              })
             }
           >
             <option value="en">
@@ -1609,7 +1667,10 @@ export function CustomerPortal({ id }: { id: number }) {
                     <T>{op.shop.name}</T> <T>.</T>
                   </p>
                 </div>
-                <Button href={`/shop/${store.workspace?.slug||""}`} icon={ShoppingBag}>
+                <Button
+                  href={`/shop/${store.workspace?.slug || ""}`}
+                  icon={ShoppingBag}
+                >
                   <T>Visit the demo shop</T>
                 </Button>
               </section>
@@ -1707,7 +1768,9 @@ export function CustomerPortal({ id }: { id: number }) {
                             title="Your next order is waiting to happen."
                             description="Customers can place orders from the published shop."
                           >
-                            <Button href={`/shop/${store.workspace?.slug||""}`}>
+                            <Button
+                              href={`/shop/${store.workspace?.slug || ""}`}
+                            >
                               <T>Explore the shop</T>
                             </Button>
                           </EmptyState>

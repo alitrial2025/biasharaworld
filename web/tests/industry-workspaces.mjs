@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createClient } from "@supabase/supabase-js";
+import { currentAuthenticatorCode } from "./totp-fixture.mjs";
 
 const database = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const base = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3002";
@@ -36,6 +37,21 @@ async function actor() {
   return { email, token: login.data.session.access_token, client };
 }
 
+async function verifyAuthenticator(actor) {
+  const enrolled = await actor.client.auth.mfa.enroll({
+    factorType: "totp",
+    issuer: "Biashara test",
+  });
+  assert.equal(enrolled.error?.message, undefined);
+  const code = currentAuthenticatorCode(enrolled.data.totp.secret);
+  const verified = await actor.client.auth.mfa.challengeAndVerify({
+    factorId: enrolled.data.id,
+    code,
+  });
+  assert.equal(verified.error?.message, undefined);
+  actor.token = verified.data.access_token;
+}
+
 async function call(user, path, body) {
   const response = await fetch(base + path, {
     method: body ? "POST" : "GET",
@@ -56,6 +72,18 @@ async function expect(user, path, body, status = 200) {
 
 const workspacePath = "/api/workspace";
 const industryPath = "/api/industry";
+const summaryPath = industryPath + "?view=summary";
+const today = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Africa/Nairobi",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+}).format(new Date());
+function dateOffset(days) {
+  const date = new Date(today + "T00:00:00Z");
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
 async function business(owner, type) {
   const { workspace } = await expect(owner, workspacePath, {
     type: "createBusiness",
@@ -119,6 +147,16 @@ async function move(user, sector, record, next, status = 200, reference) {
 try {
   const insurer = await actor();
   await business(insurer, "Insurance");
+  const viewer = await actor();
+  await workspaceCommand(insurer, {
+    type: "inviteMember",
+    member: { name: "Viewer", email: viewer.email, role: "Viewer" },
+  });
+  await expect(viewer, summaryPath, undefined, 403);
+  assert.deepEqual(await expect(insurer, summaryPath), {
+    sector: "insurance",
+    counts: { claims: 0, premiums: 0, policies: 0 },
+  });
   const policy = await add(insurer, "insurance", "policies", "POL-01", {
     holder: "Customer A",
     coverage: "Home",
@@ -129,9 +167,15 @@ try {
   await move(insurer, "insurance", policy, "Active");
   const premium = await add(insurer, "insurance", "premiums", "Premium-01", {
     policy: policy.id,
-    due: "2026-01-01",
+    due: dateOffset(-1),
     amount: 12000,
   });
+  await add(insurer, "insurance", "premiums", "Due today", {
+    policy: policy.id,
+    due: today,
+    amount: 2000,
+  });
+  assert.equal((await expect(insurer, summaryPath)).counts.premiums, 1);
   await move(insurer, "insurance", premium, "Received", 409);
   await move(insurer, "insurance", premium, "Received", 200, "Receipt-01");
   assert.equal(
@@ -164,6 +208,35 @@ try {
   });
   await move(insurer, "insurance", renewal, "Renewed");
   assert.equal((await getRecord(insurer, "POL-01")).values.end, "2028-01-01");
+  const due = await add(insurer, "insurance", "policies", "Due-30", {
+    holder: "Customer",
+    coverage: "Home",
+    start: dateOffset(-30),
+    end: dateOffset(30),
+    premium: 1000,
+  });
+  await move(insurer, "insurance", due, "Active");
+  const longer = await add(insurer, "insurance", "policies", "Due-31", {
+    holder: "Customer",
+    coverage: "Home",
+    start: dateOffset(-30),
+    end: dateOffset(31),
+    premium: 1000,
+  });
+  await move(insurer, "insurance", longer, "Active");
+  const summary = await expect(insurer, summaryPath);
+  assert.deepEqual(summary, {
+    sector: "insurance",
+    counts: {
+      claims: 1,
+      premiums: 0,
+      policies: 1 + Number("2028-01-01" <= dateOffset(30)),
+    },
+  });
+  assert.deepEqual(
+    (await expect(insurer, summaryPath + "&businessId=invalid")).counts,
+    summary.counts,
+  );
 
   const propertyOwner = await actor();
   await business(propertyOwner, "real-estate");
@@ -205,14 +278,34 @@ try {
   await move(propertyOwner, "real-estate", overlappingLease, "Active", 409);
   await add(propertyOwner, "real-estate", "rent", "Rent-1", {
     lease: lease.id,
-    due: "2026-01-01",
+    due: dateOffset(-1),
     amount: 100000,
   });
-  await add(propertyOwner, "real-estate", "maintenance", "Fix lighting", {
-    property: property.id,
-    summary: "Entrance",
-    due: "2026-01-05",
-  });
+  const maintenance = await add(
+    propertyOwner,
+    "real-estate",
+    "maintenance",
+    "Fix lighting",
+    {
+      property: property.id,
+      summary: "Entrance",
+      due: "2026-01-05",
+    },
+  );
+  const propertyCounts = (await expect(propertyOwner, summaryPath)).counts;
+  assert.equal(propertyCounts.rent, 1);
+  assert.equal(propertyCounts.maintenance, 1);
+  await move(propertyOwner, "real-estate", maintenance, "In progress");
+  await move(
+    propertyOwner,
+    "real-estate",
+    await getRecord(propertyOwner, "Fix lighting"),
+    "Resolved",
+  );
+  assert.equal(
+    (await expect(propertyOwner, summaryPath)).counts.maintenance,
+    0,
+  );
   assert.ok(
     !(await expect(propertyOwner, industryPath)).records.some(
       (record) => record.id === policy.id,
@@ -251,6 +344,49 @@ try {
     show: show.id,
     section: "Stalls",
   });
+  const range = {
+    action: "createSeats",
+    sector: "entertainment",
+    requestId: randomUUID(),
+    show: show.id,
+    section: "Stalls",
+    row: "b",
+    first: 2,
+    count: 3,
+  };
+  assert.equal((await expect(host, industryPath, range)).created, 3);
+  assert.deepEqual(await expect(host, industryPath, range), {
+    saved: true,
+    duplicate: true,
+    created: 3,
+  });
+  await expect(
+    host,
+    industryPath,
+    { ...range, requestId: randomUUID(), first: 1, count: 2 },
+    409,
+  );
+  await expect(
+    host,
+    industryPath,
+    { ...range, requestId: randomUUID(), first: 9998, count: 3 },
+    409,
+  );
+  await expect(
+    cashier,
+    industryPath,
+    { ...range, requestId: randomUUID() },
+    403,
+  );
+  const seats = (await expect(host, industryPath)).records.filter(
+    (record) => record.module === "seats",
+  );
+  assert.deepEqual(seats.map((record) => record.name).sort(), [
+    "A1",
+    "B-2",
+    "B-3",
+    "B-4",
+  ]);
   const reservation = {
     action: "create",
     module: "tickets",
@@ -293,6 +429,14 @@ try {
     409,
   );
   await move(host, "entertainment", show, "Admission open");
+  assert.equal((await expect(host, summaryPath)).counts.showtimes, 1);
+  await expect(
+    host,
+    industryPath,
+    { ...range, requestId: randomUUID(), row: "C" },
+    409,
+  );
+
   await industry(cashier, "entertainment", {
     action: "admit",
     code: ticket.code.toLowerCase(),
@@ -303,7 +447,17 @@ try {
     { action: "admit", code: ticket.code },
     409,
   );
-  assert.equal((await getRecord(host, winner.name)).status, "Checked in");
+  const checkedIn = await getRecord(host, winner.name);
+  assert.equal(checkedIn.status, "Checked in");
+  assert.deepEqual(
+    checkedIn.history.map(({ status, role }) => [status, role]),
+    [
+      ["Reserved", "Owner"],
+      ["Issued", "Owner"],
+      ["Checked in", "Cashier"],
+    ],
+  );
+  await expect(cashier, summaryPath, undefined, 403);
 
   const owner = await actor();
   const manager = await actor();
@@ -317,9 +471,26 @@ try {
   const loan = await add(manager, "finance", "loan-reviews", "LOAN-1", values);
   await move(manager, "finance", loan, "In review");
   const review = await getRecord(manager, "LOAN-1");
-  await move(manager, "finance", review, "Approved", 409);
-  await move(owner, "finance", review, "Approved");
-  assert.equal((await getRecord(manager, "LOAN-1")).status, "Approved");
+  assert.equal((await expect(owner, summaryPath)).counts["loan-reviews"], 1);
+  await move(manager, "finance", review, "Approved", 403, "Review complete");
+  const passwordOnly = { ...owner };
+  await move(owner, "finance", review, "Approved", 403, "Review complete");
+  await verifyAuthenticator(owner);
+  await move(owner, "finance", review, "Approved", 409);
+  await move(
+    passwordOnly,
+    "finance",
+    review,
+    "Approved",
+    403,
+    "Review complete",
+  );
+  await move(owner, "finance", review, "Approved", 200, "Review complete");
+  const decided = await getRecord(manager, "LOAN-1");
+  assert.equal(decided.status, "Approved");
+  assert.equal(decided.history.at(-1).note, "Review complete");
+  assert.equal(decided.history.at(-1).role, "Owner");
+  assert.equal((await expect(owner, summaryPath)).counts["loan-reviews"], 0);
   await workspaceCommand(
     manager,
     { type: "updateProfile", profile: { type: "general" } },
@@ -387,6 +558,82 @@ try {
       if (definition.id === "courses")
         await move(sharedOwner, sector.id, record, "Open");
       records.set(definition.id, record);
+    }
+    if (sector.id === "restaurant") {
+      const table = records.get("tables");
+      await move(sharedOwner, sector.id, table, "Inactive");
+      await add(
+        sharedOwner,
+        sector.id,
+        "kitchen",
+        "Order for inactive table",
+        { table: table.id, items: "Lunch" },
+        409,
+      );
+    }
+    if (sector.id === "hospitality") {
+      await move(
+        sharedOwner,
+        sector.id,
+        records.get("rooms"),
+        "Out of service",
+      );
+      await move(
+        sharedOwner,
+        sector.id,
+        records.get("stays"),
+        "Checked in",
+        409,
+      );
+    }
+    if (sector.id === "manufacturing") {
+      const batch = records.get("batches");
+      await move(sharedOwner, sector.id, batch, "In production");
+      await move(
+        sharedOwner,
+        sector.id,
+        { ...batch, status: "In production" },
+        "Quality check",
+      );
+      await move(
+        sharedOwner,
+        sector.id,
+        { ...batch, status: "Quality check" },
+        "Released",
+        409,
+      );
+      await move(
+        sharedOwner,
+        sector.id,
+        { ...batch, status: "Quality check" },
+        "Released",
+        200,
+        "QC-101",
+      );
+      assert.equal((await expect(sharedOwner, summaryPath)).counts.batches, 0);
+    }
+    if (sector.id === "logistics") {
+      const delivery = records.get("dispatch");
+      await move(sharedOwner, sector.id, delivery, "Dispatched");
+      await move(
+        sharedOwner,
+        sector.id,
+        { ...delivery, status: "Dispatched" },
+        "Exception",
+        409,
+      );
+      await move(
+        sharedOwner,
+        sector.id,
+        { ...delivery, status: "Dispatched" },
+        "Exception",
+        200,
+        "Receiver unavailable",
+      );
+      assert.equal(
+        (await getRecord(sharedOwner, delivery.name)).history.at(-1).note,
+        "Receiver unavailable",
+      );
     }
     const workspaceRecords = await expect(sharedOwner, industryPath);
     assert.equal(workspaceRecords.sector, sector.id);

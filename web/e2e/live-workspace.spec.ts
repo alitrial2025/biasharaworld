@@ -176,17 +176,30 @@ test('onboarding shows sector tools and keeps other tools searchable', async ({ 
   await dialog.getByRole('button', { name: 'Inventory', exact: true }).click();
   await expect(page).toHaveURL(/dashboard\/inventory$/);
   await page.goto('/dashboard');
-  await page.getByRole('link', { name: 'Policies', exact: true }).click();
+  const daily = page.getByRole('region', { name: 'Daily work' });
+  await expect(daily.getByRole('link', { name: 'Claims awaiting review 0', exact: true })).toBeVisible();
+  await daily.getByRole('link', { name: 'Policies ending within 30 days or expired 0', exact: true }).click();
+  await expect(page).toHaveURL(/module=policies&view=attention$/);
+  await expect(page.getByLabel('Policy number')).toHaveCount(0);
+  await page.getByRole('link', { name: 'All records', exact: true }).click();
   await page.getByLabel('Policy number').fill('POL-UI-1');
   await page.getByLabel('Policyholder name or reference').fill('Customer 100');
   await page.getByLabel('Coverage', { exact: true }).fill('Building');
   await page.getByLabel('Coverage start').fill('2026-01-01');
-  await page.getByLabel('Coverage end').fill('2027-01-01');
+  await page.getByLabel('Coverage end').fill('2026-01-02');
   await page.getByLabel('Agreed premium (KES)').fill('318.75');
   await page.getByRole('button', { name: 'Save record' }).click();
   await expect(page.getByRole('heading', { name: 'POL-UI-1' })).toBeVisible();
   await page.getByRole('button', { name: 'Mark as active' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Saved · Active' })).toBeVisible();
+  await page.goto('/dashboard');
+  await expect(daily.getByRole('link', { name: 'Policies ending within 30 days or expired 1', exact: true })).toBeVisible();
+  await daily.getByRole('link', { name: 'BiasharaAI' }).click();
+  const summary = page.locator('.message-assistant');
+  await page.getByRole('button', { name: 'Which policies need renewal attention?' }).click();
+  await expect(summary).toContainText('Policies ending within 30 days or expired: 1');
+  await summary.getByRole('link', { name: 'Policies ending within 30 days or expired' }).click();
+  await expect(page.getByRole('heading', { name: 'POL-UI-1' })).toBeVisible();
   await page.goto('/dashboard/settings');
   await expect(page.getByLabel('Business type')).toHaveValue('insurance');
  } finally {
@@ -227,10 +240,22 @@ test('issued tickets download as guest-ready barcode images', async ({ page }, t
   const show = await add('showtimes', 'Concert showtime', {
    event: event.id, start: new Date().toISOString(), end: new Date(Date.now() + 3600_000).toISOString(), room: 'Main stage',
   });
-  const seat = await add('seats', 'A1', { show: show.id, section: 'Main floor' });
+  await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: storageKey, value: JSON.stringify(ticketSession) });
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto('/dashboard/industry?module=seats');
+  await page.getByText('Add numbered seats', { exact: true }).click();
+  await page.getByLabel('Showtime for seat range').selectOption(show.id);
+  await page.getByLabel('Section for seat range').fill('Main floor');
+  await page.getByLabel('Row name').fill('A');
+  await page.getByLabel('Number of seats').fill('3');
+  await page.getByRole('button', { name: 'Create seat range' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Seats added: 3' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'A-3', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(321);
+  const { records } = await api('/api/industry');
+  const seat = records.find((record: { name: string }) => record.name === 'A-1');
   const ticket = await add('tickets', 'Guest booking 1', { seat: seat.id, guest: 'Guest ref 1', amount: 0 });
   await command({ action: 'transition', id: ticket.id, from: ticket.status, status: 'Issued' });
-  await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: storageKey, value: JSON.stringify(ticketSession) });
   await page.goto('/dashboard/industry?module=tickets');
   const booking = page.getByRole('article').filter({ hasText: 'Guest booking 1' });
   await expect(booking.getByText(ticket.code)).toBeVisible();
@@ -248,4 +273,127 @@ test('issued tickets download as guest-ready barcode images', async ({ page }, t
  } finally {
   await changeIndustry('Retail shop');
  }
+});
+
+test("commerce home shows branch tasks and links the assistant to the same fulfilment queue", async ({ page }) => {
+  const client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
+  const login = await client.auth.signInWithPassword({ email, password });
+  if (login.error) throw login.error;
+  const actor = login.data.session!;
+  const result = await fetch(base + "/api/workspace", { headers: { Authorization: "Bearer " + actor.access_token } });
+  expect(result.status).toBe(200);
+  const initial = await result.json();
+  await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: storageKey, value: JSON.stringify(actor) });
+  const orders = [
+    { id: 301, branch: "main", status: "New", customer: "Local customer" },
+    { id: 302, branch: "main", status: "Delivered", customer: "Past customer" },
+    { id: 303, branch: "east", status: "Packing", customer: "East customer" },
+  ].map(order => ({ ...order, lines: [], address: "", total: 0, fee: 0, paid: false, packed: [], events: [] }));
+  let type = "retail", role = "Owner";
+  await page.route("**/api/workspace", async (route) => {
+    if (route.request().method() !== "GET") return route.continue();
+    const data = structuredClone(initial);
+    data.workspace.role = role;
+    data.workspace.state.profile.type = type;
+    data.workspace.state.products = [
+      { id: 250, name: "Bulk flour", size: "20 kg", category: "Food", sku: "FLOUR", price: 2400, cost: 2000, stock: 15, reorder: 20, art: 0 },
+    ];
+    data.workspace.state.operations.branches.push({ id: "east", name: "East", location: "Nairobi" });
+    data.workspace.state.operations.deliveries = orders;
+    data.workspace.state.operations.preferences.theme = type === "retail" ? "light" : "dark";
+    await route.fulfill({ json: data });
+  });
+  await page.setViewportSize({ width: 320, height: 740 });
+  const daily = page.getByRole("region", { name: "Daily work" });
+  for (const [sector, member, labels] of [
+    ["retail", "Cashier", ["Record a sale", "Stock at reorder level 1", "Cash register"]],
+    ["supermarket", "Manager", ["Batches due within 14 days or expired 0", "Draft stocktakes 0", "Incoming branch transfers 0"]],
+    ["wholesale", "Owner", ["Draft purchase orders 0", "Issued invoices with a balance 0", "Supplier network"]],
+    ["online", "Viewer", ["Orders in fulfilment 1", "Stock at reorder level 1"]],
+    ["online", "Owner", ["Orders in fulfilment 1", "Stock at reorder level 1", "Shop builder"]],
+  ] as const) {
+    type = sector;
+    role = member;
+    await page.goto("/dashboard");
+    await expect(daily.locator(".commerce-action")).toHaveCount(labels.length);
+    for (const label of labels) await expect(daily.getByRole("link", { name: label, exact: true })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", sector === "retail" ? "light" : "dark");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(321);
+  }
+  await expect(daily.getByRole("link", { name: "Contact support" })).toHaveAttribute("href", "/contact");
+  await daily.getByRole("link", { name: "BiasharaAI" }).click();
+  await page.getByRole("button", { name: "How many online orders need handling?" }).click();
+  const summary = page.locator(".message-assistant");
+  await expect(summary).toContainText("Orders in fulfilment: 1");
+  await summary.getByRole("link", { name: "Orders in fulfilment" }).click();
+  await expect(page.getByRole("button", { name: /Local customer/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Past customer|East customer/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "All orders", exact: true }).click();
+  await expect(page.getByRole("button", { name: /Past customer/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /East customer/ })).toHaveCount(0);
+});
+
+test("professional and property dashboards open focused work on a phone", async ({ page }) => {
+  test.setTimeout(45_000);
+  const client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
+  const login = await client.auth.signInWithPassword({ email, password });
+  if (login.error) throw login.error;
+  const actor = login.data.session!;
+  const headers = { Authorization: "Bearer " + actor.access_token, "Content-Type": "application/json" };
+  async function api(path: string, input?: unknown) {
+    const response = await fetch(base + path, { method: input ? "POST" : "GET", headers, body: input ? JSON.stringify(input) : undefined });
+    const payload = await response.json();
+    expect(response.status, JSON.stringify(payload)).toBe(200);
+    return payload;
+  }
+  let revision = (await api("/api/workspace")).workspace.revision;
+  async function command(input: unknown) {
+    const payload = await api("/api/workspace", { revision, requestId: randomUUID(), command: input });
+    revision = payload.workspace.revision;
+    return payload.result.id;
+  }
+  await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: storageKey, value: JSON.stringify(actor) });
+  await page.setViewportSize({ width: 320, height: 740 });
+  const daily = page.getByRole("region", { name: "Daily work" });
+  try {
+    await command({ type: "updateProfile", profile: { type: "services" } });
+    const customerId = await command({ type: "addCustomer", customer: { name: "Calendar customer", phone: "", email: "", balance: 0, purchases: 0, color: "mint" } });
+    const setup = (await api("/api/workspace")).workspace;
+    const memberId = setup.state.members.find((member: { role: string }) => member.role === "Owner").id;
+    const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Nairobi", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    for (const [name, hour] of [["Morning assessment", "09:00"], ["Afternoon consultation", "14:00"]]) {
+      const serviceId = await command({ type: "saveService", name, duration: 30, priceMinor: 48000, active: true });
+      const booking = await command({ type: "scheduleBooking", serviceId, customerId, memberId, startsAt: day + "T" + hour + ":00+03:00" });
+      if (hour === "14:00") {
+        await command({ type: "bookingStatus", id: booking, status: "In progress" });
+        await command({ type: "bookingStatus", id: booking, status: "Completed" });
+      }
+    }
+    await page.goto("/dashboard");
+    await daily.getByRole("link", { name: "Bookings today 1" }).click();
+    await expect(page.getByRole("heading", { name: "Morning assessment" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Afternoon consultation" })).toHaveCount(0);
+    await page.getByRole("link", { name: "All bookings", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Afternoon consultation" })).toBeVisible();
+
+    await command({ type: "updateProfile", profile: { type: "real-estate" } });
+    async function create(module: string, name: string, values: unknown) {
+      await api("/api/industry", { action: "create", module, name, values, requestId: randomUUID(), sector: "real-estate" });
+      return (await api("/api/industry")).records.find((record: { name: string }) => record.name === name).id;
+    }
+    const property = await create("properties", "Mobile estate", { address: "Nairobi", unit: "1B" });
+    await create("maintenance", "Check the entrance lock", { property, summary: "Lock sticks", due: day });
+    await page.goto("/dashboard");
+    await daily.getByRole("link", { name: "Open maintenance 1" }).click();
+    await expect(page.getByRole("heading", { name: "Check the entrance lock" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(321);
+    await page.getByRole("button", { name: "Mark as in progress" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Saved · In progress" })).toBeVisible();
+    await page.getByRole("button", { name: "Mark as resolved" }).click();
+    await expect(page.getByRole("heading", { name: "Check the entrance lock" })).toHaveCount(0);
+    await page.goto("/dashboard");
+    await expect(daily.getByRole("link", { name: "Open maintenance 0" })).toBeVisible();
+  } finally {
+    await command({ type: "updateProfile", profile: { type: "retail" } });
+  }
 });

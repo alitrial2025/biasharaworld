@@ -443,7 +443,7 @@ export function SupplierDetailPage({ id }: { id: string }) {
 
 export function OrdersPage() {
   const { state, store } = useDemo();
-  const [filter, setFilter] = useState("All orders");
+  const [filter, setFilter] = useState("Draft");
   const [selected, setSelected] = useState<Order | null>(null);
   const toast = useToast();
   const branchOrders = state.orders.filter(
@@ -581,8 +581,8 @@ export function OrdersPage() {
           {!rows.length && (
             <EmptyState
               icon={ShoppingCart}
-              title="A little room for your next order."
-              description="Explore suppliers to prepare a sample purchase order."
+              title={branchOrders.length ? "No purchase orders match this view" : "No purchase orders for this branch"}
+              description="Choose another status or prepare an order with a supplier."
             >
               <Button href="/dashboard/suppliers" arrow>
                 <T>Find a supplier</T>
@@ -657,8 +657,7 @@ export function OrdersPage() {
                   <>
                     <p className="quiet-note">
                       <T>
-                        Marking this demo order received adds these quantities
-                        to your sample stock. No supplier is contacted.
+                        Receiving this order adds its quantities to your branch inventory.
                       </T>
                     </p>
                     <div className="modal-actions">
@@ -682,7 +681,7 @@ export function OrdersPage() {
                 ) : (
                   <p className="inline-note">
                     <CheckCircle2 size={17} />
-                    <T>These goods have been added to your sample inventory.</T>
+                    <T>These goods have been added to your branch inventory.</T>
                   </p>
                 )}
               </T>

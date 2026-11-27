@@ -96,6 +96,7 @@ export type CustomerOrder = {
   fee: number;
   total: number;
   address: string;
+  fulfillment?: "pickup" | "delivery";
   status:
     | "New"
     | "Confirmed"
@@ -277,6 +278,7 @@ export type Action =
       customer: string;
       cart: Record<number, number>;
       address: string;
+      fulfillment?: "pickup" | "delivery";
     }
   | { type: "orderStatus"; id: number; status: CustomerOrder["status"] }
   | { type: "pack"; id: number; productId: number }
@@ -1475,10 +1477,11 @@ export function execute(
         fee: op.shop.fee,
         total: basket.total + op.shop.fee,
         address: action.address,
+        ...(action.fulfillment ? { fulfillment: action.fulfillment } : {}),
         status: "New",
         paid: false,
         packed: [],
-        events: [`${localDate()} · Demo order created`],
+        events: [`${localDate()} · Order received`],
       });
       resultId = id;
       message =

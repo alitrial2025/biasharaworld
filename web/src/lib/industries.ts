@@ -1,3 +1,4 @@
+import { dailyActionPath, dailyActions } from "./workspace-activity";
 import directory from "./industry-catalog/tools.json";
 import catalog from "./industry-catalog/workspaces.json";
 
@@ -33,6 +34,7 @@ export type IndustryRecord = {
   updatedAt: string;
   expiresAt?: string;
   code?: string;
+  history?: { status: string; at: string; role: string; note?: string }[];
 };
 export const industries: Industry[] = catalog as unknown as Industry[];
 
@@ -64,6 +66,15 @@ export function workspaceCanUse(
   industry: Industry,
   role: string,
 ) {
+  if (slug === "online-shop") return role === "Owner";
+  if (slug === "bookings") return ["Owner", "Manager"].includes(role);
+  if (slug === "customer-access")
+    return (
+      ["services", "entertainment", "real-estate"].includes(industry.id) &&
+      ["Owner", "Manager"].includes(role)
+    );
+  if (slug === "sales/new")
+    return ["Owner", "Manager", "Cashier"].includes(role);
   return (
     slug !== "industry" ||
     (industry.modules.length > 0 &&
@@ -88,10 +99,17 @@ export function searchWorkspace(
 ) {
   const term = query.trim().toLowerCase();
   const primary = workspaceTools(industry);
-  if (!term)
+  if (!term) {
+    const daily = dailyActions(industry.id, role);
+    if (daily)
+      return daily.map((action) => ({
+        slug: dailyActionPath(action),
+        label: action.label,
+      }));
     return primary
       .filter((slug) => workspaceCanUse(slug, industry, role))
       .map((slug) => ({ slug, label: workspaceLabel(slug) }));
+  }
   const modules =
     workspaceCanUse("industry", industry, role) && role !== "Cashier"
       ? industry.modules
@@ -105,7 +123,14 @@ export function searchWorkspace(
             label: module.label,
           }))
       : [];
+  const priority = (dailyActions(industry.id, role) ?? []).flatMap((action) =>
+    (action.slug === "industry" || action.view) &&
+    action.label.toLowerCase().includes(term)
+      ? [{ slug: dailyActionPath(action), label: action.label }]
+      : [],
+  );
   return [
+    ...priority,
     ...modules,
     ...workspaceDirectory.filter(
       (tool) =>
@@ -129,6 +154,15 @@ export function industryActionReference(
     (module === "tickets" && status === "Issued" && Number(values.amount) > 0)
   )
     return "Payment reference";
+  if (
+    ["account-requests", "deposit-requests", "loan-reviews"].includes(module) &&
+    ["Approved", "Declined"].includes(status)
+  )
+    return "Decision reason";
+  if (module === "dispatch" && status === "Exception")
+    return "Exception reason";
+  if (module === "batches" && status === "Released")
+    return "Quality check reference";
   if (module === "dispatch" && status === "Delivered" && !values.proof)
     return "Proof of delivery";
   return "";

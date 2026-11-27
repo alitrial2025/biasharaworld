@@ -327,3 +327,13 @@ test("preferences and offline activity survive serialisation", () => {
   expect(restored.operations.held).toHaveLength(1);
   expect(restored.operations.sync.entries[0].status).toBe("Retry preview");
 });
+
+test("booking priorities use the Nairobi day and exclude completed appointments", async () => {
+  const { bookingNeedsAttention } = await import("../src/lib/workspace-activity");
+  const day = "2026-11-26";
+  expect(bookingNeedsAttention({ status: "Scheduled", startsAt: "2026-11-25T20:59:59Z" }, day)).toBe(false);
+  expect(bookingNeedsAttention({ status: "Scheduled", startsAt: "2026-11-25T21:00:00Z" }, day)).toBe(true);
+  expect(bookingNeedsAttention({ status: "In progress", startsAt: "2026-11-26T20:59:59Z" }, day)).toBe(true);
+  expect(bookingNeedsAttention({ status: "Scheduled", startsAt: "2026-11-26T21:00:00Z" }, day)).toBe(false);
+  expect(bookingNeedsAttention({ status: "Completed", startsAt: "2026-11-26T08:00:00Z" }, day)).toBe(false);
+});

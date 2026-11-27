@@ -433,9 +433,21 @@ export const today = () =>
     month: "2-digit",
     day: "2-digit",
   }).format(new Date());
-export const salesTotal = (state:DemoState) =>
- state.operations.receipts.filter(r=>r.branch===state.operations.activeBranch&&r.date===today()).reduce((sum,r)=>sum+r.total/100,0)-
- state.operations.returns.filter(r=>r.date===today()&&state.operations.receipts.some(s=>s.id===r.saleId&&s.branch===state.operations.activeBranch)).reduce((sum,r)=>sum+r.amount/100,0);
+export const salesTotal = (state: DemoState) => {
+  const date = today();
+  const branch = state.operations.activeBranch;
+  const receiptIds = new Set<number>();
+  let total = 0;
+  for (const receipt of state.operations.receipts) {
+    if (receipt.branch !== branch) continue;
+    receiptIds.add(receipt.id);
+    if (receipt.date === date) total += receipt.total;
+  }
+  for (const refund of state.operations.returns) {
+    if (refund.date === date && receiptIds.has(refund.saleId)) total -= refund.amount;
+  }
+  return total / 100;
+};
 export const lowStock = (state: DemoState) =>
   state.products.filter((p) => p.stock <= p.reorder);
 

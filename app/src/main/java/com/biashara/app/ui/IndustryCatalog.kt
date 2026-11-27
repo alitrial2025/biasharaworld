@@ -3,6 +3,8 @@ package com.biashara.app.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import java.time.Instant
+import java.time.LocalDate
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -17,8 +19,14 @@ internal data class IndustryModule(
 )
 
 internal data class Industry(val id: String, val label: String, val aliases: List<String>, val tools: List<String>, val modules: List<IndustryModule>) {
-    fun allows(tool: String, role: String) = tool != "industry" ||
-        modules.isNotEmpty() && (role in listOf("Owner", "Manager") || id == "entertainment" && role == "Cashier")
+    fun allows(tool: String, role: String) = when (tool) {
+        "industry" -> modules.isNotEmpty() && (role in listOf("Owner", "Manager") || id == "entertainment" && role == "Cashier")
+        "online-shop" -> role == "Owner"
+        "bookings" -> role in listOf("Owner", "Manager")
+        "customer-access" -> id in listOf("services", "entertainment", "real-estate") && role in listOf("Owner", "Manager")
+        "sales/new" -> role in listOf("Owner", "Manager", "Cashier")
+        else -> true
+    }
 
     fun shortcuts(role: String) = (listOfNotNull("industry".takeIf { modules.isNotEmpty() }) +
         tools + listOf("documents", "expenses", "reports")).distinct().take(7).filter { allows(it, role) }
@@ -26,7 +34,41 @@ internal data class Industry(val id: String, val label: String, val aliases: Lis
 
 internal data class WorkspaceTool(val slug: String, val label: String, val keywords: String = "", val module: String = "")
 
-internal class IndustryCatalog(workspaces: JSONArray, tools: JSONArray) {
+internal data class ActivityQueue(
+    val module: String, val statuses: List<String>, val field: String?, val throughDays: Long, val futureField: String?,
+) {
+    fun matcher(today: LocalDate, now: Instant = Instant.now()): (JSONObject) -> Boolean {
+        val through = today.plusDays(throughDays).toString()
+        val current = now.toEpochMilli()
+        return { record ->
+            record.optString("module") == module && record.optString("status") in statuses &&
+                (futureField == null || record.optJSONObject("values")?.optString(futureField).orEmpty().let {
+                    runCatching { Instant.parse(it).toEpochMilli() > current }.getOrDefault(false)
+                }) &&
+                (field == null || record.optJSONObject("values")?.optString(field).orEmpty().let {
+                    it.isNotEmpty() && it <= through
+                })
+        }
+    }
+}
+
+internal data class DailyAction(
+    val slug: String,
+    val label: String,
+    val metric: String?,
+    val question: String?,
+    val queue: ActivityQueue?,
+    val view: String?,
+) {
+    val destination get() = when {
+        queue != null -> "industry/attention"
+        view != null -> "$slug/$view"
+        else -> slug
+    }
+    val module get() = queue?.module.orEmpty()
+}
+
+internal class IndustryCatalog(workspaces: JSONArray, tools: JSONArray, private val dailyWork: JSONObject = JSONObject()) {
     private val industries = List(workspaces.length()) { index ->
         val data = workspaces.getJSONObject(index)
         Industry(data.getString("id"), data.getString("label"), data.getJSONArray("aliases").strings(),
@@ -50,13 +92,34 @@ internal class IndustryCatalog(workspaces: JSONArray, tools: JSONArray) {
 
     fun label(slug: String) = directory.firstOrNull { it.slug == slug }?.label ?: slug
 
+    fun dailyActions(industry: Industry, role: String): List<DailyAction>? =
+        dailyWork.optJSONArray(industry.id)?.objects()
+            ?.filter { it.optJSONArray("roles")?.strings()?.contains(role) ?: true }
+            ?.take(3)
+            ?.map { action ->
+                val queue = action.optJSONObject("queue")?.let {
+                    ActivityQueue(it.getString("module"), it.getJSONArray("statuses").strings(),
+                        it.optString("field").ifEmpty { null }, it.optLong("throughDays"),
+                        it.optString("futureField").ifEmpty { null })
+                }
+                DailyAction(action.getString("slug"), action.getString("label"),
+                    action.optString("metric").ifEmpty { null }, action.optString("question").ifEmpty { null },
+                    queue, action.optString("view").ifEmpty { null })
+            }
+
     fun search(industry: Industry, role: String, query: String): List<WorkspaceTool> {
         val term = query.trim()
-        if (term.isBlank()) return industry.shortcuts(role).map { WorkspaceTool(it, label(it)) }
+        if (term.isBlank()) {
+            return dailyActions(industry, role)?.map { WorkspaceTool(it.destination, it.label, module = it.module) }
+                ?: industry.shortcuts(role).map { WorkspaceTool(it, label(it)) }
+        }
         val modules = if (industry.allows("industry", role) && role != "Cashier") industry.modules.filter {
             "${it.label} ${it.name} ${it.fields.joinToString(" ") { field -> field.label }}".contains(term, ignoreCase = true)
         }.map { WorkspaceTool("industry", it.label, module = it.id) } else emptyList()
-        return modules + directory.filter {
+        val priority = dailyActions(industry, role).orEmpty().filter {
+            (it.slug == "industry" || it.view != null) && it.label.contains(term, ignoreCase = true)
+        }.map { WorkspaceTool(it.destination, it.label, module = it.module) }
+        return priority + modules + directory.filter {
             industry.allows(it.slug, role) && "${it.label} ${if (it.slug == "industry") industry.label else it.keywords}".contains(term, ignoreCase = true)
         }
     }
@@ -69,7 +132,7 @@ internal fun JSONArray.objects() = List(length()) { getJSONObject(it) }
 internal fun rememberIndustryCatalog(): IndustryCatalog {
     val context = LocalContext.current
     return remember(context) {
-        fun asset(path: String) = context.assets.open(path).bufferedReader().use { JSONArray(it.readText()) }
-        IndustryCatalog(asset("workspaces.json"), asset("tools.json"))
+        fun asset(path: String) = context.assets.open(path).bufferedReader().use { it.readText() }
+        IndustryCatalog(JSONArray(asset("workspaces.json")), JSONArray(asset("tools.json")), JSONObject(asset("daily-work.json")))
     }
 }

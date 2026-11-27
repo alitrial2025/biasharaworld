@@ -8,10 +8,14 @@ import {
   BarChart3,
   Building2,
   CalendarDays,
+  CalendarClock,
+  CircleHelp,
   ChevronDown,
   ClipboardList,
   Command,
   FileText,
+  ScanLine,
+  Sparkles,
   LayoutDashboard,
   Menu,
   Package,
@@ -33,6 +37,12 @@ import {
   workspaceLabel,
   workspaceTools,
 } from "@/lib/industries";
+import {
+  activityCount,
+  dailyActionPath,
+  dailyActions,
+} from "@/lib/workspace-activity";
+import { useIndustrySummary } from "@/lib/use-industry-summary";
 import { useDemo } from "@/lib/store";
 
 const icons: Record<string, typeof Package> = {
@@ -46,12 +56,32 @@ const icons: Record<string, typeof Package> = {
   documents: FileText,
   expenses: Wallet,
   orders: ClipboardList,
+  "sales/new": ScanLine,
+  expiry: CalendarClock,
+  stocktakes: ClipboardList,
+  transfers: Truck,
+  deliveries: Truck,
+  "online-shop": ShoppingBag,
+  "supplier-network": Users,
+  register: Wallet,
 };
 
 export function IndustryHome() {
   const { state, store } = useDemo();
   const industry = industryFor(state.profile.type);
   const role = store.workspace?.role ?? "";
+  const actions = dailyActions(industry.id, role);
+  const summary = useIndustrySummary(
+    store.workspace?.businessId,
+    industry.id,
+    role,
+    !!actions?.some((action) => action.queue),
+  );
+  const businessWide =
+    industry.modules.length > 0 || industry.id === "services";
+  const branch = state.operations.branches.find(
+    (item) => item.id === state.operations.activeBranch,
+  );
   return (
     <>
       <div className="page-heading">
@@ -63,57 +93,120 @@ export function IndustryHome() {
           <p>{state.profile.business}</p>
         </div>
       </div>
-      {workspaceCanUse("industry", industry, role) && role !== "Cashier" && (
-        <section aria-label={industry.label}>
-          <h2>{industry.label}</h2>
-          <div className="industry-links">
-            {industry.modules.map((module) => (
-              <Link
-                className="card industry-link"
-                href={`/dashboard/industry?module=${module.id}`}
-                key={module.id}
-              >
-                <ClipboardList size={20} />
-                <strong>{module.label}</strong>
-                <ArrowRight size={16} />
-              </Link>
-            ))}
+      {actions ? (
+        <section className="commerce-home" aria-labelledby="daily-work">
+          <div className="commerce-home-heading">
+            <h2 id="daily-work">
+              <T>Daily work</T>
+            </h2>
+            {businessWide ? (
+              <p>
+                <T>All branches</T>
+              </p>
+            ) : (
+              branch && <p>{branch.name}</p>
+            )}
           </div>
-        </section>
-      )}
-      <section aria-label="Workspace tools">
-        <h2>
-          <T>Workspace tools</T>
-        </h2>
-        <div className="industry-links">
-          {workspaceTools(industry)
-            .filter(
-              (slug) =>
-                workspaceCanUse(slug, industry, role) &&
-                (slug !== "industry" || role === "Cashier"),
-            )
-            .map((slug) => {
-              const Icon = icons[slug] ?? LayoutDashboard;
+          <div className="industry-links">
+            {actions.map((action) => {
+              const Icon = icons[action.slug] ?? LayoutDashboard;
+              const path = dailyActionPath(action);
+              const count = action.queue
+                ? summary.counts?.[action.queue.module]
+                : action.metric && activityCount(state, action.metric);
               return (
                 <Link
-                  className="card industry-link"
-                  href={`/dashboard/${slug}`}
-                  key={slug}
+                  className="card commerce-action"
+                  href={`/dashboard/${path}`}
+                  key={path}
                 >
-                  <Icon size={20} />
+                  <Icon size={20} aria-hidden="true" />
                   <strong>
-                    <T>
-                      {slug === "industry"
-                        ? "Ticket admission"
-                        : workspaceLabel(slug)}
-                    </T>
+                    <T>{action.label}</T>
                   </strong>
-                  <ArrowRight size={16} />
+                  {typeof count === "number" && (
+                    <span className="commerce-count">{count}</span>
+                  )}
+                  <ArrowRight size={16} aria-hidden="true" />
                 </Link>
               );
             })}
-        </div>
-      </section>
+          </div>
+          {summary.error && (
+            <p role="status">
+              <T>{summary.error}</T>{" "}
+              <LocalButton className="text-button" onClick={summary.retry}>
+                <T>Retry</T>
+              </LocalButton>
+            </p>
+          )}
+          <div className="commerce-home-links">
+            <Link className="text-link" href="/dashboard/assistant">
+              <Sparkles size={16} />
+              <T>BiasharaAI</T>
+            </Link>
+            <Link className="text-link" href="/contact">
+              <CircleHelp size={16} />
+              <T>Contact support</T>
+            </Link>
+          </div>
+        </section>
+      ) : (
+        <>
+          {workspaceCanUse("industry", industry, role) &&
+            role !== "Cashier" && (
+              <section aria-label={industry.label}>
+                <h2>{industry.label}</h2>
+                <div className="industry-links">
+                  {industry.modules.map((module) => (
+                    <Link
+                      className="card industry-link"
+                      href={`/dashboard/industry?module=${module.id}`}
+                      key={module.id}
+                    >
+                      <ClipboardList size={20} />
+                      <strong>{module.label}</strong>
+                      <ArrowRight size={16} />
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+          <section aria-label="Workspace tools">
+            <h2>
+              <T>Workspace tools</T>
+            </h2>
+            <div className="industry-links">
+              {workspaceTools(industry)
+                .filter(
+                  (slug) =>
+                    workspaceCanUse(slug, industry, role) &&
+                    (slug !== "industry" || role === "Cashier"),
+                )
+                .map((slug) => {
+                  const Icon = icons[slug] ?? LayoutDashboard;
+                  return (
+                    <Link
+                      className="card industry-link"
+                      href={`/dashboard/${slug}`}
+                      key={slug}
+                    >
+                      <Icon size={20} />
+                      <strong>
+                        <T>
+                          {slug === "industry"
+                            ? "Ticket admission"
+                            : workspaceLabel(slug)}
+                        </T>
+                      </strong>
+                      <ArrowRight size={16} />
+                    </Link>
+                  );
+                })}
+            </div>
+          </section>
+        </>
+      )}
     </>
   );
 }
@@ -164,9 +257,29 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   }
   const role = store.workspace.role;
   const industry = industryFor(state.profile.type);
-  const links = workspaceTools(industry).filter((slug) =>
-    workspaceCanUse(slug, industry, role),
-  );
+  const curated = dailyActions(industry.id, role);
+  const links =
+    curated?.map((action) => ({
+      slug: action.slug,
+      path: dailyActionPath(action),
+      label: action.queue
+        ? (industry.modules.find((module) => module.id === action.queue?.module)
+            ?.label ?? action.label)
+        : action.slug === "industry" ||
+            (action.slug === "customers" && industry.id === "services")
+          ? action.label
+          : workspaceLabel(action.slug),
+    })) ??
+    workspaceTools(industry)
+      .filter((slug) => workspaceCanUse(slug, industry, role))
+      .map((slug) => ({
+        slug,
+        path: slug,
+        label:
+          slug === "industry" && role === "Cashier"
+            ? "Ticket admission"
+            : workspaceLabel(slug),
+      }));
   const results = searchWorkspace(industry, role, query);
   const term = query.trim().toLowerCase();
   const products = term
@@ -231,23 +344,19 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
               <T>Overview</T>
             </span>
           </Link>
-          {links.map((slug) => {
-            const href = `/dashboard/${slug}`;
+          {links.map(({ slug, path, label }) => {
+            const href = `/dashboard/${path}`;
             const Icon = icons[slug] ?? LayoutDashboard;
             return (
               <Link
-                key={slug}
+                key={path}
                 href={href}
                 className={pathname === href ? "active" : ""}
                 onClick={() => setMobile(false)}
               >
                 <Icon size={19} />
                 <span>
-                  <T>
-                    {slug === "industry" && role === "Cashier"
-                      ? "Ticket admission"
-                      : workspaceLabel(slug)}
-                  </T>
+                  <T>{label}</T>
                 </span>
               </Link>
             );
@@ -255,10 +364,22 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="sidebar-bottom">
           <nav>
-            {role === "Owner" && !links.includes("online-shop") && <Link href="/dashboard/online-shop"
-              className={pathname === "/dashboard/online-shop" ? "active" : ""} onClick={() => setMobile(false)}>
-              <ShoppingBag size={18} /><span><T>Shop builder</T></span>
-            </Link>}
+            {role === "Owner" &&
+              !curated &&
+              !links.some(({ slug }) => slug === "online-shop") && (
+                <Link
+                  href="/dashboard/online-shop"
+                  className={
+                    pathname === "/dashboard/online-shop" ? "active" : ""
+                  }
+                  onClick={() => setMobile(false)}
+                >
+                  <ShoppingBag size={18} />
+                  <span>
+                    <T>Shop builder</T>
+                  </span>
+                </Link>
+              )}
             <Link
               href="/dashboard/settings"
               className={pathname === "/dashboard/settings" ? "active" : ""}

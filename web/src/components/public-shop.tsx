@@ -24,6 +24,7 @@ import {
 import { Brand, Button, Field } from "./ui";
 import { supabase } from "@/lib/supabase";
 import { cash } from "@/lib/operations";
+import type { OrderUpdate } from "@/lib/order-progress";
 import {
   storefrontPalettes,
   type PublicStorefront,
@@ -644,7 +645,12 @@ export function PublicShop({
                 {error}
               </p>
             )}
-            {message && <p role="status">{message}</p>}
+            {message && (
+              <div className="storefront-order-confirmation">
+                <p role="status">{message}</p>
+                <Link href={`/portal/${slug}`}>View your order</Link>
+              </div>
+            )}
           </form>
         )}
       </StorefrontDesign>
@@ -670,6 +676,10 @@ type PortalOrder = {
   total: number;
   paid: boolean;
   onlinePayment: "pending" | "available" | "suspended" | null;
+  fulfillment?: "delivery" | "pickup";
+  pickupLocation?: string;
+  statusLabel?: string;
+  updates?: OrderUpdate[];
 };
 type PortalData = {
   business: string;
@@ -718,15 +728,48 @@ export function PublicPortal({ slug }: { slug: string }) {
   const [message, setMessage] = useState("");
   const [busyOrder, setBusyOrder] = useState<number | null>(null);
   const [savingPreference, setSavingPreference] = useState(false);
+  const [reload, setReload] = useState(0);
+  const owner = useRef<string | null | undefined>(undefined);
+  const accountVersion = useRef(0);
+  const checkedReturn = useRef<string | null>(null);
   const preferenceRequest = useRef<{ id: string; emailOptIn: boolean } | null>(
     null,
   );
   const portalPath = `/api/portal/${encodeURIComponent(slug)}`;
   useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase().auth.onAuthStateChange((_event, session) => {
+      const account = session?.user.id ?? null;
+      const previous = owner.current;
+      owner.current = account;
+      if (previous !== undefined && previous !== account) {
+        accountVersion.current++;
+        checkedReturn.current = null;
+        setData(null);
+        setError("");
+        setMessage("");
+        setBusyOrder(null);
+        setSavingPreference(false);
+        setReload((version) => version + 1);
+      }
+    });
+    const timer = window.setInterval(() => {
+      if (owner.current && document.visibilityState === "visible")
+        setReload((version) => version + 1);
+    }, 30_000);
+    return () => {
+      subscription.unsubscribe();
+      window.clearInterval(timer);
+    };
+  }, []);
+  useEffect(() => {
     let current = true;
+    const version = accountVersion.current;
+    const active = () => current && accountVersion.current === version;
     async function load() {
       const initial: PortalData = await customerRequest(portalPath);
-      if (!current) return;
+      if (!active()) return;
       setData(initial);
       const callback = new URL(window.location.href);
       const order = initial.orders.find(
@@ -738,32 +781,36 @@ export function PublicPortal({ slug }: { slug: string }) {
           order.onlinePayment !== "suspended")
       )
         return;
+      const check = slug + ":" + order.id;
+      if (checkedReturn.current === check) return;
+      checkedReturn.current = check;
       setBusyOrder(order.id);
       try {
         const verified = await customerRequest(
           `/api/payments/order/${encodeURIComponent(slug)}`,
           { orderId: order.id, action: "refresh" },
         );
-        if (!current) return;
+        if (!active()) return;
         if (verified.status === "paid") {
           const updated = await customerRequest(portalPath);
-          if (!current) return;
+          if (!active()) return;
           setData(updated);
           setMessage(`Payment confirmed for order #${order.id}.`);
         }
       } finally {
-        if (current) setBusyOrder(null);
+        if (active()) setBusyOrder(null);
       }
     }
     load().catch((error) => {
-      if (current) setError(error.message);
+      if (active()) setError(error.message);
     });
     return () => {
       current = false;
     };
-  }, [portalPath, slug]);
+  }, [portalPath, slug, reload]);
 
   async function payment(orderId: number, action: "start" | "refresh") {
+    const version = accountVersion.current;
     setBusyOrder(orderId);
     setError("");
     setMessage("");
@@ -772,6 +819,7 @@ export function PublicPortal({ slug }: { slug: string }) {
         `/api/payments/order/${encodeURIComponent(slug)}`,
         { orderId, action },
       );
+      if (accountVersion.current !== version) return;
       if (action === "start" && result.checkoutUrl) {
         const url = new URL(result.checkoutUrl);
         if (
@@ -783,7 +831,9 @@ export function PublicPortal({ slug }: { slug: string }) {
         window.location.assign(url.href);
         return;
       }
-      setData(await customerRequest(portalPath));
+      const latest = await customerRequest(portalPath);
+      if (accountVersion.current !== version) return;
+      setData(latest);
       if (result.status === "paid")
         setMessage(`Payment confirmed for order #${orderId}.`);
       else if (result.status === "preparing")
@@ -796,17 +846,19 @@ export function PublicPortal({ slug }: { slug: string }) {
         );
       else setMessage("Payment has not been confirmed yet.");
     } catch (failure) {
-      setError(
-        failure instanceof Error
-          ? failure.message
-          : "Could not check the payment.",
-      );
+      if (accountVersion.current === version)
+        setError(
+          failure instanceof Error
+            ? failure.message
+            : "Could not check the payment.",
+        );
     } finally {
-      setBusyOrder(null);
+      if (accountVersion.current === version) setBusyOrder(null);
     }
   }
 
   async function updatePreference(emailOptIn: boolean) {
+    const version = accountVersion.current;
     setSavingPreference(true);
     setError("");
     setMessage("");
@@ -817,19 +869,37 @@ export function PublicPortal({ slug }: { slug: string }) {
         `${portalPath}/preferences`,
         preferenceRequest.current,
       );
+      if (accountVersion.current !== version) return;
       preferenceRequest.current = null;
       setData((value) => value && { ...value, emailOptIn: result.emailOptIn });
       setMessage("Marketing preference saved.");
     } catch (failure) {
-      setError(
-        failure instanceof Error
-          ? failure.message
-          : "Could not save your preference.",
-      );
+      if (accountVersion.current === version)
+        setError(
+          failure instanceof Error
+            ? failure.message
+            : "Could not save your preference.",
+        );
     } finally {
-      setSavingPreference(false);
+      if (accountVersion.current === version) setSavingPreference(false);
     }
   }
+
+  const recent = (data?.orders ?? [])
+    .flatMap((order) =>
+      (order.updates ?? []).map((update, index) => ({
+        ...update,
+        order: order.id,
+        index,
+      })),
+    )
+    .sort(
+      (left, right) =>
+        right.date.localeCompare(left.date) ||
+        right.index - left.index ||
+        right.order - left.order,
+    )
+    .slice(0, 5);
 
   return (
     <main id="main-content" className="container section">
@@ -855,15 +925,71 @@ export function PublicPortal({ slug }: { slug: string }) {
               {data.points}
             </article>
           </div>
+          <section
+            className="panel order-updates"
+            aria-labelledby="order-updates"
+          >
+            <div className="order-updates-heading">
+              <h2 id="order-updates">Order updates</h2>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setError("");
+                  setReload((version) => version + 1);
+                }}
+              >
+                Refresh orders
+              </Button>
+            </div>
+            <div aria-live="polite">
+              {recent.length ? (
+                <ol>
+                  {recent.map((entry) => (
+                    <li key={entry.order + ":" + entry.index}>
+                      <a href={`#customer-order-${entry.order}`}>
+                        <strong>{entry.label}</strong> · Order #{entry.order}
+                      </a>
+                      <time dateTime={entry.date}>{entry.date}</time>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p>No order updates yet.</p>
+              )}
+            </div>
+          </section>
           <h2>Your orders</h2>
           {data.orders.length ? (
             data.orders.map((order) => (
-              <article className="panel" key={order.id}>
+              <article
+                className="panel customer-order-card"
+                key={order.id}
+                id={`customer-order-${order.id}`}
+              >
                 <h3>Order #{order.id}</h3>
                 <p>
-                  {order.status} · {cash(order.total)} ·{" "}
+                  {order.statusLabel ?? order.status} · {cash(order.total)} ·{" "}
                   {order.paid ? "Payment recorded" : "Payment pending"}
                 </p>
+                {order.fulfillment === "pickup" && (
+                  <p>
+                    Pickup
+                    {order.pickupLocation ? " · " + order.pickupLocation : ""}
+                  </p>
+                )}
+                {!!order.updates?.length && (
+                  <details className="customer-order-timeline">
+                    <summary>Order history</summary>
+                    <ol>
+                      {order.updates.map((update, index) => (
+                        <li key={index}>
+                          <time dateTime={update.date}>{update.date}</time> ·{" "}
+                          {update.label}
+                        </li>
+                      ))}
+                    </ol>
+                  </details>
+                )}
                 {order.onlinePayment === "available" &&
                   !!data.checkoutMethods?.length && (
                     <p>{data.checkoutMethods.join(" · ")}</p>

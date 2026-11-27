@@ -75,8 +75,13 @@ export const storefrontPalettes = [
 ] as const;
 
 const line = (max: number) => z.string().trim().max(max);
+const mediaId = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}";
+export const storefrontMediaPath = new RegExp(
+  `^/api/storefront-media/${mediaId}/${mediaId}\\.webp$`,
+);
 const imageURL = z.union([
   z.literal(""),
+  z.string().regex(storefrontMediaPath),
   z
     .url({ protocol: /^https$/ })
     .max(2048)
@@ -168,6 +173,37 @@ export type ShopCatalog = {
   services?: { id: number; name: string; duration: number; price: number }[];
 };
 
+export function storefrontPublication(
+  input: StorefrontRecord & {
+    published: boolean;
+    verification: string;
+    legacySlug: string;
+  },
+) {
+  const verified = input.verification === "verified";
+  const published =
+    input.published && (input.live !== null || !!input.legacySlug);
+  const status = published
+    ? verified
+      ? "Live"
+      : "Paused for verification"
+    : input.live
+      ? "Hidden"
+      : "Draft";
+  const publicPath =
+    status !== "Live"
+      ? null
+      : input.live && input.username
+        ? `/${input.username}`
+        : `/shop/${input.legacySlug}`;
+  return {
+    status,
+    publicPath,
+    verified,
+    issues: storefrontIssues(input.draft),
+  };
+}
+
 export function storefrontIssues(draft: StorefrontDraft) {
   return [
     !draft.template && "Choose a storefront design.",
@@ -189,7 +225,17 @@ export function storefrontIssues(draft: StorefrontDraft) {
 
 export function customerReturn(value: unknown) {
   if (typeof value !== "string") return "";
-  if (value === "/dashboard/online-shop") return value;
+  if (
+    value === "/dashboard/online-shop" ||
+    value === "/dashboard/customer-access"
+  )
+    return value;
+  if (
+    /^\/portal\/[a-z0-9-]{3,40}\/(?:services|events|rent\/[a-f0-9]{64})$/.test(
+      value,
+    )
+  )
+    return value;
   const [path, query, extra] = value.split("?");
   if (
     extra !== undefined ||

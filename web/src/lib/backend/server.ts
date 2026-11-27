@@ -15,14 +15,18 @@ export async function identity(request:Request):Promise<User> {
  return data.user;
 }
 export class ApiError extends Error {constructor(message:string,public status=400){super(message)}}
-export async function loadBusiness(user:User) {
+export async function businessMembership(user: User) {
  const db=admin();
  const claimed=await db.rpc("claim_business_invites",{p_user:user.id,p_email:user.email||""});
  if(claimed.error)throw new ApiError("Could not check team membership. Please retry.",503);
  const {data:members,error}=await db.from('business_members').select('business_id,role').eq('user_id',user.id).order('business_id').limit(1);
  if(error) throw new ApiError('Business records are unavailable. Please retry.',503);
- if(!members?.length) return null;
- const membership=members[0];
+ return members?.[0] ?? null;
+}
+export async function loadBusiness(user:User) {
+ const membership = await businessMembership(user);
+ if (!membership) return null;
+ const db = admin();
  const [record,workspace,business]=await Promise.all([
   db.from('business_records').select('state,revision,updated_at').eq('business_id',membership.business_id).single(),
   db.from('user_workspaces').select('state').eq('business_id',membership.business_id).eq('user_id',user.id).maybeSingle(),

@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import type {
-  Industry,
-  IndustryField,
-  IndustryModule,
-  IndustryRecord,
+import {
+  industryActionReference,
+  type Industry,
+  type IndustryField,
+  type IndustryModule,
+  type IndustryRecord,
 } from "../industries";
 import { ApiError } from "./server";
 
@@ -18,6 +19,20 @@ export const industryCommand = z.discriminatedUnion("action", [
       module: z.string(),
       name: text,
       values: z.record(z.string(), z.union([z.string(), z.number()])),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal("createSeats"),
+      ...request,
+      show: z.uuid(),
+      section: text,
+      row: z
+        .string()
+        .trim()
+        .regex(/^[A-Za-z0-9-]{1,16}$/),
+      first: z.number().int().min(1).max(9999),
+      count: z.number().int().min(1).max(250),
     })
     .strict(),
   z
@@ -118,6 +133,68 @@ export function applyIndustryCommand(
   const get = (record: IndustryRecord, field: string) =>
     records.find((item) => item.id === record.values[field]);
   let record: IndustryRecord;
+  let note: string | undefined;
+
+  function requireSeatingShow(showId: string | number) {
+    const show = records.find(
+      (item) => item.id === showId && item.module === "showtimes",
+    );
+    requireRule(
+      show?.status === "Scheduled" &&
+        String(show.values.end) > stamp &&
+        get(show, "event")?.status === "Scheduled",
+      "Choose a scheduled showtime for an active event before adding seats.",
+    );
+  }
+
+  if (input.action === "createSeats") {
+    requireRule(
+      industry.id === "entertainment",
+      "Numbered seating is available for events and cinemas.",
+    );
+    requireRule(
+      input.first + input.count - 1 <= 9999,
+      "Seat numbers must be between 1 and 9999.",
+    );
+    requireSeatingShow(input.show);
+    const sectionKey = input.section.toLowerCase();
+    const existing = new Set(
+      records
+        .filter(
+          (item) =>
+            item.module === "seats" &&
+            item.values.show === input.show &&
+            String(item.values.section).toLowerCase() === sectionKey,
+        )
+        .map((item) => item.name.toLowerCase()),
+    );
+    const seats = Array.from(
+      { length: input.count },
+      (_, offset): IndustryRecord => {
+        const name = `${input.row.toUpperCase()}-${input.first + offset}`;
+        requireRule(
+          !existing.has(name.toLowerCase()),
+          `Seat ${name} already exists in this section and showtime.`,
+        );
+        return {
+          id: randomUUID(),
+          module: "seats",
+          name,
+          values: { section: input.section, show: input.show },
+          status: "Available",
+          createdBy: actor,
+          createdAt: stamp,
+          updatedAt: stamp,
+          history: [{ status: "Available", at: stamp, role }],
+        };
+      },
+    );
+    return {
+      records: [...seats, ...records],
+      record: seats[0]!,
+      created: seats.length,
+    };
+  }
 
   if (input.action === "create") {
     if (industry.id === "finance" && role !== "Manager")
@@ -198,9 +275,12 @@ export function applyIndustryCommand(
         );
         break;
       case "seats":
+        requireSeatingShow(values.show);
+        break;
+      case "kitchen":
         requireRule(
-          get(record, "show")?.status === "Scheduled",
-          "Add seats while the showtime is scheduled.",
+          get(record, "table")?.status === "Available",
+          "Choose a table in service.",
         );
         break;
       case "tickets": {
@@ -318,6 +398,34 @@ export function applyIndustryCommand(
         "A different team member with owner access must review this request.",
       );
     }
+    const evidence = industryActionReference(
+      record.module,
+      input.status,
+      record.values,
+    );
+    if (
+      [
+        "Decision reason",
+        "Exception reason",
+        "Quality check reference",
+      ].includes(evidence)
+    ) {
+      requireRule(input.reference, `Enter the ${evidence.toLowerCase()}.`);
+      note = input.reference;
+    }
+    if (record.module === "showtimes" && input.status === "Admission open") {
+      requireRule(
+        String(record.values.end) > stamp &&
+          get(record, "event")?.status === "Scheduled",
+        "Only an upcoming or ongoing showtime for a scheduled event can open admission.",
+      );
+    }
+    if (record.module === "stays" && input.status === "Checked in") {
+      requireRule(
+        get(record, "room")?.status === "Available",
+        "This room is currently out of service.",
+      );
+    }
     if (record.module === "leases" && input.status === "Active") {
       requireRule(
         get(record, "property")?.status === "Available" &&
@@ -385,6 +493,11 @@ export function applyIndustryCommand(
     }
     record.status = input.status;
   }
+  // Older records still have their current status even when their earlier history was not captured.
+  record.history = [
+    ...(record.history ?? []),
+    { status: record.status, at: stamp, role, ...(note ? { note } : {}) },
+  ];
   record.updatedAt = stamp;
-  return { records, record };
+  return { records, record, created: undefined };
 }

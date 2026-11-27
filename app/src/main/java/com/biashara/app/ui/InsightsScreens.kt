@@ -182,12 +182,35 @@ fun ReportsScreen(store: DemoStore, onBack: () -> Unit) {
 }
 
 @Composable
-fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
+internal fun AssistantScreen(
+    store: DemoStore,
+    onBack: () -> Unit,
+    actions: List<DailyAction> = emptyList(),
+    open: (String, String) -> Unit = { _, _ -> },
+    sector: String = "",
+    role: String = "",
+) {
+    val summary = rememberIndustrySummary(store.backend, sector, role, actions.any { it.queue != null })
+    val questions = if (store.real) (actions.mapNotNull { it.question } + listOf(
+        "What are today’s sales?", "Who owes me money?", "Where is my money going?",
+    )).take(4) else listOf("What should I restock?", "Who owes me money?", "Show profit this week")
+    fun ask(question: String) {
+        val action = actions.firstOrNull { it.question.equals(question, ignoreCase = true) }
+        if (action?.queue != null) {
+            val count = summary.count(action.module)
+            val answer = if (count == null) "Current work counts are unavailable. Open the records to check the latest status."
+                else "All branches · ${action.label}: $count"
+            store.messages.add(ChatMessage(question, true))
+            store.messages.add(ChatMessage(answer, false, action.destination, action.module))
+        } else {
+            store.reply(question, action?.metric, action?.label.orEmpty(), action?.destination)
+        }
+    }
     var input by rememberSaveable { mutableStateOf("") }
     var about by remember { mutableStateOf(false) }
     val scroll = rememberLazyListState()
     LaunchedEffect(store.messages.size) {
-        scroll.animateScrollToItem(store.messages.lastIndex.coerceAtLeast(0))
+        if (store.messages.isNotEmpty()) scroll.animateScrollToItem(store.messages.lastIndex)
     }
     Column(
         Modifier.fillMaxSize()
@@ -270,7 +293,17 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
                             lineHeight = 20.sp,
                             color = if (m.user) Color.White else Ink,
                         )
-                        if (index == 1 && !m.user) {
+                        m.tool?.let { tool ->
+                            val label = when (tool) {
+                                "inventory" -> "Inventory"
+                                "customers" -> "Customers"
+                                "expenses" -> "Expenses"
+                                "reports" -> "Reports"
+                                else -> actions.firstOrNull { it.destination == tool && it.module == m.module }?.label ?: tool
+                            }
+                            TextButton(onClick = { open(tool, m.module) }) { AppText(label) }
+                        }
+                        if (!store.real && index == 1 && !m.user) {
                             Spacer(Modifier.height(15.dp))
                             listOf(
                                     Triple("Total sales", "KES 12,450", Mint),
@@ -339,12 +372,11 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(7.dp),
             modifier = Modifier.padding(bottom = 13.dp),
         ) {
-            listOf("What should I restock?", "Who owes me money?", "Show profit this week")
-                .forEach { q ->
+            questions.forEach { q ->
                     Row(
                         Modifier.fillMaxWidth()
                             .background(BlueMist, RoundedCornerShape(20.dp))
-                            .clickable { store.reply(q) }
+                            .clickable(enabled = summary.counts != null || summary.failed || actions.none { it.queue != null && it.question == q }) { ask(q) }
                             .padding(horizontal = 13.dp, vertical = 9.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -380,12 +412,12 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
                 decorationBox = { inner ->
                     Box {
                         if (input.isEmpty())
-                            AppText("Ask anything…", fontSize = 12.sp, color = Muted)
+                            AppText(if (store.real) "Ask about recorded activity…" else "Ask anything…", fontSize = 12.sp, color = Muted)
                         inner()
                     }
                 },
             )
-            AppIcon(
+            if (!store.real) AppIcon(
                 Icons.Outlined.MicNone,
                 null,
                 Modifier.padding(end = 10.dp).size(17.dp),
@@ -395,7 +427,7 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
                 Modifier.size(34.dp).background(Forest, CircleShape).clickable(
                     enabled = input.isNotBlank()
                 ) {
-                    store.reply(input.trim())
+                    ask(input.trim())
                     input = ""
                 },
                 contentAlignment = Alignment.Center,
@@ -412,10 +444,11 @@ fun AssistantScreen(store: DemoStore, onBack: () -> Unit) {
     if (about)
         AlertDialog(
             onDismissRequest = { about = false },
-            title = { AppText("BiasharaAI preview") },
+            title = { AppText(if (store.real) "About BiasharaAI" else "BiasharaAI preview") },
             text = {
                 AppText(
-                    "This UI preview uses local sample responses based on your demo stock and customer balances. Live AI will be connected in the next phase."
+                    if (store.real) "Summaries use rules and the records loaded in your workspace."
+                    else "This preview uses sample responses based on demo stock and customer balances."
                 )
             },
             confirmButton = { TextButton(onClick = { about = false }) { AppText("Done") } },

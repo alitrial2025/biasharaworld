@@ -561,7 +561,11 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
     val customer = o.optString("customer", "Walk-in customer")
     Page {
         PageTitle(
-            feature?.title ?: if (slug == "storefront") "Your demo shop" else "Customer preview",
+            feature?.title ?: when (slug) {
+                "orders" -> "Purchase orders"
+                "storefront" -> if (store.real) "Online shop" else "Your demo shop"
+                else -> "Customer preview"
+            },
             feature?.detail,
             onBack,
         )
@@ -570,7 +574,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            StatusLabel("Local UI preview")
+            if (!store.real) StatusLabel("Local UI preview")
             TextButton(onClick = { onOpen("branches") }) {
                 AppText(ops.branchName, fontSize = 11.sp, color = Green)
                 AppIcon(Icons.Outlined.ExpandMore, null, Modifier.size(17.dp), tint = Green)
@@ -1101,7 +1105,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                         )
                                     }
                             )
-                            if (d.optString("kind") == "Quotation")
+                            if (d.optString("kind") == "Quotation") {
                                 ActionRow(
                                     "Convert to invoice" to
                                         {
@@ -1111,7 +1115,8 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                             )
                                         }
                                 )
-                            if (d.optString("status") == "Draft")
+                            }
+                            if (d.optString("status") == "Draft") {
                                 ActionRow(
                                     "Mark issued locally" to
                                         {
@@ -1121,6 +1126,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                             )
                                         }
                                 )
+                            }
                             if (d.optString("kind") == "Invoice" && d.optString("status") in listOf("Draft", "Issued locally")) {
                                 val id = d.optInt("id").toString()
                                 val deposits = d.records("installments").sumOf { it.optLong("amount") }
@@ -1159,7 +1165,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                         Mint,
                     ) {
                         PrimaryButton(
-                            "Open demo register",
+                            if (store.real) "Open register" else "Open demo register",
                             {
                                 ask(
                                     "openRegister",
@@ -1669,88 +1675,93 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                     }
                 }
             }
-            "compare" -> {
+            "orders", "compare" -> {
                 val canManageOrders = !store.real || store.backend?.role in listOf("Owner", "Manager")
-                RecordCard(
-                    "Compare supplier costs",
-                    if (store.real) "Compare goods, delivery fees and minimum order amounts before recording a purchase order."
-                    else "Prepare a sample restock basket, then compare goods, delivery and minimums.",
-                    Sand,
-                ) {
-                    ActionRow(
-                        "Choose comparison basket" to
-                            {
-                                form =
-                                    ToolForm(
-                                        "A useful basket to compare.",
-                                        fields =
-                                            products
-                                                .filter { it.components.isEmpty() }
-                                                .map {
-                                                    ToolField(
-                                                        "${it.id}",
-                                                        "Units of ${it.name}",
-                                                        o.objectAt("compareCart")
-                                                            .optInt(it.id.toString())
-                                                            .toString(),
-                                                        numeric = true,
-                                                    )
-                                                },
-                                        confirm = "Compare offers",
-                                    ) { values ->
-                                        run("compareBasket", values)
-                                    }
-                            }
-                    )
+                if (slug == "orders" && canManageOrders) {
+                    ActionRow("Compare suppliers and prepare an order" to { onOpen("compare") })
                 }
-                val compare = o.ints("compareCart")
-                val hasStockItems = products.any { it.components.isEmpty() && (compare[it.id] ?: 0) > 0 }
-                store.suppliers.forEachIndexed { i, supplier ->
-                    val recorded=store.liveState.records("suppliers").firstOrNull{it.optString("name")==supplier.name}
-                    val goods = products.sumOf { p ->
-                        if(store.real) purchaseUnitCostMinor(store, recorded, p.id) * (compare[p.id] ?: 0)
-                        else p.priceMinor*8/10*(compare[p.id]?:0)*listOf(100,96,103)[i]/100
+                if (slug == "compare") {
+                    RecordCard(
+                        "Compare supplier costs",
+                        if (store.real) "Compare goods, delivery fees and minimum order amounts before recording a purchase order."
+                        else "Prepare a sample restock basket, then compare goods, delivery and minimums.",
+                        Sand,
+                    ) {
+                        ActionRow(
+                            "Choose comparison basket" to
+                                {
+                                    form =
+                                        ToolForm(
+                                            "A useful basket to compare.",
+                                            fields =
+                                                products
+                                                    .filter { it.components.isEmpty() }
+                                                    .map {
+                                                        ToolField(
+                                                            "${it.id}",
+                                                            "Units of ${it.name}",
+                                                            o.objectAt("compareCart")
+                                                                .optInt(it.id.toString())
+                                                                .toString(),
+                                                            numeric = true,
+                                                        )
+                                                    },
+                                            confirm = "Compare offers",
+                                        ) { values ->
+                                            run("compareBasket", values)
+                                        }
+                                }
+                        )
                     }
-                    val fee = if(store.real)kotlin.math.round((recorded?.optDouble("deliveryFee")?:0.0)*100).toLong()else listOf(30000L,35000L,20000L)[i]
-                    val minimum = if(store.real)kotlin.math.round((recorded?.optDouble("minimum")?:0.0)*100).toLong()else listOf(100000L,150000L,80000L)[i]
-                    RecordCard(supplier.name, "${supplier.distance} · ${supplier.category}") {
-                        AppText(
-                            "Goods ${minorMoney(goods)}\nDelivery ${minorMoney(fee)}\nMinimum goods ${minorMoney(minimum)}",
-                            fontSize = 13.sp,
-                            lineHeight = 22.sp,
-                        )
-                        AppText(
-                            "Total ${minorMoney(goods+fee)}",
-                            fontSize = 23.sp,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        if (canManageOrders) PrimaryButton(
-                            if (store.real) "Create purchase order" else "Create demo purchase order",
-                            {
-                                run(
-                                    "purchaseOrder",
-                                    mapOf(
-                                        "supplier" to supplier.name,
-                                        "fee" to if (store.real) BigDecimal.valueOf(fee, 2).toPlainString() else (fee / 100).toString(),
-                                        "factor" to if(store.real)"100" else listOf("100", "96", "103")[i],
-                                    ),
-                                )
-                            },
-                            enabled = hasStockItems && goods >= minimum,
-                            tone = Green,
-                        )
-                        if (goods < minimum)
+                    val compare = o.ints("compareCart")
+                    val hasStockItems = products.any { it.components.isEmpty() && (compare[it.id] ?: 0) > 0 }
+                    store.suppliers.forEachIndexed { i, supplier ->
+                        val recorded=store.liveState.records("suppliers").firstOrNull{it.optString("name")==supplier.name}
+                        val goods = products.sumOf { p ->
+                            if(store.real) purchaseUnitCostMinor(store, recorded, p.id) * (compare[p.id] ?: 0)
+                            else p.priceMinor*8/10*(compare[p.id]?:0)*listOf(100,96,103)[i]/100
+                        }
+                        val fee = if(store.real)kotlin.math.round((recorded?.optDouble("deliveryFee")?:0.0)*100).toLong()else listOf(30000L,35000L,20000L)[i]
+                        val minimum = if(store.real)kotlin.math.round((recorded?.optDouble("minimum")?:0.0)*100).toLong()else listOf(100000L,150000L,80000L)[i]
+                        RecordCard(supplier.name, "${supplier.distance} · ${supplier.category}") {
                             AppText(
-                                "Add ${minorMoney(minimum-goods)} in goods to meet the minimum.",
-                                fontSize = 11.sp,
-                                color = Amber,
+                                "Goods ${minorMoney(goods)}\nDelivery ${minorMoney(fee)}\nMinimum goods ${minorMoney(minimum)}",
+                                fontSize = 13.sp,
+                                lineHeight = 22.sp,
                             )
+                            AppText(
+                                "Total ${minorMoney(goods+fee)}",
+                                fontSize = 23.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            if (canManageOrders) PrimaryButton(
+                                if (store.real) "Create purchase order" else "Create demo purchase order",
+                                {
+                                    run(
+                                        "purchaseOrder",
+                                        mapOf(
+                                            "supplier" to supplier.name,
+                                            "fee" to if (store.real) BigDecimal.valueOf(fee, 2).toPlainString() else (fee / 100).toString(),
+                                            "factor" to if(store.real)"100" else listOf("100", "96", "103")[i],
+                                        ),
+                                    )
+                                },
+                                enabled = hasStockItems && goods >= minimum,
+                                tone = Green,
+                            )
+                            if (goods < minimum)
+                                AppText(
+                                    "Add ${minorMoney(minimum-goods)} in goods to meet the minimum.",
+                                    fontSize = 11.sp,
+                                    color = Amber,
+                                )
+                        }
                     }
                 }
                 Eyebrow(if (store.real) "Purchase orders · ${ops.branchName}" else "Local purchase orders")
-                o.records("purchaseOrders")
-                    .filter { it.optString("branch", "main") == ops.branch }
-                    .forEach { order ->
+                val orders = o.records("purchaseOrders").filter { it.optString("branch", "main") == ops.branch }
+                if (orders.isEmpty()) AppText("No purchase orders for this branch.", color = Muted)
+                orders.sortedBy { it.optString("status") != "Draft" }.forEach { order ->
                         RecordCard(
                             "Purchase #${order.optInt("id")} · ${order.optString("supplier")}",
                             minorMoney(order.optLong("total")),
@@ -1774,20 +1785,34 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                     }
             }
             "deliveries" -> {
-                ActionRow("Preview customer shop" to { onOpen("storefront") })
+                val canFulfil = !store.real || store.backend?.role in listOf("Owner", "Manager", "Cashier")
+                if (store.real && store.backend?.role == "Owner") {
+                    ActionRow("Shop builder" to { onOpen("online-shop") })
+                } else if (!store.real) {
+                    ActionRow("Preview customer shop" to { onOpen("storefront") })
+                }
+                var orderFilter by rememberSaveable(ops.branch) { mutableStateOf(if (store.real) "In fulfilment" else "All orders") }
                 val orders = o.records("deliveries").filter { it.optString("branch") == ops.branch }
-                if (orders.isEmpty())
-                    EmptyState(
-                        "Your next delivery starts with an order.",
-                        "Place a local demo order through your shopfront.",
-                        Icons.Outlined.LocalShipping,
-                    )
-                orders.forEach { order ->
+                val rows = if (orderFilter == "All orders") orders else orders.filter { deliveryInFulfilment(it.optString("status")) }
+                if (orders.isNotEmpty()) FilterPills(listOf("In fulfilment", "All orders"), orderFilter, { orderFilter = it })
+                if (rows.isEmpty()) EmptyState(
+                    if (orders.isEmpty()) "No customer orders for this branch" else "No orders in fulfilment",
+                    if (orders.isEmpty()) "Orders placed through your shop appear here when this branch fulfils them."
+                    else "Choose All orders to view the history.",
+                    Icons.Outlined.LocalShipping,
+                )
+                rows.forEach { order ->
+                    val pickup = order.optString("fulfillment", if (order.optString("address").startsWith("Pickup at ")) "pickup" else "delivery") == "pickup"
+                    val status = order.optString("status")
                     RecordCard(
                         "Order #${order.optInt("id")} · ${order.optString("customer")}",
                         order.optString("address"),
                     ) {
-                        StatusLabel(order.optString("status"))
+                        StatusLabel(when {
+                            pickup && status == "Dispatched" -> "Ready for pickup"
+                            pickup && status == "Delivered" -> "Picked up"
+                            else -> status
+                        })
                         AppText(
                             minorMoney(order.optLong("total")),
                             fontSize = 25.sp,
@@ -1798,7 +1823,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                 line.optInt("productId").toString() in order.strings("packed")
                             Row(
                                 Modifier.fillMaxWidth().clickable(
-                                    enabled = order.optString("status") == "Packing"
+                                    enabled = canFulfil && order.optString("status") == "Packing"
                                 ) {
                                     run(
                                         "pack",
@@ -1813,7 +1838,7 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                 Checkbox(
                                     checked,
                                     onCheckedChange =
-                                        if (order.optString("status") == "Packing") {
+                                        if (canFulfil && order.optString("status") == "Packing") {
                                             {
                                                 run(
                                                     "pack",
@@ -1840,10 +1865,10 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                             mapOf(
                                 "New" to ("Confirmed" to "Confirm & reserve stock"),
                                 "Confirmed" to ("Packing" to "Start packing"),
-                                "Packing" to ("Dispatched" to "Dispatch order"),
-                                "Dispatched" to ("Delivered" to "Mark delivered"),
+                                "Packing" to ("Dispatched" to if (pickup) "Mark ready for pickup" else "Dispatch order"),
+                                "Dispatched" to ("Delivered" to if (pickup) "Confirm pickup" else "Mark delivered"),
                             )[order.optString("status")]
-                        if (next != null)
+                        if (canFulfil && next != null) {
                             PrimaryButton(
                                 next.second,
                                 {
@@ -1857,9 +1882,10 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                 },
                                 tone = Green,
                             )
-                        if (!order.optBoolean("paid") && order.optString("status") == "Delivered")
+                        }
+                        if (canFulfil && !order.optBoolean("paid") && order.optString("status") == "Delivered") {
                             ActionRow(
-                                "Record demo cash payment" to
+                                (if (store.real) "Record cash received" else "Record demo cash payment") to
                                     {
                                         run(
                                             "orderPaid",
@@ -1867,7 +1893,8 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                         )
                                     }
                             )
-                        if (order.optString("status") in listOf("New", "Confirmed", "Packing"))
+                        }
+                        if (canFulfil && order.optString("status") in listOf("New", "Confirmed", "Packing")) {
                             ActionRow(
                                 "Cancel order" to
                                     {
@@ -1880,8 +1907,9 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                                         )
                                     }
                             )
+                        }
                         StatusLabel(
-                            if (order.optBoolean("paid")) "Paid locally" else "Unpaid",
+                            if (order.optBoolean("paid")) "Paid" else "Unpaid",
                             Amber,
                         )
                     }
@@ -2006,17 +2034,16 @@ fun FeatureScreen(store: DemoStore, slug: String, onBack: () -> Unit, onOpen: (S
                         }) { AppText("Open Shop builder") }
                     }
                 }
+                if (store.real) return@Page
                 val shop = o.objectAt("shop")
                 RecordCard(shop.optString("name"), shop.optString("description"), Mint) {
                     StatusLabel(
                         when {
                             !shop.optBoolean("published") -> "Hidden"
-                            store.real -> "Publishing enabled"
                             else -> "Visible in local preview"
                         },
                         Green,
                     )
-                    if (store.real) AppText("The shop is public only while the owner’s identity is verified.")
                     ActionRow(
                         "Edit shop details" to
                             {

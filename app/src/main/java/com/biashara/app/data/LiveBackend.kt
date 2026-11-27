@@ -93,6 +93,42 @@ class LiveBackend(context: Context, private val scope: CoroutineScope, private v
         }
         return session!!.getString("access_token")
     }
+    internal suspend fun bankReviewFactor(): Pair<String, String?> {
+        val access = token()
+        val user = http(BuildConfig.SUPABASE_URL, "/auth/v1/user", token = access, auth = true)
+        val factor = user.records("factors").firstOrNull {
+            it.optString("factor_type") == "totp" && it.optString("status") == "verified"
+        }
+        if (factor != null) return factor.getString("id") to null
+        val enrolled = http(BuildConfig.SUPABASE_URL, "/auth/v1/factors", "POST",
+            json("factor_type" to "totp", "issuer" to "BiasharaOS"), access, true)
+        return enrolled.getString("id") to enrolled.getJSONObject("totp").getString("secret")
+    }
+
+    internal suspend fun verifyBankReview(factor: String, code: String) = mutex.withLock {
+        val access = token()
+        val ownerId = session?.optJSONObject("user")?.optString("id")
+        val id = java.util.UUID.fromString(factor)
+        val path = "/auth/v1/factors/$id"
+        val challenge = http(BuildConfig.SUPABASE_URL, "$path/challenge", "POST", json(), access, true)
+        val verified = http(BuildConfig.SUPABASE_URL, "$path/verify", "POST",
+            json("challenge_id" to challenge.getString("id"), "code" to code), access, true)
+        check(authenticated && ownerId != null && session?.optJSONObject("user")?.optString("id") == ownerId &&
+            verified.getJSONObject("user").getString("id") == ownerId) { "The signed-in account changed." }
+        verified.put("expires_at", System.currentTimeMillis() / 1000 + verified.getLong("expires_in"))
+        vault.write(verified)
+        session = verified
+    }
+
+    suspend fun storefront(command: JSONObject? = null) =
+        http(BuildConfig.API_URL, "/api/storefront", if (command == null) "GET" else "POST", command, token())
+
+    suspend fun customerAccess(command: JSONObject? = null) =
+        http(BuildConfig.API_URL, "/api/customer-access", if (command == null) "GET" else "POST", command, token())
+
+    suspend fun industrySummary() =
+        http(BuildConfig.API_URL, "/api/industry?view=summary", token = token())
+
     suspend fun industryRecords(command: JSONObject? = null) =
         http(BuildConfig.API_URL, "/api/industry", if (command == null) "GET" else "POST", command, token())
 

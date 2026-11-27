@@ -3,6 +3,8 @@ import { z } from "zod";
 import {
   storefrontDraft,
   storefrontIssues,
+  storefrontMediaPath,
+  storefrontPublication,
   storefrontUsername,
 } from "@/lib/storefront";
 import { applyCommand } from "@/lib/backend/commands";
@@ -78,7 +80,7 @@ export async function GET(request: Request) {
       businessStorefront(workspace.businessId),
       merchantVerificationStatus(workspace.businessId),
     ]);
-    return json({
+    const setup = {
       username: record?.username ?? "",
       revision: record?.revision ?? 0,
       draft: record?.draft ?? initialStorefront(workspace.state),
@@ -86,7 +88,8 @@ export async function GET(request: Request) {
       published: workspace.state.operations.shop.published,
       verification,
       legacySlug: workspace.slug,
-    });
+    };
+    return json({ ...setup, publication: storefrontPublication(setup) });
   } catch (error) {
     return fail(error);
   }
@@ -99,6 +102,22 @@ export async function POST(request: Request) {
     if (raw.length > 150_000)
       throw new ApiError("The shop configuration is too large.", 413);
     const action = input.parse(JSON.parse(raw));
+    if (action.action === "save") {
+      const { logo, cover, productDetails } = action.draft;
+      const imagePaths = [
+        logo,
+        cover,
+        ...Object.values(productDetails).map((detail) => detail.image),
+      ];
+      if (
+        imagePaths.some(
+          (path) =>
+            storefrontMediaPath.test(path) &&
+            !path.startsWith(`/api/storefront-media/${workspace.businessId}/`),
+        )
+      )
+        throw new ApiError("Choose images uploaded for this business.", 403);
+    }
     const saved = await businessStorefront(workspace.businessId);
     const draft = action.action === "save" ? action.draft : saved?.draft;
     if (!draft) throw new ApiError("Save your shop setup first.", 409);

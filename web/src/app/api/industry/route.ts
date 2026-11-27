@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { dailyActions, industryQueueMatcher } from "@/lib/workspace-activity";
 import { industryFor, type IndustryRecord } from "@/lib/industries";
 import {
   applyIndustryCommand,
@@ -10,18 +11,59 @@ import {
   fail,
   identity,
   json,
-  loadBusiness,
+  businessMembership,
 } from "@/lib/backend/server";
+
+async function verifyBankReview(request: Request) {
+  // Identity has already verified this same access token for the current user.
+  const token = request.headers.get("authorization")?.slice(7);
+  const { data, error } = await admin().auth.getClaims(token);
+  const now = Math.floor(Date.now() / 1000);
+  const methods = data?.claims.amr;
+  const recentCode =
+    Array.isArray(methods) &&
+    methods.some(
+      (method) =>
+        typeof method === "object" &&
+        method !== null &&
+        method.method === "totp" &&
+        typeof method.timestamp === "number" &&
+        method.timestamp >= now - 300 &&
+        method.timestamp <= now + 30,
+    );
+  if (error || data?.claims.aal !== "aal2" || !recentCode) {
+    throw new ApiError(
+      "Verify a current code from your authenticator app to record this banking decision.",
+      403,
+    );
+  }
+}
 
 async function access(request: Request) {
   const user = await identity(request);
-  const workspace = await loadBusiness(user);
-  if (!workspace) throw new ApiError("Create your business first.", 403);
-  const industry = industryFor(workspace.state.profile.type);
-  const manage = ["Owner", "Manager"].includes(workspace.role);
+  const membership = await businessMembership(user);
+  if (!membership) throw new ApiError("Create your business first.", 403);
+  const { data, error } = await admin()
+    .from("business_records")
+    .select("business_type:state->profile->>type")
+    .eq("business_id", membership.business_id)
+    .single();
+  if (error) throw new ApiError("Could not load your business type.", 503);
+  const businessType = data.business_type ?? "";
+  const industry = industryFor(businessType);
+  const role = membership.role;
+  const manage = ["Owner", "Manager"].includes(role);
   const scan =
-    industry.id === "entertainment" && (manage || workspace.role === "Cashier");
-  return { user, workspace, industry, manage, scan };
+    industry.id === "entertainment" && (manage || role === "Cashier");
+  return {
+    user,
+    businessId: membership.business_id,
+    businessType,
+    role,
+    industry,
+    manage,
+    scan,
+  };
 }
 
 async function stored(business: string, sector: string) {
@@ -38,11 +80,29 @@ async function stored(business: string, sector: string) {
 
 export async function GET(request: Request) {
   try {
-    const { user, workspace, industry, manage, scan } = await access(request);
+    const { user, businessId, industry, role, manage, scan } =
+      await access(request);
     if (!manage && !scan)
       throw new ApiError("Your role cannot view industry records.", 403);
+    if (new URL(request.url).searchParams.get("view") === "summary") {
+      if (!manage)
+        throw new ApiError("Your role cannot view industry records.", 403);
+      const queues = (dailyActions(industry.id, role) ?? []).flatMap(
+        (action) => (action.queue ? [action.queue] : []),
+      );
+      const { records } = queues.length
+        ? await stored(businessId, industry.id)
+        : { records: [] };
+      const counts = Object.fromEntries(
+        queues.map((queue) => [
+          queue.module,
+          records.filter(industryQueueMatcher(queue)).length,
+        ]),
+      );
+      return json({ sector: industry.id, counts });
+    }
     const data = manage
-      ? await stored(workspace.businessId, industry.id)
+      ? await stored(businessId, industry.id)
       : { records: [] };
     const records = data.records.map(({ createdBy, ...record }) => ({
       ...record,
@@ -56,7 +116,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { user, workspace, industry, manage, scan } = await access(request);
+    const { user, businessId, businessType, role, industry, manage, scan } =
+      await access(request);
     const raw = await request.text();
     if (raw.length > 12_000)
       throw new ApiError("The record is too large.", 413);
@@ -68,6 +129,15 @@ export async function POST(request: Request) {
       );
     if (input.action === "admit" ? !scan : !manage)
       throw new ApiError("Your role cannot make this change.", 403);
+    if (
+      industry.id === "finance" &&
+      input.action === "transition" &&
+      ["Approved", "Declined"].includes(input.status)
+    ) {
+      if (role !== "Owner")
+        throw new ApiError("An owner must decide this case.", 403);
+      await verifyBankReview(request);
+    }
     const db = admin();
     const hash = createHash("sha256")
       .update(JSON.stringify(input))
@@ -75,7 +145,7 @@ export async function POST(request: Request) {
     const previous = await db
       .from("industry_workspace_actions")
       .select("actor,command_hash")
-      .eq("business_id", workspace.businessId)
+      .eq("business_id", businessId)
       .eq("request_id", input.requestId)
       .maybeSingle();
     if (previous.error)
@@ -86,28 +156,32 @@ export async function POST(request: Request) {
         previous.data.command_hash !== hash
       )
         throw new ApiError("This request ID has already been used.", 409);
-      return json({ saved: true, duplicate: true });
+      return json({
+        saved: true,
+        duplicate: true,
+        created: input.action === "createSeats" ? input.count : undefined,
+      });
     }
 
-    const current = await stored(workspace.businessId, industry.id);
-    const { records, record } = applyIndustryCommand(
+    const current = await stored(businessId, industry.id);
+    const { records, record, created } = applyIndustryCommand(
       industry,
       current.records,
       input,
       user.id,
-      workspace.role,
+      role,
       new Date(),
     );
     const saved = await db.rpc("save_industry_workspace", {
-      target_business: workspace.businessId,
+      target_business: businessId,
       acting_user: user.id,
-      expected_type: workspace.state.profile.type,
+      expected_type: businessType,
       target_sector: industry.id,
       expected_revision: current.revision,
       command_id: input.requestId,
       payload_hash: hash,
       target_record: record.id,
-      command_action: input.action,
+      command_action: input.action === "createSeats" ? "create" : input.action,
       next_records: records,
     });
     if (saved.error?.code === "42501")
@@ -122,7 +196,7 @@ export async function POST(request: Request) {
         "Could not save the record. Retry the same request.",
         503,
       );
-    return json({ saved: true, status: record.status });
+    return json({ saved: true, status: record.status, created });
   } catch (error) {
     return fail(error);
   }

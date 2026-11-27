@@ -42,7 +42,7 @@ data class Supplier(
     val initial: String,
 )
 
-data class ChatMessage(val text: String, val user: Boolean)
+data class ChatMessage(val text: String, val user: Boolean, val tool: String? = null, val module: String = "")
 
 fun money(amount: Int): String = String.format(Locale.US, "%,d", amount)
 
@@ -201,16 +201,44 @@ class DemoStore(val real: Boolean = false) {
             )
     }
 
-    fun reply(question: String) {
+    fun reply(question: String, metric: String? = null, actionLabel: String = "", actionTool: String? = null) {
         messages.add(ChatMessage(question, true))
-        if(real) {
-            val r=report()
-            val answer=when {
-                question.contains("stock",true)->if(lowStock.isEmpty())"No products are below their reorder level."else lowStock.joinToString { "${it.name}: ${it.stock} remaining" }
-                question.contains("owe",true)||question.contains("debt",true)->"Recorded balances: "+minorMoney(liveState.records("customers").sumOf{kotlin.math.round(it.optDouble("balance")*100).toLong()})
-                else->"Recorded today: sales ${minorMoney(r.sales)}, expenses ${minorMoney(r.expenses)}, operating profit ${minorMoney(r.profit)}. This summary uses your recorded business activity."
+        if (real) {
+            val branch = operations.branchName
+            val lower = question.lowercase()
+            val (answer, tool) = when {
+                metric != null && metric != "reorder" ->
+                    "${if (metric == "bookingsToday") "All branches" else branch} · $actionLabel: ${activityCount(metric)}" to actionTool
+                listOf("stock", "restock", "shelf", "shelves").any { it in lower } -> {
+                    val products = productsAtReorderLevel()
+                    val examples = products.take(5).joinToString { "${it.optString("name")} (${it.optInt("stock")})" }
+                    val text = if (products.isEmpty()) "No products in $branch are at or below their reorder level."
+                    else "$branch has ${products.size} products at or below their reorder level. $examples."
+                    text to "inventory"
+                }
+                listOf("owe", "debt", "balance", "credit", "customer").any { it in lower } -> {
+                    val balance = liveState.records("customers").sumOf {
+                        kotlin.math.round(it.optDouble("balance").coerceAtLeast(0.0) * 100).toLong()
+                    }
+                    "Your business has ${minorMoney(balance)} in recorded customer balances across all branches." to "customers"
+                }
+                listOf("expense", "spend", "cost", "money going").any { it in lower } -> {
+                    val total = liveState.records("expenses").sumOf {
+                        kotlin.math.round(it.optDouble("amount") * 100).toLong()
+                    }
+                    "Your business has ${minorMoney(total)} in recorded expenses across all branches." to "expenses"
+                }
+                listOf("sale", "today", "week", "profit").any { it in lower } -> {
+                    val days = if ("week" in lower) 7 else 1
+                    val period = if (days == 1) "today" else "over the last seven days"
+                    val sales = minorMoney(report(days).sales)
+                    val detail = if ("profit" in lower) " Reports show cost and expense details." else ""
+                    "$branch recorded $sales in sales after returns $period.$detail" to "reports"
+                }
+                else -> "Choose a suggested question to review recorded sales, expenses, customer balances or sector activity." to null
             }
-            messages.add(ChatMessage(answer,false));return
+            messages.add(ChatMessage(answer, false, tool))
+            return
         }
         val answer =
             when {

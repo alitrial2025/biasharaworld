@@ -1,5 +1,8 @@
 package com.biashara.app.ui
 
+import android.app.Activity
+import android.view.WindowManager
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -7,9 +10,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -21,10 +28,14 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.biashara.app.BuildConfig
+import com.biashara.app.data.activityCount
+import com.biashara.app.data.workspaceZone
 import com.biashara.app.data.DemoStore
 import com.biashara.app.data.LiveBackend
 import com.biashara.app.data.json
@@ -32,6 +43,7 @@ import com.biashara.app.data.minorMoney
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -42,6 +54,34 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
+internal data class IndustrySummary(val counts: JSONObject? = null, val failed: Boolean = false) {
+    fun count(module: String): Int? = counts?.takeIf { it.has(module) }?.optInt(module)
+}
+
+@Composable
+internal fun rememberIndustrySummary(
+    backend: LiveBackend?,
+    sector: String,
+    role: String,
+    enabled: Boolean,
+    retry: Int = 0,
+): IndustrySummary {
+    var result by remember(backend, sector, role, enabled, retry) { mutableStateOf(IndustrySummary()) }
+    LaunchedEffect(backend, sector, role, enabled, retry) {
+        if (backend == null || !enabled) return@LaunchedEffect
+        try {
+            val response = backend.industrySummary()
+            check(response.optString("sector") == sector)
+            result = IndustrySummary(response.getJSONObject("counts"))
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            result = IndustrySummary(failed = true)
+        }
+    }
+    return result
+}
+
 @Composable
 internal fun LiveIndustryHome(
     store: DemoStore,
@@ -50,9 +90,45 @@ internal fun LiveIndustryHome(
     role: String,
     open: (String, String) -> Unit,
 ) {
+    val actions = catalog.dailyActions(industry, role)
+    var retry by remember { mutableIntStateOf(0) }
+    val summary = rememberIndustrySummary(store.backend, industry.id, role, actions?.any { it.queue != null } == true, retry)
+    val uri = LocalUriHandler.current
     Page {
         Eyebrow(industry.label)
         PageTitle("Hi ${store.ownerName.substringBefore(' ')}", store.businessName)
+        if (actions != null) {
+            AppText("Daily work", style = MaterialTheme.typography.titleLarge)
+            AppText(if (industry.modules.isNotEmpty() || industry.id == "services") "All branches"
+                else store.operations.branchName, color = Muted)
+            actions.forEach { action ->
+                OutlinedButton(
+                    onClick = { open(action.destination, action.module) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                    shape = MaterialTheme.shapes.medium,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        AppText(action.label, modifier = Modifier.weight(1f))
+                        val count = action.queue?.let { summary.count(it.module) }
+                            ?: action.metric?.let { store.activityCount(it) }
+                        count?.let { AppText(it.toString()) }
+                        AppIcon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(17.dp))
+                    }
+                }
+            }
+            if (summary.failed) {
+                AppText("Could not load current work counts.", color = Muted)
+                TextButton(onClick = { retry++ }) { AppText("Retry") }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { open("assistant", "") }) { AppText("BiasharaAI") }
+                TextButton(onClick = {
+                    val host = BuildConfig.API_URL.trimEnd('/').ifBlank { "https://biasharaworld.vercel.app" }
+                    uri.openUri("$host/contact")
+                }) { AppText("Contact support") }
+            }
+            return@Page
+        }
         if (industry.allows("industry", role) && role != "Cashier") {
             AppText(industry.label, style = MaterialTheme.typography.titleMedium)
             SurfaceCard {
@@ -116,15 +192,22 @@ internal fun LiveWorkspaceMore(store: DemoStore, role: String, open: (String, St
 }
 
 @Composable
-internal fun LiveIndustryRecordsScreen(backend: LiveBackend, industry: Industry, role: String, initialModule: String, back: () -> Unit) {
+internal fun LiveIndustryRecordsScreen(
+    backend: LiveBackend, industry: Industry, role: String, initialModule: String,
+    initialAttention: Boolean, queues: List<DailyAction>, back: () -> Unit, customerAccess: () -> Unit,
+) {
     var data by remember { mutableStateOf<JSONObject?>(null) }
     var selected by rememberSaveable { mutableStateOf(initialModule) }
+    var attention by rememberSaveable { mutableStateOf(initialAttention) }
+    var limit by rememberSaveable { mutableIntStateOf(30) }
     var filter by rememberSaveable { mutableStateOf("") }
     var ticket by rememberSaveable { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
     var notice by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var adding by remember { mutableStateOf(false) }
+    var addingSeats by remember { mutableStateOf(false) }
+    var history by remember { mutableStateOf<JSONObject?>(null) }
     var action by remember { mutableStateOf<Pair<JSONObject, String>?>(null) }
     var pending by remember { mutableStateOf<Pair<String, String>?>(null) }
     val scope = rememberCoroutineScope()
@@ -180,6 +263,7 @@ internal fun LiveIndustryRecordsScreen(backend: LiveBackend, industry: Industry,
                 notice = when {
                     result.optBoolean("duplicate") -> "Change already saved."
                     command.optString("action") == "admit" -> "Ticket accepted. Guest checked in."
+                    command.optString("action") == "createSeats" -> "Seats added: ${result.optInt("created")}"
                     else -> "Saved · ${result.optString("status")}"
                 }
                 onSaved()
@@ -218,11 +302,18 @@ internal fun LiveIndustryRecordsScreen(backend: LiveBackend, industry: Industry,
         return
     }
 
+    DisposableEffect(context, industry.id) {
+        val window = (context as? Activity)?.window
+        val secureFlag = WindowManager.LayoutParams.FLAG_SECURE
+        val addSecure = industry.id == "finance" && window != null && window.attributes.flags and secureFlag == 0
+        if (addSecure) window?.addFlags(secureFlag)
+        onDispose { if (addSecure) window?.clearFlags(secureFlag) }
+    }
     LaunchedEffect(backend, industry.id, role) { load() }
 
     Page {
         PageTitle(industry.label, onBack = back) { TextButton(onClick = { scope.launch { load() } }, enabled = !busy) { AppText("Refresh") } }
-        if (industry.id == "finance") AppText("Managers submit cases and the owner reviews them. Case decisions are internal records.", color = Muted)
+        if (industry.id == "finance") AppText("Managers submit cases. A different owner reviewer records the decision with an authenticator code and a reason.", color = Muted)
         if (error.isNotBlank()) AppText(error, color = Coral)
         if (notice.isNotBlank()) AppText(notice, color = Green)
         if (data == null && error.isBlank()) CircularProgressIndicator()
@@ -246,16 +337,34 @@ internal fun LiveIndustryRecordsScreen(backend: LiveBackend, industry: Industry,
             }
         }
         if (canManage) {
-            ToolSelect("Record type", module.id, industry.modules.map { it.id to it.label }) { selected = it; filter = "" }
-            if (industry.id != "finance" || role == "Manager") {
+            if (industry.id in listOf("entertainment", "real-estate")) {
+                TextButton(onClick = customerAccess) { AppText(if (industry.id == "entertainment") "Public ticketing" else "Rent receipts and reminders") }
+            }
+            ToolSelect("Record type", module.id, industry.modules.map { it.id to it.label }) {
+                selected = it; filter = ""; attention = false; limit = 30
+            }
+            val priority = queues.firstOrNull { it.module == module.id }
+            val matchQueue = if (attention) priority?.queue?.matcher(LocalDate.now(workspaceZone)) else null
+            if (priority != null) {
+                val view = if (attention) priority.label else "All records"
+                FilterPills(listOf(priority.label, "All records"), view, {
+                    attention = it == priority.label
+                    limit = 30
+                })
+            }
+            if (module.id == "seats") {
+                PrimaryButton("Add numbered seats", { addingSeats = true }, enabled = !busy, tone = Green)
+            }
+            if (matchQueue == null && (industry.id != "finance" || role == "Manager")) {
                 PrimaryButton("Add record", { adding = true }, enabled = !busy, tone = Green)
             }
-            OutlinedTextField(filter, { filter = it }, label = { AppText("Search ${module.label.lowercase()}") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(filter, { filter = it; limit = 30 }, label = { AppText("Search ${module.label.lowercase()}") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            val byId = records.associateBy { it.optString("id") }
             val matches = records.filter {
-                it.optString("module") == module.id && "${it.optString("name")} ${it.optString("status")} ${it.optJSONObject("values")}".contains(filter.trim(), true)
+                it.optString("module") == module.id && (matchQueue == null || matchQueue(it)) && "${it.optString("name")} ${it.optString("status")} ${it.optJSONObject("values")}".contains(filter.trim(), true)
             }
             if (matches.isEmpty()) AppText("No matching records.", color = Muted)
-            matches.forEach { record ->
+            matches.take(limit).forEach { record ->
                 val status = record.getString("status")
                 val fields = record.getJSONObject("values")
                 SurfaceCard {
@@ -265,7 +374,7 @@ internal fun LiveIndustryRecordsScreen(backend: LiveBackend, industry: Industry,
                     module.fields.filter { fields.has(it.key) }.forEach { field ->
                         val value = when (field.type) {
                             "money" -> minorMoney(fields.getLong(field.key))
-                            "reference" -> records.firstOrNull { it.optString("id") == fields.optString(field.key) }?.optString("name").orEmpty()
+                            "reference" -> byId[fields.optString(field.key)]?.optString("name").orEmpty()
                             "datetime" -> showtimeLabel(fields.getString(field.key))
                             else -> fields.optString(field.key)
                         }
@@ -276,6 +385,9 @@ internal fun LiveIndustryRecordsScreen(backend: LiveBackend, industry: Industry,
                     if (status == "Issued" && record.has("code")) TextButton(onClick = {
                         runCatching { shareTicket(record) }.onFailure { error = "Could not share this ticket. Refresh the record and try again." }
                     }) { AppText("Share ticket") }
+                    if ((record.optJSONArray("history")?.length() ?: 0) > 0) TextButton(onClick = { history = record }) {
+                        AppText("Activity history")
+                    }
                     module.flow.optJSONArray(status)?.strings().orEmpty().filter { next ->
                         !(industry.id == "finance" && next in listOf("Approved", "Declined") && (role != "Owner" || record.optBoolean("own")))
                     }.forEach { next ->
@@ -285,33 +397,189 @@ internal fun LiveIndustryRecordsScreen(backend: LiveBackend, industry: Industry,
                     }
                 }
             }
+            if (matches.size > limit) TextButton(onClick = { limit += 30 }) { AppText("Show more records") }
         }
     }
 
+    if (addingSeats) {
+        val shows = records.filter {
+            it.optString("module") == "showtimes" && it.optString("status") == "Scheduled" &&
+                runCatching { Instant.parse(it.getJSONObject("values").getString("end")).isAfter(Instant.now()) }.getOrDefault(false)
+        }
+        SeatRangeDialog(shows, error, busy, { addingSeats = false }) { input ->
+            save(input) { addingSeats = false }
+        }
+    }
+    history?.let { record ->
+        AlertDialog(
+            onDismissRequest = { history = null },
+            title = { AppText("Activity history") },
+            text = {
+                Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    AppText(record.optString("name"), style = MaterialTheme.typography.titleMedium)
+                    record.optJSONArray("history")?.objects()?.asReversed()?.forEach { entry ->
+                        AppText(entry.optString("status"))
+                        AppText("${entry.optString("role")} · ${showtimeLabel(entry.getString("at"))} EAT", color = Muted)
+                        if (entry.has("note")) AppText(entry.getString("note"))
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { history = null }) { AppText("Close") } },
+        )
+    }
     if (adding) IndustryRecordDialog(module, records, error, busy, { adding = false }) { name, values ->
         save(json("action" to "create", "name" to name, "module" to module.id, "values" to values)) { adding = false }
     }
     action?.let { (record, status) ->
-        var reference by remember(record, status) { mutableStateOf("") }
-        val label = actionReference(module.id, status, record.getJSONObject("values"))
-        AlertDialog(
-            onDismissRequest = { if (!busy) action = null },
-            title = { AppText("Mark as ${status.lowercase()}") },
-            text = { Column {
-                OutlinedTextField(reference, { reference = it }, label = { AppText(label) }, singleLine = true)
-                if (error.isNotBlank()) AppText(error, color = Coral)
-            } },
-            confirmButton = { TextButton(onClick = { transition(record, status, reference) }, enabled = !busy && reference.isNotBlank()) { AppText("Confirm") } },
-            dismissButton = { TextButton(onClick = { action = null }, enabled = !busy) { AppText("Cancel") } },
-        )
+        if (industry.id == "finance" && status in listOf("Approved", "Declined")) {
+            BankDecisionDialog(backend, busy, error, { action = null }) { reason -> transition(record, status, reason) }
+        } else {
+            var reference by remember(record, status) { mutableStateOf("") }
+            val label = actionReference(module.id, status, record.getJSONObject("values"))
+            AlertDialog(
+                onDismissRequest = { if (!busy) action = null },
+                title = { AppText("Mark as ${status.lowercase()}") },
+                text = { Column {
+                    OutlinedTextField(reference, { reference = it.take(240) }, label = { AppText(label) },
+                        maxLines = if (label.endsWith("reason")) 4 else 1)
+                    if (error.isNotBlank()) AppText(error, color = Coral)
+                } },
+                confirmButton = { TextButton(onClick = { transition(record, status, reference) }, enabled = !busy && reference.isNotBlank()) { AppText("Confirm") } },
+                dismissButton = { TextButton(onClick = { action = null }, enabled = !busy) { AppText("Cancel") } },
+            )
+        }
     }
 }
 
 private fun actionReference(module: String, status: String, values: JSONObject) = when {
     status == "Received" && module in listOf("rent", "premiums") && !values.has("payment") -> "Payment reference"
     status == "Issued" && module == "tickets" && values.optLong("amount") > 0 -> "Payment reference"
+    module in listOf("account-requests", "deposit-requests", "loan-reviews") && status in listOf("Approved", "Declined") -> "Decision reason"
+    module == "dispatch" && status == "Exception" -> "Exception reason"
+    module == "batches" && status == "Released" -> "Quality check reference"
     status == "Delivered" && module == "dispatch" && !values.has("proof") -> "Proof of delivery"
     else -> ""
+}
+
+@Composable
+private fun BankDecisionDialog(
+    backend: LiveBackend,
+    busy: Boolean,
+    serverError: String,
+    close: () -> Unit,
+    submit: (String) -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    var reference by remember { mutableStateOf("") }
+    var factor by remember { mutableStateOf<Pair<String, String?>?>(null) }
+    var working by remember { mutableStateOf(false) }
+    var code by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = { if (!busy && !working) close() },
+        title = { AppText("Verify banking decision") },
+        text = {
+            Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(reference, { reference = it.take(240) }, label = { AppText("Decision reason") }, maxLines = 4)
+                if (factor == null) {
+                    TextButton(enabled = !working && !busy, onClick = {
+                        working = true
+                        error = ""
+                        scope.launch {
+                            try {
+                                factor = backend.bankReviewFactor()
+                            } catch (cancelled: CancellationException) {
+                                throw cancelled
+                            } catch (_: Exception) {
+                                error = "Could not start authenticator verification. Try again or contact your administrator."
+                            } finally {
+                                working = false
+                            }
+                        }
+                    }) { AppText("Set up or check authenticator") }
+                } else {
+                    factor?.second?.let { setupKey ->
+                        AppText("Add BiasharaOS to your authenticator app with this setup key. Keep it private.")
+                        SelectionContainer { AppText(setupKey) }
+                    }
+                    OutlinedTextField(code, { code = it.filter { digit -> digit in '0'..'9' }.take(6) },
+                        label = { AppText("Authenticator code") }, singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword))
+                }
+                if (error.isNotBlank()) AppText(error, color = Coral)
+                if (serverError.isNotBlank()) AppText(serverError, color = Coral)
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = !working && !busy && factor != null && code.length == 6 && reference.isNotBlank(), onClick = {
+                val id = factor?.first ?: return@TextButton
+                working = true
+                error = ""
+                scope.launch {
+                    try {
+                        backend.verifyBankReview(id, code)
+                        factor = id to null
+                        submit(reference.trim())
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        error = "Verification failed. Enter the current code from your authenticator app."
+                    } finally {
+                        working = false
+                        code = ""
+                    }
+                }
+            }) { AppText("Verify and confirm decision") }
+        },
+        dismissButton = { TextButton(onClick = close, enabled = !busy && !working) { AppText("Cancel") } },
+    )
+}
+
+@Composable
+private fun SeatRangeDialog(
+    shows: List<JSONObject>,
+    error: String,
+    busy: Boolean,
+    close: () -> Unit,
+    submit: (JSONObject) -> Unit,
+) {
+    var show by rememberSaveable { mutableStateOf("") }
+    var section by rememberSaveable { mutableStateOf("") }
+    var row by rememberSaveable { mutableStateOf("") }
+    var first by rememberSaveable { mutableStateOf("1") }
+    var count by rememberSaveable { mutableStateOf("") }
+    val start = first.toIntOrNull()
+    val quantity = count.toIntOrNull()
+    val validRange = start != null && quantity != null && start in 1..9999 &&
+        quantity in 1..250 && start + quantity - 1 <= 9999
+    AlertDialog(
+        onDismissRequest = { if (!busy) close() },
+        title = { AppText("Add numbered seats") },
+        text = {
+            Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (shows.isEmpty()) AppText("Schedule a showtime before adding seats.")
+                else ToolSelect("Showtime for seat range", show,
+                    listOf("" to "Choose a showtime") + shows.map { it.getString("id") to it.getString("name") }) { show = it }
+                OutlinedTextField(section, { section = it.take(240) }, label = { AppText("Section for seat range") }, singleLine = true)
+                OutlinedTextField(row, { row = it.take(16) }, label = { AppText("Row name") }, placeholder = { AppText("A") }, singleLine = true)
+                OutlinedTextField(first, { first = it.filter(Char::isDigit).take(4) }, label = { AppText("First seat number") },
+                    singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                OutlinedTextField(count, { count = it.filter(Char::isDigit).take(3) }, label = { AppText("Number of seats") },
+                    singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                AppText("Create up to 250 seats in one row, such as A-1 to A-50.", color = Muted)
+                if (error.isNotBlank()) AppText(error, color = Coral)
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !busy && validRange && shows.any { it.optString("id") == show } && section.isNotBlank() &&
+                    row.trim().matches(Regex("[A-Za-z0-9-]{1,16}")),
+                onClick = { submit(json("action" to "createSeats", "show" to show, "section" to section.trim(),
+                    "row" to row.trim(), "first" to start, "count" to quantity)) },
+            ) { AppText("Create seat range") }
+        },
+        dismissButton = { TextButton(onClick = close, enabled = !busy) { AppText("Cancel") } },
+    )
 }
 
 @Composable
@@ -324,6 +592,7 @@ private fun IndustryRecordDialog(
     submit: (String, JSONObject) -> Unit,
 ) {
     var name by rememberSaveable { mutableStateOf("") }
+    val names = remember(records) { records.associate { it.getString("id") to it.getString("name") } }
     val fields = remember { mutableStateMapOf<String, String>() }
     var error by remember { mutableStateOf("") }
     AlertDialog(
@@ -336,7 +605,11 @@ private fun IndustryRecordDialog(
                     val value = fields[field.key].orEmpty()
                     if (field.type == "reference") {
                         val options = records.filter { it.optString("module") == field.module }.map {
-                            it.getString("id") to "${it.getString("name")} · ${it.getString("status")}"
+                            val nameWithContext = if (field.module == "seats") {
+                                val seat = it.getJSONObject("values")
+                                "${it.getString("name")} · ${seat.getString("section")} · ${names[seat.optString("show")].orEmpty()}"
+                            } else it.getString("name")
+                            it.getString("id") to "$nameWithContext · ${it.getString("status")}"
                         }
                         ToolSelect(field.label, value, listOf("" to "Choose ${field.label.lowercase()}") + options) { fields[field.key] = it }
                     } else {
@@ -390,7 +663,7 @@ private fun IndustryRecordDialog(
 private val ticketPattern = Regex("[A-Fa-f0-9]{16}")
 
 private val showtimeFormat = DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm", Locale.UK).withZone(ZoneId.of("Africa/Nairobi"))
-private fun showtimeLabel(value: String) = showtimeFormat.format(Instant.parse(value))
+internal fun showtimeLabel(value: String) = showtimeFormat.format(Instant.parse(value))
 
 @Composable
 private fun TicketBarcode(code: String) {

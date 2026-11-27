@@ -1,9 +1,24 @@
 import { test, expect, devices } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import sharp from "sharp";
 import { randomUUID } from "node:crypto";
 
-const base = "http://127.0.0.1:3002";
+const base =
+  process.env.STOREFRONT_TEST_BASE_URL ===
+  "https://biasharaworld-staging.vercel.app"
+    ? process.env.STOREFRONT_TEST_BASE_URL
+    : "http://127.0.0.1:3002";
 const database = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const databaseHost = new URL(database).hostname;
+if (
+  base.startsWith("https:")
+    ? databaseHost !== "umwgenrzuignqmxauyzn.supabase.co"
+    : !["localhost", "127.0.0.1"].includes(databaseHost)
+) {
+  throw new Error(
+    "Use the dedicated staging project or a local database for shop fixtures.",
+  );
+}
 const admin = createClient(database, process.env.SUPABASE_SECRET_KEY!, {
   auth: { persistSession: false },
 });
@@ -14,6 +29,7 @@ test("an owner designs and publishes a shop through the dashboard", async ({
   page,
   browser,
 }) => {
+  test.setTimeout(base.startsWith("https:") ? 120_000 : 60_000);
   const email = `shop-browser-${randomUUID()}@biashara-test.invalid`;
   const password = randomUUID() + "Aa9!";
   const username = `shop-browser-${randomUUID().slice(0, 8)}`;
@@ -109,9 +125,13 @@ test("an owner designs and publishes a shop through the dashboard", async ({
       { key: storageKey, value: JSON.stringify(session) },
     );
     await page.goto("/dashboard");
-    await page
-      .getByRole("navigation")
-      .getByRole("link", { name: "Shop builder", exact: true })
+    await page.getByRole("button", { name: /Search anything/ }).click();
+    const search = page.getByRole("dialog", { name: "Search workspace" });
+    await search
+      .getByPlaceholder("Search tools, products or customers…")
+      .fill("Shop builder");
+    await search
+      .getByRole("button", { name: "Shop builder", exact: true })
       .click();
     await page.getByLabel("Shop username").fill(username);
     await page.getByRole("button", { name: "Check availability" }).click();
@@ -119,6 +139,13 @@ test("an owner designs and publishes a shop through the dashboard", async ({
     await page
       .getByRole("button", { name: "Save username and continue" })
       .click();
+    const shopStatus = page.locator(".shop-builder-status");
+    await expect(
+      shopStatus.getByText(`/shop/${slug}`, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      shopStatus.getByText(`Draft address /${username}`),
+    ).toBeVisible();
     await expect(page.getByRole("radio")).toHaveCount(3);
     await page.getByRole("radio", { name: /Studio/ }).check();
     await page.getByRole("button", { name: "Save and continue" }).click();
@@ -128,11 +155,44 @@ test("an owner designs and publishes a shop through the dashboard", async ({
     await page
       .getByLabel("About the business")
       .fill("Custom collections and made-to-order gifts.");
+    const image = await sharp({
+      create: { width: 80, height: 48, channels: 3, background: "#236447" },
+    })
+      .png()
+      .toBuffer();
+    await page.getByLabel("Upload cover image").setInputFiles({
+      name: "cover.png",
+      mimeType: "image/png",
+      buffer: image,
+    });
+    await expect(
+      page
+        .getByRole("status")
+        .filter({ hasText: "Image added to your draft." }),
+    ).toBeVisible();
+    const uploadedCover = await page
+      .getByRole("textbox", { name: "Cover image URL", exact: true })
+      .inputValue();
+    expect(uploadedCover).toMatch(/^\/api\/storefront-media\//);
+    const photo = await page.request.get(uploadedCover);
+    expect(photo.status()).toBe(200);
+    expect(photo.headers()["content-type"]).toBe("image/webp");
+    await page.getByLabel("Upload logo").setInputFiles({
+      name: "logo.png",
+      mimeType: "image/png",
+      buffer: image,
+    });
+    await expect(
+      page.getByRole("textbox", { name: "Logo image URL", exact: true }),
+    ).toHaveValue(/^\/api\/storefront-media\//);
     await page.getByRole("button", { name: "Save and continue" }).click();
     await page.getByLabel("Public product catalogue").selectOption("off");
     await page.getByRole("button", { name: "Save and continue" }).click();
     await page.getByLabel("Public email address").fill("contact@example.com");
     await page.getByRole("button", { name: "Save and continue" }).click();
+    await expect(
+      page.getByRole("region", { name: "Publication checklist" }),
+    ).toBeVisible();
     await expect(
       page.locator(".storefront-preview.storefront-studio"),
     ).toBeVisible();
@@ -180,12 +240,27 @@ test("an owner designs and publishes a shop through the dashboard", async ({
       });
       expect(setupResponse.status).toBe(200);
       let setup = await setupResponse.json();
+      const file = new FormData();
+      file.set(
+        "image",
+        new Blob([new Uint8Array(image)], { type: "image/png" }),
+        "product.png",
+      );
+      const uploaded = await fetch(base + "/api/storefront-media", {
+        method: "POST",
+        body: file,
+        headers: { Authorization: "Bearer " + session.access_token },
+      });
+      expect(uploaded.status).toBe(200);
+      const { path: productImage } = await uploaded.json();
       const draft = {
         ...setup.draft,
         catalog: "all",
+        fulfillment: "pickup",
+        pickup: "City Market, Nairobi",
         productDetails: {
           [productId]: {
-            image: "https://example.com/handmade-gift.webp",
+            image: productImage,
             description: "Packed by hand and ready for pickup.",
           },
         },
@@ -251,11 +326,58 @@ test("an owner designs and publishes a shop through the dashboard", async ({
           url.pathname === "/login" &&
           url.searchParams.get("next") === `/portal/${slug}`,
       );
+      await mobile.getByLabel("Email address").fill(email);
+      await mobile.getByLabel("Password", { exact: true }).fill(password);
+      await mobile.getByRole("button", { name: "Return to shop" }).click();
+      await expect(mobile).toHaveURL(base + `/portal/${slug}`);
+      const order = await post("/api/shop/" + slug, {
+        requestId: randomUUID(),
+        cart: { [productId]: 1 },
+        address: "Contact at the desk",
+      });
+      await mobile.getByRole("button", { name: "Refresh orders" }).click();
+      const updates = mobile.getByRole("region", { name: "Order updates" });
+      await expect(
+        updates.getByRole("link", { name: /Order received/ }),
+      ).toBeVisible();
+      for (const command of [
+        { type: "orderStatus", id: order.id, status: "Confirmed" },
+        { type: "orderStatus", id: order.id, status: "Packing" },
+        { type: "pack", id: order.id, productId },
+        { type: "orderStatus", id: order.id, status: "Dispatched" },
+      ]) {
+        const response = await fetch(base + "/api/workspace", {
+          headers: { Authorization: "Bearer " + session.access_token },
+        });
+        const current = (await response.json()).workspace;
+        await post("/api/workspace", {
+          revision: current.revision,
+          requestId: randomUUID(),
+          command,
+        });
+      }
+      await mobile.getByRole("button", { name: "Refresh orders" }).click();
+      await expect(
+        updates.getByRole("link", { name: /Ready for pickup/ }),
+      ).toBeVisible();
+      await expect(
+        mobile.getByText("Pickup · City Market, Nairobi"),
+      ).toBeVisible();
+      await expect(
+        mobile.getByText(/Ready for pickup · KES 125 · Payment pending/),
+      ).toBeVisible();
     } finally {
       await visitor.close();
     }
   } finally {
     if (business) {
+      const { data: files } = await admin.storage
+        .from("storefront-media")
+        .list(business);
+      if (files?.length)
+        await admin.storage
+          .from("storefront-media")
+          .remove(files.map((file) => business + "/" + file.name));
       await admin
         .from("business_commands")
         .delete()

@@ -5,6 +5,11 @@ import { existsSync } from "node:fs";
 const executablePath =
   process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ||
   (existsSync("/usr/bin/chromium") ? "/usr/bin/chromium" : undefined);
+const staging =
+  process.env.STOREFRONT_TEST_BASE_URL ===
+  "https://biasharaworld-staging.vercel.app"
+    ? process.env.STOREFRONT_TEST_BASE_URL
+    : undefined;
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
@@ -13,20 +18,24 @@ export default defineConfig({
   workers: 2,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://127.0.0.1:3002",
+    baseURL: staging ?? "http://127.0.0.1:3002",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     ...devices["Desktop Chrome"],
     launchOptions: {
-      proxy: process.env.HTTPS_PROXY ? {server:process.env.HTTPS_PROXY,bypass:"127.0.0.1,localhost"} : undefined,
+      proxy: process.env.HTTPS_PROXY
+        ? { server: process.env.HTTPS_PROXY, bypass: "127.0.0.1,localhost" }
+        : undefined,
       executablePath,
       args: ["--no-sandbox", "--disable-dev-shm-usage"],
     },
   },
-  webServer: {
-    command: "npm run start -- --port 3002",
-    url: "http://127.0.0.1:3002",
-    reuseExistingServer: !process.env.CI,
-    timeout: 30000,
-  },
+  webServer: staging
+    ? undefined
+    : {
+        command: "npm run start -- --port 3002",
+        url: "http://127.0.0.1:3002",
+        reuseExistingServer: !process.env.CI,
+        timeout: 30000,
+      },
 });

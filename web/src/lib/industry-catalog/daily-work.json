@@ -1,0 +1,501 @@
+{
+  "retail": [
+    {
+      "slug": "sales/new",
+      "label": "Record a sale",
+      "roles": ["Owner", "Manager", "Cashier"]
+    },
+    {
+      "slug": "inventory",
+      "label": "Stock at reorder level",
+      "metric": "reorder",
+      "question": "What should I restock?"
+    },
+    {
+      "slug": "register",
+      "label": "Cash register",
+      "roles": ["Owner", "Manager", "Cashier"]
+    },
+    {
+      "slug": "sales",
+      "label": "Sales history"
+    }
+  ],
+  "supermarket": [
+    {
+      "slug": "sales/new",
+      "label": "Record a sale",
+      "roles": ["Cashier"]
+    },
+    {
+      "slug": "register",
+      "label": "Cash register",
+      "roles": ["Cashier"]
+    },
+    {
+      "slug": "expiry",
+      "label": "Batches due within 14 days or expired",
+      "metric": "expiry",
+      "question": "Which batches need an expiry check?",
+      "roles": ["Owner", "Manager"]
+    },
+    {
+      "slug": "stocktakes",
+      "label": "Draft stocktakes",
+      "metric": "stocktake",
+      "question": "Are any stocktakes open?",
+      "roles": ["Owner", "Manager"]
+    },
+    {
+      "slug": "transfers",
+      "label": "Incoming branch transfers",
+      "metric": "transfer",
+      "question": "What stock is on the way?",
+      "roles": ["Owner", "Manager"]
+    },
+    {
+      "slug": "inventory",
+      "label": "Inventory"
+    },
+    {
+      "slug": "sales",
+      "label": "Sales history"
+    }
+  ],
+  "wholesale": [
+    {
+      "slug": "orders",
+      "label": "Draft purchase orders",
+      "metric": "purchase",
+      "question": "Which purchase orders still need receiving?",
+      "roles": ["Owner", "Manager"]
+    },
+    {
+      "slug": "documents",
+      "label": "Issued invoices with a balance",
+      "metric": "receivable",
+      "question": "Which invoices are still unpaid?"
+    },
+    {
+      "slug": "supplier-network",
+      "label": "Supplier network",
+      "roles": ["Owner", "Manager"]
+    },
+    {
+      "slug": "inventory",
+      "label": "Inventory"
+    }
+  ],
+  "online": [
+    {
+      "slug": "deliveries",
+      "label": "Orders in fulfilment",
+      "metric": "delivery",
+      "question": "How many online orders need handling?"
+    },
+    {
+      "slug": "inventory",
+      "label": "Stock at reorder level",
+      "metric": "reorder",
+      "question": "What should I restock?"
+    },
+    {
+      "slug": "online-shop",
+      "label": "Shop builder",
+      "roles": ["Owner"]
+    },
+    {
+      "slug": "documents",
+      "label": "Quotes and invoices",
+      "roles": ["Manager", "Cashier"]
+    }
+  ],
+  "services": [
+    {
+      "slug": "bookings",
+      "label": "Bookings today",
+      "roles": ["Owner", "Manager"],
+      "question": "What bookings need attention today?",
+      "metric": "bookingsToday",
+      "view": "today"
+    },
+    {
+      "slug": "customers",
+      "label": "Clients"
+    },
+    {
+      "slug": "expenses",
+      "label": "Expenses"
+    }
+  ],
+  "insurance": [
+    {
+      "slug": "industry",
+      "label": "Claims awaiting review",
+      "roles": ["Owner", "Manager"],
+      "question": "Which claims need review?",
+      "queue": {
+        "module": "claims",
+        "statuses": ["Filed", "In review"]
+      }
+    },
+    {
+      "slug": "industry",
+      "label": "Overdue premiums",
+      "roles": ["Owner", "Manager"],
+      "question": "Which premiums are overdue?",
+      "queue": {
+        "module": "premiums",
+        "statuses": ["Due"],
+        "field": "due",
+        "throughDays": -1
+      }
+    },
+    {
+      "slug": "industry",
+      "label": "Policies ending within 30 days or expired",
+      "roles": ["Owner", "Manager"],
+      "question": "Which policies need renewal attention?",
+      "queue": {
+        "module": "policies",
+        "statuses": ["Active"],
+        "field": "end",
+        "throughDays": 30
+      }
+    },
+    {
+      "slug": "expenses",
+      "label": "Expenses",
+      "roles": ["Cashier", "Viewer"]
+    }
+  ],
+  "real-estate": [
+    {
+      "slug": "industry",
+      "label": "Overdue rent",
+      "roles": ["Owner", "Manager"],
+      "question": "Which rents are overdue?",
+      "queue": {
+        "module": "rent",
+        "statuses": ["Due"],
+        "field": "due",
+        "throughDays": -1
+      }
+    },
+    {
+      "slug": "industry",
+      "label": "Open maintenance",
+      "roles": ["Owner", "Manager"],
+      "question": "Which maintenance requests are open?",
+      "queue": {
+        "module": "maintenance",
+        "statuses": ["Open", "In progress"]
+      }
+    },
+    {
+      "slug": "industry",
+      "label": "Leases ending within 30 days or expired",
+      "roles": ["Owner", "Manager"],
+      "question": "Which leases need renewal attention?",
+      "queue": {
+        "module": "leases",
+        "statuses": ["Active"],
+        "field": "end",
+        "throughDays": 30
+      }
+    },
+    {
+      "slug": "expenses",
+      "label": "Expenses",
+      "roles": ["Cashier", "Viewer"]
+    }
+  ],
+  "entertainment": [
+    {
+      "slug": "industry",
+      "label": "Ticket admission",
+      "roles": ["Owner", "Manager", "Cashier"]
+    },
+    {
+      "slug": "industry",
+      "label": "Showtimes open for admission",
+      "roles": ["Owner", "Manager"],
+      "question": "Which showtimes are admitting guests?",
+      "queue": {
+        "module": "showtimes",
+        "statuses": ["Admission open"],
+        "futureField": "end"
+      }
+    },
+    {
+      "slug": "industry",
+      "label": "Events in preparation",
+      "roles": ["Owner", "Manager"],
+      "question": "Which events are being prepared?",
+      "queue": {
+        "module": "events",
+        "statuses": ["Draft", "Scheduled"]
+      }
+    },
+    {
+      "slug": "expenses",
+      "label": "Expenses",
+      "roles": ["Viewer"]
+    }
+  ],
+  "finance": [
+    {
+      "slug": "industry",
+      "label": "Open account requests",
+      "roles": ["Owner", "Manager"],
+      "question": "Which account requests are open?",
+      "queue": {
+        "module": "account-requests",
+        "statuses": ["Submitted", "In review"]
+      }
+    },
+    {
+      "slug": "industry",
+      "label": "Open deposit reviews",
+      "roles": ["Owner", "Manager"],
+      "question": "Which deposit cases need review?",
+      "queue": {
+        "module": "deposit-requests",
+        "statuses": ["Submitted", "In review"]
+      }
+    },
+    {
+      "slug": "industry",
+      "label": "Open lending reviews",
+      "roles": ["Owner", "Manager"],
+      "question": "Which lending cases need review?",
+      "queue": {
+        "module": "loan-reviews",
+        "statuses": ["Submitted", "In review"]
+      }
+    },
+    {
+      "slug": "expenses",
+      "label": "Expenses",
+      "roles": ["Cashier", "Viewer"]
+    }
+  ],
+  "restaurant": [
+    {
+      "slug": "industry",
+      "label": "Kitchen orders in progress",
+      "roles": ["Owner", "Manager"],
+      "question": "Which kitchen orders still need service?",
+      "queue": {
+        "module": "kitchen",
+        "statuses": ["Queued", "Preparing", "Ready"]
+      }
+    },
+    {
+      "slug": "industry",
+      "label": "Tables in service",
+      "roles": ["Owner", "Manager"],
+      "question": "How many tables are in service?",
+      "queue": {
+        "module": "tables",
+        "statuses": ["Available"]
+      }
+    },
+    {
+      "slug": "sales/new",
+      "label": "Record a sale",
+      "roles": ["Owner", "Manager", "Cashier"]
+    },
+    {
+      "slug": "expenses",
+      "label": "Expenses",
+      "roles": ["Cashier", "Viewer"]
+    }
+  ],
+  "hospitality": [
+    {
+      "slug": "industry",
+      "label": "Open stays",
+      "roles": ["Owner", "Manager"],
+      "question": "Which stays are open?",
+      "queue": {
+        "module": "stays",
+        "statuses": ["Reserved", "Checked in"]
+      }
+    },
+    {
+      "slug": "industry",
+      "label": "Rooms out of service",
+      "roles": ["Owner", "Manager"],
+      "question": "Which rooms are out of service?",
+      "queue": {
+        "module": "rooms",
+        "statuses": ["Out of service"]
+      }
+    },
+    {
+      "slug": "expenses",
+      "label": "Expenses"
+    }
+  ],
+  "manufacturing": [
+    {
+      "slug": "industry",
+      "label": "Batches awaiting release",
+      "roles": ["Owner", "Manager"],
+      "question": "Which batches still need release?",
+      "queue": {
+        "module": "batches",
+        "statuses": ["Planned", "In production", "Quality check"]
+      }
+    },
+    {
+      "slug": "inventory",
+      "label": "Inventory"
+    },
+    {
+      "slug": "orders",
+      "label": "Purchase orders",
+      "roles": ["Owner", "Manager"]
+    },
+    {
+      "slug": "expenses",
+      "label": "Expenses",
+      "roles": ["Cashier", "Viewer"]
+    }
+  ],
+  "logistics": [
+    {
+      "slug": "industry",
+      "label": "Open dispatches",
+      "roles": ["Owner", "Manager"],
+      "question": "Which dispatches still need attention?",
+      "queue": {
+        "module": "dispatch",
+        "statuses": ["Scheduled", "Dispatched", "Exception"]
+      }
+    },
+    {
+      "slug": "documents",
+      "label": "Quotes and invoices"
+    },
+    {
+      "slug": "expenses",
+      "label": "Expenses"
+    }
+  ],
+  "construction": [
+    {
+      "slug": "industry",
+      "label": "Open site jobs",
+      "roles": ["Owner", "Manager"],
+      "question": "Which site jobs are open?",
+      "queue": {
+        "module": "jobs",
+        "statuses": ["Planned", "In progress"]
+      }
+    },
+    {
+      "slug": "industry",
+      "label": "Open projects",
+      "roles": ["Owner", "Manager"],
+      "question": "Which projects are open?",
+      "queue": {
+        "module": "projects",
+        "statuses": ["Planned", "Active"]
+      }
+    },
+    {
+      "slug": "expenses",
+      "label": "Expenses"
+    }
+  ],
+  "agriculture": [
+    {
+      "slug": "industry",
+      "label": "Growing cycles underway",
+      "roles": ["Owner", "Manager"],
+      "question": "Which growing cycles are underway?",
+      "queue": {
+        "module": "growing",
+        "statuses": ["Planned", "Planted"]
+      }
+    },
+    {
+      "slug": "inventory",
+      "label": "Inventory"
+    },
+    {
+      "slug": "expenses",
+      "label": "Expenses"
+    }
+  ],
+  "education": [
+    {
+      "slug": "industry",
+      "label": "Open courses",
+      "roles": ["Owner", "Manager"],
+      "question": "Which courses are open?",
+      "queue": {
+        "module": "courses",
+        "statuses": ["Open"]
+      }
+    },
+    {
+      "slug": "industry",
+      "label": "Active enrolments",
+      "roles": ["Owner", "Manager"],
+      "question": "How many enrolments are active?",
+      "queue": {
+        "module": "enrolments",
+        "statuses": ["Enrolled"]
+      }
+    },
+    {
+      "slug": "expenses",
+      "label": "Expenses"
+    }
+  ],
+  "healthcare": [
+    {
+      "slug": "industry",
+      "label": "Open appointments",
+      "roles": ["Owner", "Manager"],
+      "question": "Which appointments are open?",
+      "queue": {
+        "module": "appointments",
+        "statuses": ["Scheduled", "Arrived"]
+      }
+    },
+    {
+      "slug": "expenses",
+      "label": "Expenses"
+    }
+  ],
+  "nonprofit": [
+    {
+      "slug": "industry",
+      "label": "Active programmes",
+      "roles": ["Owner", "Manager"],
+      "question": "Which programmes are active?",
+      "queue": {
+        "module": "programmes",
+        "statuses": ["Active"]
+      }
+    },
+    {
+      "slug": "industry",
+      "label": "Donation pledges to follow up",
+      "roles": ["Owner", "Manager"],
+      "question": "Which donation pledges are pending?",
+      "queue": {
+        "module": "donations",
+        "statuses": ["Pledged"]
+      }
+    },
+    {
+      "slug": "expenses",
+      "label": "Expenses"
+    }
+  ]
+}

@@ -61,4 +61,36 @@ class DemoStoreTest {
         store.reply("Who owes me?")
         assertTrue(store.messages.last().text.contains("5,600"))
     }
+    @Test
+    fun liveAssistantUsesBranchQueueAndConfiguredReorderLevel() {
+        val store = DemoStore(real = true)
+        store.liveState.put("products", org.json.JSONArray(listOf(
+            json("name" to "Bulk flour", "stock" to 15, "reorder" to 20),
+            json("name" to "Table salt", "stock" to 4, "reorder" to 0),
+        )))
+        store.operations.state.put("deliveries", org.json.JSONArray(listOf(
+            json("branch" to "main", "status" to "New"),
+            json("branch" to "main", "status" to "Delivered"),
+            json("branch" to "east", "status" to "Packing"),
+        )))
+        assertEquals(1, store.activityCount("reorder"))
+        assertEquals(1, store.activityCount("delivery"))
+        store.reply("What should I restock?")
+        assertEquals("inventory", store.messages.last().tool)
+        assertTrue(store.messages.last().text.contains("Bulk flour (15)"))
+        assertFalse(store.messages.last().text.contains("Table salt"))
+        store.reply("How many online orders need handling?", "delivery", "Orders in fulfilment", "deliveries")
+        assertEquals("Main shop · Orders in fulfilment: 1", store.messages.last().text)
+        assertEquals("deliveries", store.messages.last().tool)
+        assertFalse(store.messages.any { it.text.contains("12,450") })
+    }
+    @Test
+    fun appointmentsUseNairobiMidnightAndLiveStatuses() {
+        val day = java.time.LocalDate.parse("2026-11-26")
+        assertFalse(bookingNeedsAttention(json("status" to "Scheduled", "startsAt" to "2026-11-25T20:59:59Z"), day))
+        assertTrue(bookingNeedsAttention(json("status" to "Scheduled", "startsAt" to "2026-11-25T21:00:00Z"), day))
+        assertTrue(bookingNeedsAttention(json("status" to "In progress", "startsAt" to "2026-11-26T20:59:59Z"), day))
+        assertFalse(bookingNeedsAttention(json("status" to "Scheduled", "startsAt" to "2026-11-26T21:00:00Z"), day))
+        assertFalse(bookingNeedsAttention(json("status" to "Completed", "startsAt" to "2026-11-26T08:00:00Z"), day))
+    }
 }

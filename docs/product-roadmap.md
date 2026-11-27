@@ -4,6 +4,10 @@ BiasharaOS starts in Kenya. The first release is a shared workspace for merchant
 
 This roadmap distinguishes work implemented in the branch, work needed for a production pilot, and later development. The release checklist tracks deployment readiness. The earlier 20-feature plan records the original UI scope. [Release checklist](backend-implementation-plan.md) · [Original feature plan](feature-expansion-plan.md)
 
+## Next release
+
+Prepare the Kenya merchant pilot, verify a live order and settlement, then improve Shops and Android using merchant feedback. The next roadmap sequences these releases and defines the evidence required at each stage. [Phases 4–7](next-release-roadmap.md)
+
 ## Phase status
 
 | Phase | Status | Latest result |

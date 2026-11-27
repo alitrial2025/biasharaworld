@@ -1,4 +1,5 @@
 import { StorefrontBuilder } from "@/components/workspace/storefront-builder";
+import { CustomerAccessPage } from "@/components/workspace/customer-access";
 import { IndustryPage } from "@/components/workspace/industry-page";
 import { ToolPage } from "@/components/tools/tool-page";
 import type { Metadata } from "next";
@@ -24,6 +25,7 @@ import {
 } from "@/components/workspace/management";
 const titles: Record<string, string> = {
   industry: "Industry operations",
+  "customer-access": "Customer access",
   "online-shop": "Shop builder",
   sales: "Sales",
   inventory: "Inventory",
@@ -59,15 +61,17 @@ export default async function Page({
   searchParams,
 }: {
   params: Promise<{ section: string }>;
-  searchParams: Promise<{ q?: string; module?: string }>;
+  searchParams: Promise<{ q?: string; module?: string; view?: string }>;
 }) {
   const { section } = await params;
-  const { q, module } = await searchParams;
+  const { q, module, view } = await searchParams;
   switch (section) {
     case "online-shop":
       return <StorefrontBuilder />;
+    case "customer-access":
+      return <CustomerAccessPage />;
     case "industry":
-      return <IndustryPage moduleId={module} />;
+      return <IndustryPage moduleId={module} attention={view === "attention"} />;
     case "sales":
       return <SalesPage />;
     case "inventory":
@@ -107,7 +111,7 @@ export default async function Page({
     case "financial-overview":
       return <FinancialOverviewPage />;
     case "bookings":
-      return <ServiceBookingsPage />;
+      return <ServiceBookingsPage key={view ?? "all"} todayOnly={view === "today"} />;
     case "customer-service":
       return <CustomerServicePage />;
     default:

@@ -36,9 +36,11 @@ import {
   Tabs,
   useToast,
 } from "@/components/ui";
-import { lowStock, money, salesTotal, today } from "@/lib/data";
+import { activityCount, dailyActionPath, dailyActions, productsAtReorderLevel } from "@/lib/workspace-activity";
+import { money, salesTotal, today } from "@/lib/data";
 import { businessReport } from "@/lib/backend/reports";
 import { industries, industryFor } from "@/lib/industries";
+import { useIndustrySummary } from "@/lib/use-industry-summary";
 import { useDemo } from "@/lib/store";
 import { downloadCSV } from "@/lib/csv";
 
@@ -485,58 +487,70 @@ export function ReportsPage() {
   );
 }
 
-type Message = { id: number; role: "user" | "assistant"; text: string };
+type Message = { role: "user" | "assistant"; text: string; link?: { slug: string; label: string } };
+const generalQuestions = [
+  "What are today’s sales?",
+  "Who owes me money?",
+  "Where is my money going?",
+];
+
 export function AssistantPage() {
-  const { state } = useDemo();
+  const { state, store } = useDemo();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const industry = industryFor(state.profile.type);
+  const role = store.workspace?.role ?? "";
+  const actions = dailyActions(industry.id, role) ?? [];
+  const summary = useIndustrySummary(store.workspace?.businessId, industry.id, role, actions.some((action) => action.queue));
+  const questions = [...actions.flatMap((action) => action.question ? [action.question] : []), ...generalQuestions].slice(0, 4);
+  const branch = state.operations.branches.find(({ id }) => id === state.operations.activeBranch)?.name ?? "Active branch";
+
   function ask(question: string) {
     const q = question.trim();
     if (!q) return;
-    let response: string;
     const lower = q.toLowerCase();
-    if (/stock|restock|shelf|shelves/.test(lower)) {
-      const products = lowStock(state);
-      response = products.length
-        ? `A little shelf check: ${products.map((p) => `${p.name} (${p.stock} left)`).join(", ")}. These are at or below their reorder points. Review demand and supplier lead times before preparing your next order.`
-        : "Your sample products are all above their reorder points. Review what’s selling fastest before your next order.";
+    const action = actions.find((item) => item.question?.toLowerCase() === lower);
+    let text: string;
+    let link: Message["link"];
+    if (action?.queue) {
+      const count = summary.counts?.[action.queue.module];
+      text = typeof count === "number"
+        ? `All branches · ${action.label}: ${count}`
+        : "Current work counts are unavailable. Open the records to check the latest status.";
+      link = { slug: dailyActionPath(action), label: action.label };
+    } else if (action?.metric && action.metric !== "reorder") {
+      text = `${action.metric === "bookingsToday" ? "All branches" : branch} · ${action.label}: ${activityCount(state, action.metric)}`;
+      link = { slug: dailyActionPath(action), label: action.label };
+    } else if (/stock|restock|shelf|shelves/.test(lower)) {
+      const products = productsAtReorderLevel(state);
+      const examples = products.slice(0, 5).map((product) => `${product.name} (${product.stock})`).join(", ");
+      text = products.length
+        ? `${branch} has ${products.length} products at or below their reorder level. ${examples}.`
+        : `No products in ${branch} are at or below their reorder level.`;
+      link = { slug: "inventory", label: "Inventory" };
     } else if (/owe|debt|balance|credit|customer/.test(lower)) {
-      const customers = state.customers
-        .filter((c) => c.balance > 0)
-        .sort((a, b) => b.balance - a.balance);
-      response = `Your customers have KES ${money(customers.reduce((s, c) => s + c.balance, 0))} outstanding. ${customers
-        .slice(0, 3)
-        .map((c) => `${c.name}: KES ${money(c.balance)}`)
-        .join(
-          "; ",
-        )}. Open Customers to record a sample repayment. No reminders are sent.`;
-    } else if (/expense|spend|cost/.test(lower)) {
-      response = `Your recorded expenses add up to KES ${money(state.expenses.reduce((s, e) => s + e.amount, 0))}. ${state.expenses.length} records are in your expense book. Review the categories in Expenses to see what is keeping the shop running.`;
-    } else if (/sale|today|business|profit|week/.test(lower)) {
-      response = `Here’s a little clarity for ${state.profile.business}: today’s recorded sales are KES ${money(salesTotal(state))}, recorded expenses are KES ${money(state.expenses.reduce((s, e) => s + e.amount, 0))}, and ${lowStock(state).length} products need a stock check. Operating profit from these records is KES ${money(businessReport(state).profit)}.`;
+      const balance = state.customers.reduce((sum, customer) => sum + Math.max(0, customer.balance), 0);
+      text = `Your business has KES ${money(balance)} in recorded customer balances across all branches.`;
+      link = { slug: "customers", label: "Customers" };
+    } else if (/expense|spend|cost|money going/.test(lower)) {
+      const total = state.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+      text = `Your business has KES ${money(total)} in recorded expenses across all branches.`;
+      link = { slug: "expenses", label: "Expenses" };
+    } else if (/sale|today|week|profit/.test(lower)) {
+      const period = lower.includes("week") ? "Week" : "Day";
+      const sales = period === "Day" ? salesTotal(state) : businessReport(state, period).sales;
+      text = `${branch} recorded KES ${money(sales)} in sales after returns ${period === "Day" ? "today" : "over the last seven days"}.`;
+      if (lower.includes("profit")) text += " Reports show cost and expense details.";
+      link = { slug: "reports", label: "Reports" };
     } else {
-      response =
-        "I can help you explore this demo shop’s sales, stock, expenses and customer balances. Try ‘What should I restock?’ or ‘Who owes me money?’ These are rule-based summaries; a live AI service is planned for a later phase.";
+      text = "Choose a suggested question to review recorded sales, expenses, customer balances or sector activity.";
     }
-    setMessages((m) => [
-      ...m,
-      { id: Date.now(), role: "user", text: q },
-      { id: Date.now() + 1, role: "assistant", text: response },
-    ]);
+    setMessages((history) => [...history, { role: "user", text: q }, { role: "assistant", text, link }]);
     setInput("");
   }
   return (
     <>
-      <PageHeading
-        eyebrow="A LITTLE EXTRA CLARITY"
-        title="Good questions. Brighter next steps."
-        description="Your business assistant, with room for your next idea."
-      >
-        <Badge tone="purple">
-          <Sparkles size={12} />
-          <T>BiasharaAI preview</T>
-        </Badge>
-      </PageHeading>
+      <PageHeading title="BiasharaAI" description="Ask for a summary of your recorded business activity." />
       <section className="panel assistant-workspace">
         <div className="assistant-top">
           <span className="ai-orb">
@@ -569,18 +583,10 @@ export function AssistantPage() {
                   <T>What’s on your mind,</T>{" "}
                   <T>{state.profile.name.split(" ")[0]}</T> <T>?</T>
                 </h2>
-                <p>
-                  <T>A clearer picture can start with one good question.</T>
-                </p>
                 <div className="suggestion-grid">
                   <T>
-                    {[
-                      "How is my business doing today?",
-                      "What should I restock?",
-                      "Who owes me money?",
-                      "Where is my money going?",
-                    ].map((q) => (
-                      <LocalButton key={q} onClick={() => ask(q)}>
+                    {questions.map((q) => (
+                      <LocalButton key={q} disabled={summary.loading && actions.some((action) => action.queue && action.question === q)} onClick={() => ask(q)}>
                         <Sparkles size={15} />
                         <span>
                           <T>{q}</T>
@@ -592,8 +598,8 @@ export function AssistantPage() {
                 </div>
               </div>
             ) : (
-              messages.map((m) => (
-                <div className={`chat-message message-${m.role}`} key={m.id}>
+              messages.map((m, index) => (
+                <div className={`chat-message message-${m.role}`} key={index}>
                   <T>
                     {m.role === "assistant" ? (
                       <span className="ai-orb">
@@ -613,6 +619,7 @@ export function AssistantPage() {
                     <p>
                       <T>{m.text}</T>
                     </p>
+                    {m.link && <Link className="text-link" href={`/dashboard/${m.link.slug}`}><T>{m.link.label}</T><ArrowRight size={14} /></Link>}
                   </div>
                 </div>
               ))
@@ -628,7 +635,7 @@ export function AssistantPage() {
         >
           <LocalInput
             aria-label="Ask BiasharaAI"
-            placeholder="Ask a little question about your business…"
+            placeholder="Ask about your recorded activity…"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             maxLength={500}
@@ -644,8 +651,7 @@ export function AssistantPage() {
         </form>
         <p className="quiet-note centered">
           <T>
-            Local sample responses from your demo data. Check your records
-            before making a business decision.
+            Summaries use rules and the records loaded in your workspace.
           </T>
         </p>
       </section>
@@ -804,6 +810,9 @@ export function SettingsPage() {
         )}
         {store.workspace?.role === "Owner" && (
           <Link className="text-link" href="/dashboard/payments">Online payments</Link>
+        )}
+        {store.workspace?.role === "Owner" && (
+          <Link className="text-link" href="/dashboard/online-shop"><T>Shop builder</T></Link>
         )}
         <Link className="text-link" href="/dashboard/preferences">
           <T>Language, theme & reading size →</T>

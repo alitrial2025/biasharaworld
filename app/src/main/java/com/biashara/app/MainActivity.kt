@@ -80,6 +80,8 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
     val industry = catalog.industry(store.liveState.optJSONObject("profile")?.optString("type").orEmpty())
     val role = model.backend?.role.orEmpty()
     var industryModule by rememberSaveable { mutableStateOf("") }
+    var industryAttention by rememberSaveable { mutableStateOf(false) }
+    var bookingsToday by rememberSaveable { mutableStateOf(false) }
     var routes by rememberSaveable { mutableStateOf<List<String>>(listOf(Screen.HOME.name)) }
     var tool by rememberSaveable { mutableStateOf("scanner") }
     var supplier by rememberSaveable { mutableIntStateOf(0) }
@@ -102,6 +104,7 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
     val focused = screen in listOf(Screen.NEW_SALE, Screen.ASSISTANT, Screen.SETUP)
     val openTool: (String) -> Unit = { target ->
         if (target == "checkout") navigate(Screen.NEW_SALE)
+        else if (target == "online-shop" && store.real) navigate(Screen.SHOP_SETUP)
         else {
             tool = target
             navigate(Screen.FEATURE)
@@ -109,8 +112,9 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
     }
     val openWorkspace: (String, String) -> Unit = { slug, module ->
         val destination = when (slug) {
-            "industry" -> Screen.INDUSTRY
+            "industry", "industry/attention" -> Screen.INDUSTRY
             "sales" -> Screen.SALES
+            "sales/new" -> Screen.NEW_SALE
             "inventory" -> Screen.STOCK
             "customers" -> Screen.CUSTOMERS
             "suppliers" -> Screen.SUPPLIERS
@@ -126,14 +130,19 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
             "settlements" -> Screen.SETTLEMENT_RECONCILIATION
             "imports" -> Screen.BUSINESS_IMPORT
             "financial-overview" -> Screen.FINANCIAL_OVERVIEW
-            "bookings" -> Screen.SERVICE_BOOKINGS
+            "bookings", "bookings/today" -> Screen.SERVICE_BOOKINGS
+            "customer-access" -> Screen.CUSTOMER_ACCESS
             "customer-service" -> Screen.CUSTOMER_SERVICE
             "assistant" -> Screen.ASSISTANT
             "financing" -> Screen.FINANCE
             else -> null
         }
-        if (destination == Screen.INDUSTRY) industryModule = module
-        if (destination == null) openTool(if (slug == "orders") "compare" else slug) else navigate(destination)
+        if (destination == Screen.INDUSTRY) {
+            industryModule = module
+            industryAttention = slug == "industry/attention"
+        }
+        if (destination == Screen.SERVICE_BOOKINGS) bookingsToday = slug == "bookings/today"
+        if (destination == null) openTool(slug) else navigate(destination)
     }
     Box(Modifier.fillMaxSize().background(Canvas), contentAlignment = Alignment.TopCenter) {
         Scaffold(
@@ -189,8 +198,9 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
                             } else DashboardScreen(store, navigate, { openTool("branches") })
                             Screen.SEARCH -> WorkspaceSearchScreen(store, catalog, industry, role, openWorkspace)
                             Screen.INDUSTRY -> model.backend?.let { backend ->
-                                key(industry.id, role, industryModule) {
-                                    LiveIndustryRecordsScreen(backend, industry, role, industryModule, back)
+                                key(industry.id, role, industryModule, industryAttention) {
+                                    LiveIndustryRecordsScreen(backend, industry, role, industryModule, industryAttention,
+                                        catalog.dailyActions(industry, role).orEmpty(), back, { navigate(Screen.CUSTOMER_ACCESS) })
                                 }
                             }
                             Screen.TEAM -> LiveTeamScreen(store, back)
@@ -246,10 +256,15 @@ fun BiasharaApp(model: ShopViewModel = viewModel()) {
                             Screen.PAYMENT_ACTIVITY -> LivePaymentActivityScreen(store, back) { navigate(Screen.SETTLEMENT_RECONCILIATION) }
                             Screen.SETTLEMENT_RECONCILIATION -> LiveSettlementReconciliationScreen(store, back)
                             Screen.BUSINESS_IMPORT -> LiveBusinessImportScreen(store, back)
-                            Screen.SERVICE_BOOKINGS -> LiveServiceBookingsScreen(store, back)
+                            Screen.SERVICE_BOOKINGS -> key(bookingsToday) {
+                                val publicPage: (() -> Unit)? = if (industry.id == "services") ({ navigate(Screen.CUSTOMER_ACCESS) }) else null
+                                LiveServiceBookingsScreen(store, back, bookingsToday, publicPage)
+                            }
+                            Screen.CUSTOMER_ACCESS -> LiveCustomerAccessScreen(store, industry.id, back)
+                            Screen.SHOP_SETUP -> LiveShopSetupScreen(store, back) { openTool("deliveries") }
                             Screen.CUSTOMER_SERVICE -> LiveCustomerServiceScreen(store, back)
                             Screen.FINANCIAL_OVERVIEW -> LiveFinancialOverviewScreen(store, back) { navigate(Screen.SETTLEMENT_RECONCILIATION) }
-                            Screen.ASSISTANT -> AssistantScreen(store, back)
+                            Screen.ASSISTANT -> AssistantScreen(store, back, catalog.dailyActions(industry, role).orEmpty(), openWorkspace, industry.id, role)
                             Screen.FINANCE -> FinanceScreen(back)
                             Screen.PROFILE -> ProfileScreen(store, back)
                             Screen.SETUP -> SetupScreen(store) { navigate(Screen.HOME) }

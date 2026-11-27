@@ -4,6 +4,7 @@ import {merchantSettlementCode} from '@/lib/backend/payments/customer-orders';
 import {checkoutChannels,paystackConfig} from '@/lib/backend/payments/paystack';
 import {paymentMethods} from '@/lib/payment-methods';
 import {merchantVerificationStatus} from '@/lib/backend/merchant-verification';
+import {orderProgress} from '@/lib/order-progress';
 import {invoiceBalance} from '@/lib/operations';
 export const dynamic='force-dynamic';
 export async function GET(request:Request,{params}:{params:Promise<{slug:string}>}){
@@ -23,7 +24,7 @@ export async function GET(request:Request,{params}:{params:Promise<{slug:string}
   const customer=state.customers.find(c=>c.email.toLowerCase()===(user.email||'').toLowerCase());
   // IDs in the route never grant access. Only a verified email or recorded order ownership does.
   const orders=state.operations.deliveries.filter(o=>ownedOrders.has(o.id)||(customer&&o.customer===customer.name)).map(order=>({
-   ...order, onlinePayment: !order.paid && ownedOrders.has(order.id) && order.status==='Delivered' && order.total>0
+   ...order, ...orderProgress(order), onlinePayment: !order.paid && ownedOrders.has(order.id) && order.status==='Delivered' && order.total>0
       ? pending.has(order.id) ? pendingOption : newPaymentOption : null,
   }));
   const documents=customer?state.operations.documents.filter(d=>d.customer===customer.name&&d.status!=='Draft')
